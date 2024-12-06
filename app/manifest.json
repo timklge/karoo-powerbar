@@ -1,0 +1,11 @@
+{
+  "label": "karoo-powerbar",
+  "packageName": "de.timklge.karoopowerbar",
+  "iconUrl": "https://github.com/timklge/karoo-powerbar/releases/latest/download/karoo-powerbar.png",
+  "latestApkUrl": "https://github.com/timklge/karoo-powerbar/releases/latest/download/app-release.apk",
+  "latestVersion": "1.0.0",
+  "latestVersionCode": 1,
+  "developer": "timklge",
+  "description": "Adds a colored power bar to the bottom of the screen",
+  "releaseNotes": "Initial release"
+}
