@@ -10,7 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-class KarooPowerbarExtension : KarooExtension("karoo-powerbar", "1.0.0") {
+class KarooPowerbarExtension : KarooExtension("karoo-powerbar", "1.0.1") {
 
     companion object {
         const val TAG = "karoo-powerbar"

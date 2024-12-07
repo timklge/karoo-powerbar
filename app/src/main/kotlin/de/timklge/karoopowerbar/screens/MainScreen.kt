@@ -64,11 +64,11 @@ fun MainScreen() {
     var givenPermissions by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
+        givenPermissions = Settings.canDrawOverlays(ctx)
+
         ctx.streamSettings().collect { settings ->
             selectedSource = settings.source
         }
-
-        givenPermissions = Settings.canDrawOverlays(ctx)
     }
 
     LaunchedEffect(Unit) {
@@ -99,8 +99,10 @@ fun MainScreen() {
             .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
             val powerSourceDropdownOptions = SelectedSource.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
-            val powerSourceInitialSelection = powerSourceDropdownOptions.find { option -> option.id == selectedSource.id }!!
-            Dropdown(label = "Data Source", options = powerSourceDropdownOptions, initialSelection = powerSourceInitialSelection) { selectedOption ->
+            val powerSourceInitialSelection by remember(selectedSource) {
+                mutableStateOf(powerSourceDropdownOptions.find { option -> option.id == selectedSource.id }!!)
+            }
+            Dropdown(label = "Data Source", options = powerSourceDropdownOptions, selected = powerSourceInitialSelection) { selectedOption ->
                 selectedSource = SelectedSource.entries.find { unit -> unit.id == selectedOption.id }!!
             }
 

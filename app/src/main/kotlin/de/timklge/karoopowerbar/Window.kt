@@ -42,6 +42,7 @@ enum class HrZone(val colorResource: Int) {
     ACTIVE_RECOVERY(R.color.zoneActiveRecovery),
     ENDURANCE(R.color.zoneEndurance),
     TEMPO(R.color.zoneTempo),
+    THRESHOLD(R.color.zoneThreshold),
     VO2_MAX(R.color.zoneAerobic),
 }
 
@@ -84,7 +85,7 @@ class Window(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.or(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE),
             PixelFormat.TRANSLUCENT
         )
 

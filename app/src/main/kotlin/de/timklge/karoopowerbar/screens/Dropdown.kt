@@ -10,6 +10,7 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,9 +22,8 @@ data class DropdownOption(val id: String, val name: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Dropdown(label: String, options: List<DropdownOption>, initialSelection: DropdownOption, onSelect: (selectedOption: DropdownOption) -> Unit) {
+fun Dropdown(label: String, options: List<DropdownOption>, selected: DropdownOption, onSelect: (selectedOption: DropdownOption) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf(initialSelection) }
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -50,9 +50,8 @@ fun Dropdown(label: String, options: List<DropdownOption>, initialSelection: Dro
                 DropdownMenuItem(
                     text = { Text(option.name, style = MaterialTheme.typography.bodyLarge) },
                     onClick = {
-                        selected = option
                         expanded = false
-                        onSelect(selected)
+                        onSelect(option)
                     },
                     contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
                 )
