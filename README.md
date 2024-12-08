@@ -8,7 +8,7 @@ running Karoo OS version 1.524.2003 and later.
 
 ![Powerbar](powerbar0.png)
 ![Settings](powerbar1.png)
-![Powerbar GIF](powerbar.gif)
+![Powerbar GIF](powerbar_min.gif)
 
 ## Usage
 
