@@ -3,6 +3,7 @@ package de.timklge.karoopowerbar
 import android.content.Context
 import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
@@ -45,7 +46,7 @@ class CustomProgressBar @JvmOverloads constructor(
 
         val background = Paint().apply {
             style = Paint.Style.FILL_AND_STROKE
-            color = 0x70000000
+            color = Color.argb(1.0f, 0f, 0f, 0f)
             strokeWidth = 2f
         }
 
