@@ -57,8 +57,11 @@ class CustomProgressBar @JvmOverloads constructor(
 
         val corners = 2f
         canvas.drawRoundRect(0f, 2f + 4f, canvas.width.toFloat(), canvas.height.toFloat(), 2f, 2f, background)
-        canvas.drawRoundRect(rect, corners, corners, blurPaint)
-        canvas.drawRoundRect(rect, corners, corners, linePaint)
+
+        if (progress > 0.0) {
+            canvas.drawRoundRect(rect, corners, corners, blurPaint)
+            canvas.drawRoundRect(rect, corners, corners, linePaint)
+        }
 
         canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
     }

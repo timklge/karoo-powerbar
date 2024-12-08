@@ -34,15 +34,14 @@ fun remap(value: Double, fromMin: Double, fromMax: Double, toMin: Double, toMax:
 class Window(
     private val context: Context
 ) {
-    // private var mProgressBar: ProgressBar
-    private val mView: View
-    private var mParams: WindowManager.LayoutParams? = null
-    private val mWindowManager: WindowManager
+    private val rootView: View
+    private var layoutParams: WindowManager.LayoutParams? = null
+    private val windowManager: WindowManager
     private val layoutInflater: LayoutInflater
-    private val mProgressBar: CustomProgressBar
+    private val powerbar: CustomProgressBar
 
     init {
-        mParams = WindowManager.LayoutParams(
+        layoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -51,29 +50,27 @@ class Window(
         )
 
         layoutInflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        mView = layoutInflater.inflate(R.layout.popup_window, null)
-        mProgressBar = mView.findViewById(R.id.progressBar)
-        mProgressBar.progress = 0.0
+        rootView = layoutInflater.inflate(R.layout.popup_window, null)
+        powerbar = rootView.findViewById(R.id.progressBar)
+        powerbar.progress = 0.0
 
-        mWindowManager = context.getSystemService(WINDOW_SERVICE) as WindowManager
+        windowManager = context.getSystemService(WINDOW_SERVICE) as WindowManager
         val displayMetrics = DisplayMetrics()
 
         if (Build.VERSION.SDK_INT >= 30) {
-            val windowMetrics = mWindowManager.currentWindowMetrics
+            val windowMetrics = windowManager.currentWindowMetrics
             val insets = windowMetrics.windowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars())
             val bounds = windowMetrics.bounds
             displayMetrics.widthPixels = bounds.width() - insets.left - insets.right
             displayMetrics.heightPixels = bounds.height() - insets.top - insets.bottom
         } else {
             @Suppress("DEPRECATION")
-            mWindowManager.defaultDisplay.getMetrics(displayMetrics)
+            windowManager.defaultDisplay.getMetrics(displayMetrics)
         }
 
-        // Define the position of the
-        // window within the screen
-        mParams?.gravity = Gravity.BOTTOM
-        mParams?.width = displayMetrics.widthPixels
-        mParams?.alpha = 1.0f
+        layoutParams?.gravity = Gravity.BOTTOM
+        layoutParams?.width = displayMetrics.widthPixels
+        layoutParams?.alpha = 1.0f
     }
 
     private val karooSystem: KarooSystemService = KarooSystemService(context)
@@ -86,33 +83,32 @@ class Window(
         serviceJob = CoroutineScope(Dispatchers.IO).launch {
             karooSystem.connect { connected ->
                 if (connected) {
-                    Log.i("karoo-powerbar", "Connected")
+                    Log.i(KarooPowerbarExtension.TAG, "Connected")
                 }
             }
 
             context.streamSettings().distinctUntilChanged().collectLatest { settings ->
-                mProgressBar.progressColor = context.resources.getColor(R.color.zoneAerobic)
-                mProgressBar.progress = 0.5
-                mProgressBar.invalidate()
+                powerbar.progressColor = context.resources.getColor(R.color.zoneAerobic)
+                powerbar.progress = 0.0
+                powerbar.invalidate()
 
-                Log.i("karoo-powerbar", "Streaming ${settings.source}")
+                Log.i(KarooPowerbarExtension.TAG, "Streaming ${settings.source}")
 
                 when (settings.source){
                     SelectedSource.POWER -> streamPower(PowerStreamSmoothing.RAW)
                     SelectedSource.POWER_3S -> streamPower(PowerStreamSmoothing.SMOOTHED_3S)
                     SelectedSource.POWER_10S -> streamPower(PowerStreamSmoothing.SMOOTHED_10S)
-                    // SelectedSource.POWER_30S -> streamPower(PowerStreamSmoothing.SMOOTHED_30S)
                     SelectedSource.HEART_RATE -> streamHeartrate()
                 }
             }
         }
 
         try {
-            if (mView.windowToken == null && mView.parent == null) {
-                mWindowManager.addView(mView, mParams)
+            if (rootView.windowToken == null && rootView.parent == null) {
+                windowManager.addView(rootView, layoutParams)
             }
         } catch (e: Exception) {
-            Log.d("karoo-powerbar", e.toString())
+            Log.d(KarooPowerbarExtension.TAG, e.toString())
         }
     }
 
@@ -136,11 +132,11 @@ class Window(
                 val progress =
                     remap(streamData.value, minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
 
-                mProgressBar.progressColor = color
-                mProgressBar.progress = progress
-                mProgressBar.invalidate()
+                powerbar.progressColor = color
+                powerbar.progress = progress
+                powerbar.invalidate()
 
-                Log.i("karoo-powerbar", "Hr: ${streamData.value} min: $minHr max: $maxHr")
+                Log.d(KarooPowerbarExtension.TAG, "Hr: ${streamData.value} min: $minHr max: $maxHr")
             }
     }
 
@@ -170,22 +166,22 @@ class Window(
                 val progress =
                     remap(streamData.value, minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
 
-                mProgressBar.progressColor = color
-                mProgressBar.progress = progress
-                mProgressBar.invalidate()
+                powerbar.progressColor = color
+                powerbar.progress = progress
+                powerbar.invalidate()
 
-                Log.i("karoo-powerbar", "Power: ${streamData.value} min: $minPower max: $maxPower")
+                Log.d(KarooPowerbarExtension.TAG, "Power: ${streamData.value} min: $minPower max: $maxPower")
             }
     }
 
     fun close() {
         try {
             serviceJob?.cancel()
-            (context.getSystemService(WINDOW_SERVICE) as WindowManager).removeView(mView)
-            mView.invalidate()
-            (mView.parent as ViewGroup).removeAllViews()
+            (context.getSystemService(WINDOW_SERVICE) as WindowManager).removeView(rootView)
+            rootView.invalidate()
+            (rootView.parent as ViewGroup).removeAllViews()
         } catch (e: Exception) {
-            Log.d("karoo-powerbar", e.toString())
+            Log.d(KarooPowerbarExtension.TAG, e.toString())
         }
     }
 }
