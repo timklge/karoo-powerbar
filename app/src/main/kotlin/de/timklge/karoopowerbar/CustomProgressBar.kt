@@ -1,7 +1,6 @@
 package de.timklge.karoopowerbar
 
 import android.content.Context
-import android.content.res.Configuration
 import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -14,16 +13,8 @@ import androidx.core.graphics.ColorUtils
 class CustomProgressBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
-    private val mPaddedRect = RectF()
-    private val mBlurRadius = 4
-
     var progress: Double = 0.5
     @ColorInt var progressColor: Int = 0xFF2b86e6.toInt()
-
-    fun isDarkMode(context: Context): Boolean {
-        val flags = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        return flags == Configuration.UI_MODE_NIGHT_YES
-    }
 
     override fun onDrawForeground(canvas: Canvas) {
         super.onDrawForeground(canvas)
@@ -57,18 +48,18 @@ class CustomProgressBar @JvmOverloads constructor(
             strokeWidth = 2f
         }
 
-        val halfStrokeWidth = 1f
-        mPaddedRect.left = halfStrokeWidth
-        mPaddedRect.top = halfStrokeWidth + mBlurRadius
-        mPaddedRect.right =
-            ((canvas.width.toDouble() - halfStrokeWidth) * progress.coerceIn(0.0, 1.0)).toFloat()
-        mPaddedRect.bottom = canvas.height.toFloat() - halfStrokeWidth
+        val rect = RectF(
+            1f,
+            1f + 4f,
+            ((canvas.width.toDouble() - 1f) * progress.coerceIn(0.0, 1.0)).toFloat(),
+            canvas.height.toFloat() - 1f
+        )
 
         val corners = 2f
-        canvas.drawRoundRect(0f, 2f + mBlurRadius, canvas.width.toFloat(), canvas.height.toFloat(), 2f, 2f, background)
-        canvas.drawRoundRect(mPaddedRect, corners, corners, blurPaint)
-        canvas.drawRoundRect(mPaddedRect, corners, corners, linePaint)
+        canvas.drawRoundRect(0f, 2f + 4f, canvas.width.toFloat(), canvas.height.toFloat(), 2f, 2f, background)
+        canvas.drawRoundRect(rect, corners, corners, blurPaint)
+        canvas.drawRoundRect(rect, corners, corners, linePaint)
 
-        canvas.drawRoundRect(mPaddedRect.right-4, mPaddedRect.top, mPaddedRect.right+4, mPaddedRect.bottom, 2f, 2f, blurPaintHighlight)
+        canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
     }
 }

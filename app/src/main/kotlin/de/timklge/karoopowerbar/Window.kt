@@ -27,45 +27,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 
-
-enum class PowerZone(val colorResource: Int) {
-    ACTIVE_RECOVERY(R.color.zoneActiveRecovery),
-    ENDURANCE(R.color.zoneEndurance),
-    TEMPO(R.color.zoneTempo),
-    THRESHOLD(R.color.zoneThreshold),
-    VO2_MAX(R.color.zoneVO2Max),
-    AEROBIC_CAPACITY(R.color.zoneAerobic),
-    ANAEROBIC_CAPACITY(R.color.zoneAnaerobic),
-}
-
-enum class HrZone(val colorResource: Int) {
-    ACTIVE_RECOVERY(R.color.zoneActiveRecovery),
-    ENDURANCE(R.color.zoneEndurance),
-    TEMPO(R.color.zoneTempo),
-    THRESHOLD(R.color.zoneThreshold),
-    VO2_MAX(R.color.zoneAerobic),
-}
-
-fun UserProfile.getUserPowerZone(power: Int): PowerZone? {
-    powerZones.forEachIndexed { index, zone ->
-        if (power in zone.min..zone.max) {
-            return PowerZone.entries[index]
-        }
-    }
-
-    return null
-}
-
-fun UserProfile.getUserHrZone(hr: Int): HrZone? {
-    heartRateZones.forEachIndexed { index, zone ->
-        if (hr in zone.min..zone.max) {
-            return HrZone.entries[index]
-        }
-    }
-
-    return null
-}
-
 fun remap(value: Double, fromMin: Double, fromMax: Double, toMin: Double, toMax: Double): Double {
     return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin
 }
@@ -92,7 +53,7 @@ class Window(
         layoutInflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         mView = layoutInflater.inflate(R.layout.popup_window, null)
         mProgressBar = mView.findViewById(R.id.progressBar)
-        mProgressBar.progress = 0.5
+        mProgressBar.progress = 0.0
 
         mWindowManager = context.getSystemService(WINDOW_SERVICE) as WindowManager
         val displayMetrics = DisplayMetrics()
@@ -105,7 +66,7 @@ class Window(
             displayMetrics.heightPixels = bounds.height() - insets.top - insets.bottom
         } else {
             @Suppress("DEPRECATION")
-            mWindowManager.getDefaultDisplay().getMetrics(displayMetrics)
+            mWindowManager.defaultDisplay.getMetrics(displayMetrics)
         }
 
         // Define the position of the
@@ -151,7 +112,7 @@ class Window(
                 mWindowManager.addView(mView, mParams)
             }
         } catch (e: Exception) {
-            Log.d("Error1", e.toString())
+            Log.d("karoo-powerbar", e.toString())
         }
     }
 
@@ -187,7 +148,6 @@ class Window(
         RAW(DataType.Type.POWER),
         SMOOTHED_3S(DataType.Type.SMOOTHED_3S_AVERAGE_POWER),
         SMOOTHED_10S(DataType.Type.SMOOTHED_10S_AVERAGE_POWER),
-        SMOOTHED_30S(DataType.Type.SMOOTHED_30S_AVERAGE_POWER),
     }
 
     private suspend fun streamPower(smoothed: PowerStreamSmoothing) {
