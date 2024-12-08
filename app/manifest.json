@@ -7,5 +7,5 @@
   "latestVersionCode": 3,
   "developer": "timklge",
   "description": "Adds a colored power bar to the bottom of the screen",
-  "releaseNotes": "Initial release"
+  "releaseNotes": "Add options to add secondary power bar and to hide bar when not riding"
 }
