@@ -58,7 +58,7 @@ fun UserProfile.getUserPowerZone(power: Int): PowerZone? {
 
 fun UserProfile.getUserHrZone(hr: Int): HrZone? {
     heartRateZones.forEachIndexed { index, zone ->
-        if (hr in zone.min..<zone.max) {
+        if (hr in zone.min..zone.max) {
             return HrZone.entries[index]
         }
     }
