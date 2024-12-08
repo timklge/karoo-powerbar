@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 fun remap(value: Double, fromMin: Double, fromMax: Double, toMin: Double, toMax: Double): Double {
     return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin
@@ -102,11 +103,11 @@ class Window(
                 Log.i(TAG, "Karoo system service connected: $connected")
             }
 
-            powerbar.progressColor = context.resources.getColor(R.color.zoneAerobic)
+            powerbar.progressColor = context.resources.getColor(R.color.zone7)
             powerbar.progress = 0.0
             powerbar.invalidate()
 
-            Log.i(KarooPowerbarExtension.TAG, "Streaming $selectedSource")
+            Log.i(TAG, "Streaming $selectedSource")
 
             when (selectedSource){
                 SelectedSource.POWER -> streamPower(PowerStreamSmoothing.RAW)
@@ -124,7 +125,7 @@ class Window(
                 }
             }
         } catch (e: Exception) {
-            Log.e(KarooPowerbarExtension.TAG, e.toString())
+            Log.e(TAG, e.toString())
         }
     }
 
@@ -139,20 +140,21 @@ class Window(
             .map { (userProfile, hr) -> StreamData(userProfile, hr) }
             .distinctUntilChanged()
             .collect { streamData ->
+                val value = streamData.value.roundToInt()
                 val color = context.getColor(
-                    streamData.userProfile.getUserHrZone(streamData.value.toInt())?.colorResource
-                        ?: R.color.zoneAerobic
+                    streamData.userProfile.getZone(streamData.userProfile.heartRateZones, value)?.colorResource
+                        ?: R.color.zone7
                 )
                 val minHr = streamData.userProfile.restingHr
                 val maxHr = streamData.userProfile.maxHr
                 val progress =
-                    remap(streamData.value, minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
+                    remap(value.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
 
                 powerbar.progressColor = color
                 powerbar.progress = progress
                 powerbar.invalidate()
 
-                Log.d(KarooPowerbarExtension.TAG, "Hr: ${streamData.value} min: $minHr max: $maxHr")
+                Log.d(TAG, "Hr: $value min: $minHr max: $maxHr")
             }
     }
 
@@ -173,20 +175,21 @@ class Window(
             .map { (userProfile, power) -> StreamData(userProfile, power) }
             .distinctUntilChanged()
             .collect { streamData ->
+                val value = streamData.value.roundToInt()
                 val color = context.getColor(
-                    streamData.userProfile.getUserPowerZone(streamData.value.toInt())?.colorResource
-                        ?: R.color.zoneAerobic
+                    streamData.userProfile.getZone(streamData.userProfile.powerZones, value)?.colorResource
+                        ?: R.color.zone7
                 )
                 val minPower = streamData.userProfile.powerZones.first().min
                 val maxPower = streamData.userProfile.powerZones.last().min + 50
                 val progress =
-                    remap(streamData.value, minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
+                    remap(value.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
 
                 powerbar.progressColor = color
                 powerbar.progress = progress
                 powerbar.invalidate()
 
-                Log.d(KarooPowerbarExtension.TAG, "Power: ${streamData.value} min: $minPower max: $maxPower")
+                Log.d(TAG, "Power: ${value} min: $minPower max: $maxPower")
             }
     }
 
@@ -197,7 +200,7 @@ class Window(
             rootView.invalidate()
             (rootView.parent as ViewGroup).removeAllViews()
         } catch (e: Exception) {
-            Log.d(KarooPowerbarExtension.TAG, e.toString())
+            Log.d(TAG, e.toString())
         }
     }
 }
