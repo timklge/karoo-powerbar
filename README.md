@@ -13,16 +13,16 @@ running Karoo OS version 1.524.2003 and later.
 ## Usage
 
 Install the app and start it from the main menu. You will be asked to grant it permission to show 
-it on top of other apps (i. e. the karoo ride app). You can select one of the following data sources:
+it on top of other apps (i. e. the karoo ride app). You can select one of the following data sources
+to be displayed at the bottom or at the top of the screen:
 
-- Heart rate
 - Power
+- Heart rate
 - Average power over the last 3 seconds
 - Average power over the last 10 seconds
 
-Subsequently, the power bar will be shown at the bottom of the screen. The bar will be filled according
-to your current power output / heart rate and will change color depending on the intensity, as setup
-in your power / heart rate zones.
+Subsequently, the bar(s) will be shown when riding. Bars are filled and colored according
+to your current power output / heart rate zone as setup in your Karoo settings.
 
 ## Installation
 
