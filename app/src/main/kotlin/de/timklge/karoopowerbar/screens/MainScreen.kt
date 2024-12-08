@@ -44,6 +44,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 enum class SelectedSource(val id: String, val label: String) {
+    NONE("none", "None"),
     HEART_RATE("hr", "Heart Rate"),
     POWER("power", "Power"),
     POWER_3S("power_3s", "Power (3 second avg)"),
@@ -58,7 +59,9 @@ fun MainScreen() {
     val coroutineScope = rememberCoroutineScope()
     val karooSystem = remember { KarooSystemService(ctx) }
 
-    var selectedSource by remember { mutableStateOf(SelectedSource.POWER) }
+    var bottomSelectedSource by remember { mutableStateOf(SelectedSource.POWER) }
+    var topSelectedSource by remember { mutableStateOf(SelectedSource.NONE) }
+
     var savedDialogVisible by remember { mutableStateOf(false) }
     var showAlerts by remember { mutableStateOf(false) }
     var givenPermissions by remember { mutableStateOf(false) }
@@ -67,7 +70,8 @@ fun MainScreen() {
         givenPermissions = Settings.canDrawOverlays(ctx)
 
         ctx.streamSettings().collect { settings ->
-            selectedSource = settings.source
+            bottomSelectedSource = settings.source
+            topSelectedSource = settings.topBarSource
         }
     }
 
@@ -98,18 +102,30 @@ fun MainScreen() {
             .verticalScroll(rememberScrollState())
             .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
-            val powerSourceDropdownOptions = SelectedSource.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
-            val powerSourceInitialSelection by remember(selectedSource) {
-                mutableStateOf(powerSourceDropdownOptions.find { option -> option.id == selectedSource.id }!!)
+            apply {
+                val dropdownOptions = SelectedSource.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
+                val dropdownInitialSelection by remember(bottomSelectedSource) {
+                    mutableStateOf(dropdownOptions.find { option -> option.id == bottomSelectedSource.id }!!)
+                }
+                Dropdown(label = "Bottom Bar", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
+                    bottomSelectedSource = SelectedSource.entries.find { unit -> unit.id == selectedOption.id }!!
+                }
             }
-            Dropdown(label = "Data Source", options = powerSourceDropdownOptions, selected = powerSourceInitialSelection) { selectedOption ->
-                selectedSource = SelectedSource.entries.find { unit -> unit.id == selectedOption.id }!!
+
+            apply {
+                val dropdownOptions = SelectedSource.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
+                val dropdownInitialSelection by remember(topSelectedSource) {
+                    mutableStateOf(dropdownOptions.find { option -> option.id == topSelectedSource.id }!!)
+                }
+                Dropdown(label = "Top Bar", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
+                    topSelectedSource = SelectedSource.entries.find { unit -> unit.id == selectedOption.id }!!
+                }
             }
 
             FilledTonalButton(modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp), onClick = {
-                val newSettings = PowerbarSettings(source = selectedSource)
+                val newSettings = PowerbarSettings(source = bottomSelectedSource, topBarSource = topSelectedSource)
 
                 coroutineScope.launch {
                     saveSettings(ctx, newSettings)

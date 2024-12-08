@@ -14,6 +14,7 @@ class CustomProgressBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
     var progress: Double = 0.5
+    var location: PowerbarLocation = PowerbarLocation.BOTTOM
     @ColorInt var progressColor: Int = 0xFF2b86e6.toInt()
 
     override fun onDrawForeground(canvas: Canvas) {
@@ -48,21 +49,39 @@ class CustomProgressBar @JvmOverloads constructor(
             strokeWidth = 2f
         }
 
-        val rect = RectF(
-            1f,
-            1f + 4f,
-            ((canvas.width.toDouble() - 1f) * progress.coerceIn(0.0, 1.0)).toFloat(),
-            canvas.height.toFloat() - 1f
-        )
+        when(location){
+            PowerbarLocation.TOP -> {
+                val rect = RectF(
+                    1f,
+                    1f,
+                    ((canvas.width.toDouble() - 1f) * progress.coerceIn(0.0, 1.0)).toFloat(),
+                    canvas.height.toFloat() - 1f - 4f
+                )
 
-        val corners = 2f
-        canvas.drawRoundRect(0f, 2f + 4f, canvas.width.toFloat(), canvas.height.toFloat(), 2f, 2f, background)
+                canvas.drawRoundRect(0f, 2f, canvas.width.toFloat(), canvas.height.toFloat() - 4f, 2f, 2f, background)
 
-        if (progress > 0.0) {
-            canvas.drawRoundRect(rect, corners, corners, blurPaint)
-            canvas.drawRoundRect(rect, corners, corners, linePaint)
+                if (progress > 0.0) {
+                    canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
+                    canvas.drawRoundRect(rect, 2f, 2f, linePaint)
+                    canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
+                }
+            }
+            PowerbarLocation.BOTTOM -> {
+                val rect = RectF(
+                    1f,
+                    1f + 4f,
+                    ((canvas.width.toDouble() - 1f) * progress.coerceIn(0.0, 1.0)).toFloat(),
+                    canvas.height.toFloat() - 1f
+                )
+
+                canvas.drawRoundRect(0f, 2f + 4f, canvas.width.toFloat(), canvas.height.toFloat(), 2f, 2f, background)
+
+                if (progress > 0.0) {
+                    canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
+                    canvas.drawRoundRect(rect, 2f, 2f, linePaint)
+                    canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
+                }
+            }
         }
-
-        canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
     }
 }

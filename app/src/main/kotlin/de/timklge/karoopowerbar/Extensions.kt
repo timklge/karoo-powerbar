@@ -27,6 +27,7 @@ val settingsKey = stringPreferencesKey("settings")
 @Serializable
 data class PowerbarSettings(
     val source: SelectedSource = SelectedSource.POWER,
+    val topBarSource: SelectedSource = SelectedSource.NONE,
 ){
     companion object {
         val defaultSettings = Json.encodeToString(PowerbarSettings())

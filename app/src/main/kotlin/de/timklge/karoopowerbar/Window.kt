@@ -20,25 +20,33 @@ import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 fun remap(value: Double, fromMin: Double, fromMax: Double, toMin: Double, toMax: Double): Double {
     return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin
 }
 
+enum class PowerbarLocation {
+    TOP, BOTTOM
+}
+
 class Window(
-    private val context: Context
+    private val context: Context,
+    val powerbarLocation: PowerbarLocation = PowerbarLocation.BOTTOM
 ) {
     private val rootView: View
     private var layoutParams: WindowManager.LayoutParams? = null
     private val windowManager: WindowManager
     private val layoutInflater: LayoutInflater
+
     private val powerbar: CustomProgressBar
+
+    var selectedSource: SelectedSource = SelectedSource.POWER
 
     init {
         layoutParams = WindowManager.LayoutParams(
@@ -68,7 +76,15 @@ class Window(
             windowManager.defaultDisplay.getMetrics(displayMetrics)
         }
 
-        layoutParams?.gravity = Gravity.BOTTOM
+        layoutParams?.gravity = when (powerbarLocation) {
+            PowerbarLocation.TOP -> Gravity.TOP
+            PowerbarLocation.BOTTOM -> Gravity.BOTTOM
+        }
+        if (powerbarLocation == PowerbarLocation.TOP) {
+            layoutParams?.y = 10
+        } else {
+            layoutParams?.y = 0
+        }
         layoutParams?.width = displayMetrics.widthPixels
         layoutParams?.alpha = 1.0f
     }
@@ -79,36 +95,37 @@ class Window(
 
     private var serviceJob: Job? = null
 
-    fun open() {
-        serviceJob = CoroutineScope(Dispatchers.IO).launch {
+    suspend fun open() {
+        serviceJob = CoroutineScope(Dispatchers.Default).launch {
             karooSystem.connect { connected ->
                 if (connected) {
                     Log.i(KarooPowerbarExtension.TAG, "Connected")
                 }
             }
 
-            context.streamSettings().distinctUntilChanged().collectLatest { settings ->
-                powerbar.progressColor = context.resources.getColor(R.color.zoneAerobic)
-                powerbar.progress = 0.0
-                powerbar.invalidate()
+            powerbar.progressColor = context.resources.getColor(R.color.zoneAerobic)
+            powerbar.progress = 0.0
+            powerbar.invalidate()
 
-                Log.i(KarooPowerbarExtension.TAG, "Streaming ${settings.source}")
+            Log.i(KarooPowerbarExtension.TAG, "Streaming $selectedSource")
 
-                when (settings.source){
-                    SelectedSource.POWER -> streamPower(PowerStreamSmoothing.RAW)
-                    SelectedSource.POWER_3S -> streamPower(PowerStreamSmoothing.SMOOTHED_3S)
-                    SelectedSource.POWER_10S -> streamPower(PowerStreamSmoothing.SMOOTHED_10S)
-                    SelectedSource.HEART_RATE -> streamHeartrate()
-                }
+            when (selectedSource){
+                SelectedSource.POWER -> streamPower(PowerStreamSmoothing.RAW)
+                SelectedSource.POWER_3S -> streamPower(PowerStreamSmoothing.SMOOTHED_3S)
+                SelectedSource.POWER_10S -> streamPower(PowerStreamSmoothing.SMOOTHED_10S)
+                SelectedSource.HEART_RATE -> streamHeartrate()
+                else -> {}
             }
         }
 
         try {
-            if (rootView.windowToken == null && rootView.parent == null) {
-                windowManager.addView(rootView, layoutParams)
+            withContext(Dispatchers.Main) {
+                if (rootView.windowToken == null && rootView.parent == null) {
+                    windowManager.addView(rootView, layoutParams)
+                }
             }
         } catch (e: Exception) {
-            Log.d(KarooPowerbarExtension.TAG, e.toString())
+            Log.e(KarooPowerbarExtension.TAG, e.toString())
         }
     }
 
