@@ -7,12 +7,19 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import de.timklge.karoopowerbar.KarooPowerbarExtension.Companion.TAG
 import de.timklge.karoopowerbar.screens.SelectedSource
+import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.RideState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+
+data class StreamState(val settings: PowerbarSettings, val showBars: Boolean)
 
 class ForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder {
@@ -26,12 +33,26 @@ class ForegroundService : Service() {
         setupForeground()
 
         CoroutineScope(Dispatchers.IO).launch {
-            applicationContext.streamSettings()
-                .collectLatest { settings ->
+            val karooSystemService = KarooSystemService(applicationContext)
+            karooSystemService.connect { connected ->
+                Log.i(TAG, "Karoo system service connected: $connected")
+            }
+            val rideStateFlow = karooSystemService.streamRideState()
+
+            applicationContext
+                .streamSettings()
+                .combine(rideStateFlow) { settings, rideState ->
+                    val showBars = if (settings.onlyShowWhileRiding){
+                        rideState is RideState.Recording
+                    } else {
+                        true
+                    }
+                    StreamState(settings, showBars)
+                }.collectLatest { (settings, showBars) ->
                     windows.forEach { it.close() }
                     windows.clear()
 
-                    if (settings.source != SelectedSource.NONE) {
+                    if (settings.source != SelectedSource.NONE && showBars) {
                         Window(this@ForegroundService, PowerbarLocation.BOTTOM).apply {
                             selectedSource = settings.source
                             windows.add(this)
@@ -39,7 +60,7 @@ class ForegroundService : Service() {
                         }
                     }
 
-                    if (settings.topBarSource != SelectedSource.NONE){
+                    if (settings.topBarSource != SelectedSource.NONE && showBars){
                         Window(this@ForegroundService, PowerbarLocation.TOP).apply {
                             selectedSource = settings.topBarSource
                             open()

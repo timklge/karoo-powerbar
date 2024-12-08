@@ -5,6 +5,7 @@ import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -31,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -66,12 +69,15 @@ fun MainScreen() {
     var showAlerts by remember { mutableStateOf(false) }
     var givenPermissions by remember { mutableStateOf(false) }
 
+    var onlyShowWhileRiding by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         givenPermissions = Settings.canDrawOverlays(ctx)
 
         ctx.streamSettings().collect { settings ->
             bottomSelectedSource = settings.source
             topSelectedSource = settings.topBarSource
+            onlyShowWhileRiding = settings.onlyShowWhileRiding
         }
     }
 
@@ -122,10 +128,16 @@ fun MainScreen() {
                 }
             }
 
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = onlyShowWhileRiding, onCheckedChange = { onlyShowWhileRiding = it})
+                Spacer(modifier = Modifier.width(10.dp))
+                Text("Only show while riding")
+            }
+
             FilledTonalButton(modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp), onClick = {
-                val newSettings = PowerbarSettings(source = bottomSelectedSource, topBarSource = topSelectedSource)
+                val newSettings = PowerbarSettings(source = bottomSelectedSource, topBarSource = topSelectedSource, onlyShowWhileRiding = onlyShowWhileRiding)
 
                 coroutineScope.launch {
                     saveSettings(ctx, newSettings)

@@ -12,6 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
+import de.timklge.karoopowerbar.KarooPowerbarExtension.Companion.TAG
 import de.timklge.karoopowerbar.screens.SelectedSource
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
@@ -98,9 +99,7 @@ class Window(
     suspend fun open() {
         serviceJob = CoroutineScope(Dispatchers.Default).launch {
             karooSystem.connect { connected ->
-                if (connected) {
-                    Log.i(KarooPowerbarExtension.TAG, "Connected")
-                }
+                Log.i(TAG, "Karoo system service connected: $connected")
             }
 
             powerbar.progressColor = context.resources.getColor(R.color.zoneAerobic)

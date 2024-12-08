@@ -31,9 +31,7 @@ class KarooPowerbarExtension : KarooExtension("karoo-powerbar", "1.0.1") {
 
         serviceJob = CoroutineScope(Dispatchers.IO).launch {
             karooSystem.connect { connected ->
-                if (connected) {
-                    Log.i(TAG, "Connected")
-                }
+                Log.i(TAG, "Karoo system service connected: $connected")
             }
         }
     }
