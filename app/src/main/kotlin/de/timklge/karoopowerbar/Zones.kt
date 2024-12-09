@@ -26,7 +26,7 @@ val zones = mapOf(
     9 to listOf(Zone.Zone0, Zone.Zone1, Zone.Zone2, Zone.Zone3, Zone.Zone4, Zone.Zone5, Zone.Zone6, Zone.Zone7, Zone.Zone8)
 )
 
-fun UserProfile.getZone(userZones: List<UserProfile.Zone>, value: Int): Zone? {
+fun getZone(userZones: List<UserProfile.Zone>, value: Int): Zone? {
     val zoneList = zones[userZones.size] ?: return null
 
     userZones.forEachIndexed { index, zone ->

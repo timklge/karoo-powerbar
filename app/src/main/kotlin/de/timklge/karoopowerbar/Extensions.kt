@@ -28,7 +28,8 @@ val settingsKey = stringPreferencesKey("settings")
 data class PowerbarSettings(
     val source: SelectedSource = SelectedSource.POWER,
     val topBarSource: SelectedSource = SelectedSource.NONE,
-    val onlyShowWhileRiding: Boolean = true
+    val onlyShowWhileRiding: Boolean = true,
+    val showLabelOnBars: Boolean = true
 ){
     companion object {
         val defaultSettings = Json.encodeToString(PowerbarSettings())

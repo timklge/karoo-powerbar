@@ -39,7 +39,8 @@ enum class PowerbarLocation {
 
 class Window(
     private val context: Context,
-    val powerbarLocation: PowerbarLocation = PowerbarLocation.BOTTOM
+    val powerbarLocation: PowerbarLocation = PowerbarLocation.BOTTOM,
+    val showLabel: Boolean
 ) {
     private val rootView: View
     private var layoutParams: WindowManager.LayoutParams? = null
@@ -83,7 +84,7 @@ class Window(
             PowerbarLocation.BOTTOM -> Gravity.BOTTOM
         }
         if (powerbarLocation == PowerbarLocation.TOP) {
-            layoutParams?.y = 10
+            layoutParams?.y = 0
         } else {
             layoutParams?.y = 0
         }
@@ -105,6 +106,8 @@ class Window(
 
             powerbar.progressColor = context.resources.getColor(R.color.zone7)
             powerbar.progress = 0.0
+            powerbar.location = powerbarLocation
+            powerbar.showLabel = showLabel
             powerbar.invalidate()
 
             Log.i(TAG, "Streaming $selectedSource")
@@ -142,7 +145,7 @@ class Window(
             .collect { streamData ->
                 val value = streamData.value.roundToInt()
                 val color = context.getColor(
-                    streamData.userProfile.getZone(streamData.userProfile.heartRateZones, value)?.colorResource
+                    getZone(streamData.userProfile.heartRateZones, value)?.colorResource
                         ?: R.color.zone7
                 )
                 val minHr = streamData.userProfile.restingHr
@@ -152,6 +155,7 @@ class Window(
 
                 powerbar.progressColor = color
                 powerbar.progress = progress
+                powerbar.label = "$value"
                 powerbar.invalidate()
 
                 Log.d(TAG, "Hr: $value min: $minHr max: $maxHr")
@@ -177,7 +181,7 @@ class Window(
             .collect { streamData ->
                 val value = streamData.value.roundToInt()
                 val color = context.getColor(
-                    streamData.userProfile.getZone(streamData.userProfile.powerZones, value)?.colorResource
+                    getZone(streamData.userProfile.powerZones, value)?.colorResource
                         ?: R.color.zone7
                 )
                 val minPower = streamData.userProfile.powerZones.first().min
@@ -187,9 +191,10 @@ class Window(
 
                 powerbar.progressColor = color
                 powerbar.progress = progress
+                powerbar.label = "${value}W"
                 powerbar.invalidate()
 
-                Log.d(TAG, "Power: ${value} min: $minPower max: $maxPower")
+                Log.d(TAG, "Power: $value min: $minPower max: $maxPower")
             }
     }
 

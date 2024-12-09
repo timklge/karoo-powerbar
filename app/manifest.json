@@ -3,8 +3,8 @@
   "packageName": "de.timklge.karoopowerbar",
   "iconUrl": "https://github.com/timklge/karoo-powerbar/releases/latest/download/karoo-powerbar.png",
   "latestApkUrl": "https://github.com/timklge/karoo-powerbar/releases/latest/download/app-release.apk",
-  "latestVersion": "1.1.1",
-  "latestVersionCode": 4,
+  "latestVersion": "1.2.0",
+  "latestVersionCode": 5,
   "developer": "timklge",
   "description": "Adds a colored power bar to the bottom of the screen",
   "releaseNotes": "Add options to add secondary power bar and to hide bar when not riding. Fix manually set up power/hr zones."

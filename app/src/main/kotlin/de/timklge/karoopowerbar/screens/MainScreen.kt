@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,8 +42,10 @@ import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import de.timklge.karoopowerbar.PowerbarSettings
 import de.timklge.karoopowerbar.saveSettings
+import de.timklge.karoopowerbar.streamRideState
 import de.timklge.karoopowerbar.streamSettings
 import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.RideState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -62,6 +65,8 @@ fun MainScreen() {
     val coroutineScope = rememberCoroutineScope()
     val karooSystem = remember { KarooSystemService(ctx) }
 
+    val rideState: RideState by karooSystem.streamRideState().collectAsState(RideState.Idle)
+
     var bottomSelectedSource by remember { mutableStateOf(SelectedSource.POWER) }
     var topSelectedSource by remember { mutableStateOf(SelectedSource.NONE) }
 
@@ -70,6 +75,7 @@ fun MainScreen() {
     var givenPermissions by remember { mutableStateOf(false) }
 
     var onlyShowWhileRiding by remember { mutableStateOf(false) }
+    var showLabelOnBars by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         givenPermissions = Settings.canDrawOverlays(ctx)
@@ -78,6 +84,7 @@ fun MainScreen() {
             bottomSelectedSource = settings.source
             topSelectedSource = settings.topBarSource
             onlyShowWhileRiding = settings.onlyShowWhileRiding
+            showLabelOnBars = settings.showLabelOnBars
         }
     }
 
@@ -129,6 +136,12 @@ fun MainScreen() {
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = showLabelOnBars, onCheckedChange = { showLabelOnBars = it})
+                Spacer(modifier = Modifier.width(10.dp))
+                Text("Show value on bars")
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(checked = onlyShowWhileRiding, onCheckedChange = { onlyShowWhileRiding = it})
                 Spacer(modifier = Modifier.width(10.dp))
                 Text("Only show while riding")
@@ -137,7 +150,10 @@ fun MainScreen() {
             FilledTonalButton(modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp), onClick = {
-                val newSettings = PowerbarSettings(source = bottomSelectedSource, topBarSource = topSelectedSource, onlyShowWhileRiding = onlyShowWhileRiding)
+                val newSettings = PowerbarSettings(
+                    source = bottomSelectedSource, topBarSource = topSelectedSource,
+                    onlyShowWhileRiding = onlyShowWhileRiding, showLabelOnBars = showLabelOnBars
+                )
 
                 coroutineScope.launch {
                     saveSettings(ctx, newSettings)
@@ -147,6 +163,16 @@ fun MainScreen() {
                 Icon(Icons.Default.Done, contentDescription = "Save")
                 Spacer(modifier = Modifier.width(5.dp))
                 Text("Save")
+            }
+
+            if (onlyShowWhileRiding && karooConnected) {
+                val hardwareName = karooSystem.hardwareType?.name ?: "unknown device"
+                val state = when (rideState) {
+                    RideState.Idle -> "No ride started"
+                    is RideState.Paused -> "Ride is paused"
+                    RideState.Recording -> "Currently riding"
+                }
+                Text(modifier = Modifier.padding(5.dp), text = "Running on $hardwareName. $state.")
             }
 
             if (showAlerts){
