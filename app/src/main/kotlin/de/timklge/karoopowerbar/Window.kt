@@ -94,7 +94,7 @@ class Window(
 
     private val karooSystem: KarooSystemService = KarooSystemService(context)
 
-    data class StreamData(val userProfile: UserProfile, val value: Double)
+    data class StreamData(val userProfile: UserProfile, val value: Double?)
 
     private var serviceJob: Job? = null
 
@@ -134,7 +134,7 @@ class Window(
 
     private suspend fun streamHeartrate() {
         val powerFlow = karooSystem.streamDataFlow(DataType.Type.HEART_RATE)
-            .mapNotNull { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
+            .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
             .distinctUntilChanged()
 
         karooSystem.streamUserProfile()
@@ -143,22 +143,31 @@ class Window(
             .map { (userProfile, hr) -> StreamData(userProfile, hr) }
             .distinctUntilChanged()
             .collect { streamData ->
-                val value = streamData.value.roundToInt()
-                val color = context.getColor(
-                    getZone(streamData.userProfile.heartRateZones, value)?.colorResource
-                        ?: R.color.zone7
-                )
-                val minHr = streamData.userProfile.restingHr
-                val maxHr = streamData.userProfile.maxHr
-                val progress =
-                    remap(value.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
+                val value = streamData.value?.roundToInt()
 
-                powerbar.progressColor = color
-                powerbar.progress = progress
-                powerbar.label = "$value"
+                if (value != null) {
+                    val color = context.getColor(
+                        getZone(streamData.userProfile.heartRateZones, value)?.colorResource
+                            ?: R.color.zone7
+                    )
+                    val minHr = streamData.userProfile.restingHr
+                    val maxHr = streamData.userProfile.maxHr
+                    val progress =
+                        remap(value.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
+
+                    powerbar.progressColor = color
+                    powerbar.progress = progress
+                    powerbar.label = "$value"
+
+                    Log.d(TAG, "Hr: $value min: $minHr max: $maxHr")
+                } else {
+                    powerbar.progressColor = context.getColor(R.color.zone0)
+                    powerbar.progress = 0.0
+                    powerbar.label = "?"
+
+                    Log.d(TAG, "Hr: Unavailable")
+                }
                 powerbar.invalidate()
-
-                Log.d(TAG, "Hr: $value min: $minHr max: $maxHr")
             }
     }
 
@@ -170,7 +179,7 @@ class Window(
 
     private suspend fun streamPower(smoothed: PowerStreamSmoothing) {
         val powerFlow = karooSystem.streamDataFlow(smoothed.dataTypeId)
-            .mapNotNull { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
+            .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
             .distinctUntilChanged()
 
         karooSystem.streamUserProfile()
@@ -179,22 +188,31 @@ class Window(
             .map { (userProfile, power) -> StreamData(userProfile, power) }
             .distinctUntilChanged()
             .collect { streamData ->
-                val value = streamData.value.roundToInt()
-                val color = context.getColor(
-                    getZone(streamData.userProfile.powerZones, value)?.colorResource
-                        ?: R.color.zone7
-                )
-                val minPower = streamData.userProfile.powerZones.first().min
-                val maxPower = streamData.userProfile.powerZones.last().min + 50
-                val progress =
-                    remap(value.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
+                val value = streamData.value?.roundToInt()
 
-                powerbar.progressColor = color
-                powerbar.progress = progress
-                powerbar.label = "${value}W"
+                if (value != null) {
+                    val color = context.getColor(
+                        getZone(streamData.userProfile.powerZones, value)?.colorResource
+                            ?: R.color.zone7
+                    )
+                    val minPower = streamData.userProfile.powerZones.first().min
+                    val maxPower = streamData.userProfile.powerZones.last().min + 50
+                    val progress =
+                        remap(value.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
+
+                    powerbar.progressColor = color
+                    powerbar.progress = progress
+                    powerbar.label = "${value}W"
+
+                    Log.d(TAG, "Power: $value min: $minPower max: $maxPower")
+                } else {
+                    powerbar.progressColor = context.getColor(R.color.zone0)
+                    powerbar.progress = 0.0
+                    powerbar.label = "?"
+
+                    Log.d(TAG, "Power: Unavailable")
+                }
                 powerbar.invalidate()
-
-                Log.d(TAG, "Power: $value min: $minPower max: $maxPower")
             }
     }
 
