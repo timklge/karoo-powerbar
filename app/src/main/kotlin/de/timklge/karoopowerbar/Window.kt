@@ -258,14 +258,16 @@ class Window(
                 val duration = intent.getLongExtra("duration", 15_000)
                 Log.d(TAG, "Received broadcast to hide $location powerbar for $duration ms")
 
-                currentHideJob?.cancel()
-                currentHideJob = CoroutineScope(Dispatchers.Main).launch {
-                    rootView.visibility = View.INVISIBLE
-                    withContext(Dispatchers.Default){
-                        delay(duration)
+                if (location == powerbarLocation) {
+                    currentHideJob?.cancel()
+                    currentHideJob = CoroutineScope(Dispatchers.Main).launch {
+                        rootView.visibility = View.INVISIBLE
+                        withContext(Dispatchers.Default) {
+                            delay(duration)
+                        }
+                        rootView.visibility = View.VISIBLE
+                        currentHideJob = null
                     }
-                    rootView.visibility = View.VISIBLE
-                    currentHideJob = null
                 }
             }
         }
