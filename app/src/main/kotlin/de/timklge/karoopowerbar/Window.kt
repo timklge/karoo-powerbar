@@ -1,7 +1,11 @@
 package de.timklge.karoopowerbar
 
+import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Context.WINDOW_SERVICE
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.PixelFormat
 import android.os.Build
 import android.util.DisplayMetrics
@@ -21,10 +25,10 @@ import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
@@ -98,8 +102,16 @@ class Window(
 
     private var serviceJob: Job? = null
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     suspend fun open() {
         serviceJob = CoroutineScope(Dispatchers.Default).launch {
+            val filter = IntentFilter("de.timklge.HIDE_POWERBAR")
+            if (Build.VERSION.SDK_INT >= 33) {
+                context.registerReceiver(hideReceiver, filter, Context.RECEIVER_EXPORTED)
+            } else {
+                context.registerReceiver(hideReceiver, filter)
+            }
+
             karooSystem.connect { connected ->
                 Log.i(TAG, "Karoo system service connected: $connected")
             }
@@ -216,14 +228,46 @@ class Window(
             }
     }
 
+    private var currentHideJob: Job? = null
+
     fun close() {
         try {
+            context.unregisterReceiver(hideReceiver)
+            if (currentHideJob != null){
+                currentHideJob?.cancel()
+                currentHideJob = null
+            }
             serviceJob?.cancel()
             (context.getSystemService(WINDOW_SERVICE) as WindowManager).removeView(rootView)
             rootView.invalidate()
             (rootView.parent as ViewGroup).removeAllViews()
         } catch (e: Exception) {
             Log.d(TAG, e.toString())
+        }
+    }
+
+    private val hideReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val action = intent.action
+            if (action == "de.timklge.HIDE_POWERBAR") {
+                val location = when (intent.getStringExtra("location")) {
+                    "top" -> PowerbarLocation.TOP
+                    "bottom" -> PowerbarLocation.BOTTOM
+                    else -> PowerbarLocation.TOP
+                }
+                val duration = intent.getLongExtra("duration", 15_000)
+                Log.d(TAG, "Received broadcast to hide $location powerbar for $duration ms")
+
+                currentHideJob?.cancel()
+                currentHideJob = CoroutineScope(Dispatchers.Main).launch {
+                    rootView.visibility = View.INVISIBLE
+                    withContext(Dispatchers.Default){
+                        delay(duration)
+                    }
+                    rootView.visibility = View.VISIBLE
+                    currentHideJob = null
+                }
+            }
         }
     }
 }

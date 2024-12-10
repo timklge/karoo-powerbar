@@ -36,7 +36,13 @@ extensions like this. Until it is available, you can sideload the app.
 ## Credits
 
 - Icons by [boxicons.com](https://boxicons.com) (MIT-licensed).
+- Based on [karoo-ext](https://github.com/hammerheadnav/karoo-ext) (Apache 2.0-licensed).
 
-## Links
+## Hide powerbar from other apps
 
-[karoo-ext source](https://github.com/hammerheadnav/karoo-ext)
+If you want to temporarily hide the powerbar from other apps when you show something on the screen
+that would be hidden by the bar overlay, you can send a `de.timklge.HIDE_POWERBAR` broadcast intent to the app.
+Optionally, include the following extras:
+
+- `duration` (long, ms): Duration for which the powerbar should be hidden. If not set, the powerbar will be hidden for 15 seconds.
+- `location` (string, `"top"` or `"bottom"`): Location of the powerbar to hide. If not set, the powerbar at the top will be hidden.
