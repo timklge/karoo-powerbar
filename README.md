@@ -1,8 +1,5 @@
 # Karoo Powerbar Extension
 
-> [!WARNING]  
-> Only tested on Karoo 3
-
 Simple karoo extension that shows an overlay power bar at the bottom of the screen. For Karoo 2 and Karoo 3 devices
 running Karoo OS version 1.524.2003 and later.
 
