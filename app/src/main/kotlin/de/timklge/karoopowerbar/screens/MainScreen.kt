@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,10 +41,8 @@ import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import de.timklge.karoopowerbar.PowerbarSettings
 import de.timklge.karoopowerbar.saveSettings
-import de.timklge.karoopowerbar.streamRideState
 import de.timklge.karoopowerbar.streamSettings
 import io.hammerhead.karooext.KarooSystemService
-import io.hammerhead.karooext.models.RideState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -64,8 +61,6 @@ fun MainScreen() {
     val ctx = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val karooSystem = remember { KarooSystemService(ctx) }
-
-    val rideState: RideState by karooSystem.streamRideState().collectAsState(RideState.Idle)
 
     var bottomSelectedSource by remember { mutableStateOf(SelectedSource.POWER) }
     var topSelectedSource by remember { mutableStateOf(SelectedSource.NONE) }
@@ -163,16 +158,6 @@ fun MainScreen() {
                 Icon(Icons.Default.Done, contentDescription = "Save")
                 Spacer(modifier = Modifier.width(5.dp))
                 Text("Save")
-            }
-
-            if (onlyShowWhileRiding && karooConnected) {
-                val hardwareName = karooSystem.hardwareType?.name ?: "unknown device"
-                val state = when (rideState) {
-                    RideState.Idle -> "No ride started"
-                    is RideState.Paused -> "Ride is paused"
-                    RideState.Recording -> "Currently riding"
-                }
-                Text(modifier = Modifier.padding(5.dp), text = "Running on $hardwareName. $state.")
             }
 
             if (showAlerts){
