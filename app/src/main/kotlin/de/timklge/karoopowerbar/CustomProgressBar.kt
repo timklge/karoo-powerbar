@@ -22,6 +22,7 @@ class CustomProgressBar @JvmOverloads constructor(
     @ColorInt var progressColor: Int = 0xFF2b86e6.toInt()
 
     val fontSize = 40f
+    val barHeight = 14f
 
     private val linePaint = Paint().apply {
         isAntiAlias = true
@@ -87,10 +88,10 @@ class CustomProgressBar @JvmOverloads constructor(
                     1f,
                     15f,
                     ((canvas.width.toDouble() - 1f) * progress.coerceIn(0.0, 1.0)).toFloat(),
-                    15f + 20f
+                    15f + barHeight
                 )
 
-                canvas.drawRoundRect(0f, 15f, canvas.width.toFloat(), 15f + 20f, 2f, 2f, backgroundPaint)
+                canvas.drawRect(0f, 15f, canvas.width.toFloat(), 15f + barHeight, backgroundPaint)
 
                 if (progress > 0.0) {
                     canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
@@ -111,19 +112,19 @@ class CustomProgressBar @JvmOverloads constructor(
                         canvas.drawRoundRect(x, y, r, b, 2f, 2f, blurPaint)
                         canvas.drawRoundRect(x, y, r, b, 2f, 2f, lineStrokePaint)
 
-                        canvas.drawText(label, x + xOffset, rect.top + 23, textPaint)
+                        canvas.drawText(label, x + xOffset, rect.top + barHeight + 6, textPaint)
                     }
                 }
             }
             PowerbarLocation.BOTTOM -> {
                 val rect = RectF(
                     1f,
-                    canvas.height.toFloat() - 1f - 20f,
+                    canvas.height.toFloat() - 1f - barHeight,
                     ((canvas.width.toDouble() - 1f) * progress.coerceIn(0.0, 1.0)).toFloat(),
-                    canvas.height.toFloat() - 1f
+                    canvas.height.toFloat()
                 )
 
-                canvas.drawRoundRect(0f, canvas.height.toFloat() - 20f, canvas.width.toFloat(), canvas.height.toFloat(), 2f, 2f, backgroundPaint)
+                canvas.drawRect(0f, canvas.height.toFloat() - barHeight - 1f, canvas.width.toFloat(), canvas.height.toFloat(), backgroundPaint)
 
                 if (progress > 0.0) {
                     canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
@@ -144,7 +145,7 @@ class CustomProgressBar @JvmOverloads constructor(
                         canvas.drawRoundRect(x, y, r, b, 2f, 2f, blurPaint)
                         canvas.drawRoundRect(x, y, r, b, 2f, 2f, lineStrokePaint)
 
-                        canvas.drawText(label, x + xOffset, rect.top + 16, textPaint)
+                        canvas.drawText(label, x + xOffset, rect.top + barHeight - 1, textPaint)
                     }
                 }
             }

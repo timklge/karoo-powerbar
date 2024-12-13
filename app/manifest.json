@@ -7,5 +7,5 @@
   "latestVersionCode": 6,
   "developer": "timklge",
   "description": "Adds a colored power bar to the bottom of the screen",
-  "releaseNotes": "Add options to add secondary power bar and to hide bar when not riding. Fix manually set up power/hr zones."
+  "releaseNotes": "Fixes manually set up power/hr zones. Slightly adjusts bar appearance."
 }
