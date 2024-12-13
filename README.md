@@ -1,7 +1,6 @@
 # Karoo Powerbar Extension
 
-Simple karoo extension that shows an overlay power bar at the bottom of the screen. For Karoo 2 and Karoo 3 devices
-running Karoo OS version 1.524.2003 and later.
+Simple karoo extension that shows an overlay power bar at the edge of the screen. For Karoo 2 and Karoo 3 devices.
 
 ![Powerbar](powerbar0.png)
 ![Settings](powerbar1.png)
@@ -23,8 +22,12 @@ to your current power output / heart rate zone as setup in your Karoo settings. 
 
 ## Installation
 
-Currently, Hammerhead has not yet released an on-device app store that allows users to easily install 
-extensions like this. Until it is available, you can sideload the app.
+If you are using a Karoo 3, you can use [Hammerhead's sideloading procedure](https://support.hammerhead.io/hc/en-us/articles/31576497036827-Companion-App-Sideloading) to install the app:
+
+1. Open the [releases page](https://github.com/timklge/karoo-powerbar/releases) on your phone's browser, long-press the `app-release.apk` link and share it with the Hammerhead Companion app.
+2. Your karoo should show an info screen about the app now. Press "Install".
+
+If you are using a Karoo 2, you can use manual sideloading:
 
 1. Download the apk from the [releases page](https://github.com/timklge/karoo-powerbar/releases) (or build it from source)
 2. Set up your Karoo for sideloading. DC Rainmaker has a great [step-by-step guide](https://www.dcrainmaker.com/2021/02/how-to-sideload-android-apps-on-your-hammerhead-karoo-1-karoo-2.html).
