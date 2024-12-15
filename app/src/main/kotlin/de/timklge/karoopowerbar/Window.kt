@@ -93,7 +93,7 @@ class Window(
             layoutParams?.y = 0
         }
         layoutParams?.width = displayMetrics.widthPixels
-        layoutParams?.alpha = 1.0f
+        layoutParams?.alpha = 0.8f
     }
 
     private val karooSystem: KarooSystemService = KarooSystemService(context)
