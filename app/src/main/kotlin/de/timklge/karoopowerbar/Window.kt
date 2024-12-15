@@ -240,9 +240,9 @@ class Window(
             serviceJob?.cancel()
             (context.getSystemService(WINDOW_SERVICE) as WindowManager).removeView(rootView)
             rootView.invalidate()
-            (rootView.parent as ViewGroup).removeAllViews()
+            (rootView.parent as? ViewGroup)?.removeAllViews()
         } catch (e: Exception) {
-            Log.d(TAG, e.toString())
+            Log.e(TAG, "Failed to dispose window", e)
         }
     }
 
