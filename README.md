@@ -1,6 +1,8 @@
 # Karoo Powerbar Extension
 
 [![Build](https://github.com/timklge/karoo-powerbar/actions/workflows/android.yml/badge.svg)](https://github.com/timklge/karoo-powerbar/actions/workflows/android.yml)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/timklge/karoo-powerbar/total)
+![GitHub License](https://img.shields.io/github/license/timklge/karoo-powerbar)
 
 Simple karoo extension that shows an overlay power bar at the edge of the screen. For Karoo 2 and Karoo 3 devices.
 
