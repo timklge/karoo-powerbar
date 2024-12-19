@@ -98,7 +98,7 @@ class Window(
 
     private val karooSystem: KarooSystemService = KarooSystemService(context)
 
-    data class StreamData(val userProfile: UserProfile, val value: Double?)
+    data class StreamData(val userProfile: UserProfile, val value: Double?, val settings: PowerbarSettings? = null)
 
     private var serviceJob: Job? = null
 
@@ -145,29 +145,31 @@ class Window(
     }
 
     private suspend fun streamHeartrate() {
-        val powerFlow = karooSystem.streamDataFlow(DataType.Type.HEART_RATE)
+        val hrFlow = karooSystem.streamDataFlow(DataType.Type.HEART_RATE)
             .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
             .distinctUntilChanged()
 
+        val settingsFlow = context.streamSettings()
+
         karooSystem.streamUserProfile()
             .distinctUntilChanged()
-            .combine(powerFlow) { userProfile, hr -> userProfile to hr }
-            .map { (userProfile, hr) -> StreamData(userProfile, hr) }
+            .combine(hrFlow) { userProfile, hr -> StreamData(userProfile, hr) }
+            .combine(settingsFlow) { streamData, settings -> streamData.copy(settings = settings) }
             .distinctUntilChanged()
             .collect { streamData ->
                 val value = streamData.value?.roundToInt()
 
                 if (value != null) {
-                    val color = context.getColor(
-                        getZone(streamData.userProfile.heartRateZones, value)?.colorResource
-                            ?: R.color.zone7
-                    )
                     val minHr = streamData.userProfile.restingHr
                     val maxHr = streamData.userProfile.maxHr
                     val progress =
                         remap(value.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
 
-                    powerbar.progressColor = color
+                    powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
+                        context.getColor(getZone(streamData.userProfile.heartRateZones, value)?.colorResource ?: R.color.zone7)
+                    } else {
+                        context.getColor(R.color.zone0)
+                    }
                     powerbar.progress = progress
                     powerbar.label = "$value"
 
@@ -194,25 +196,27 @@ class Window(
             .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
             .distinctUntilChanged()
 
+        val settingsFlow = context.streamSettings()
+
         karooSystem.streamUserProfile()
             .distinctUntilChanged()
-            .combine(powerFlow) { userProfile, power -> userProfile to power }
-            .map { (userProfile, power) -> StreamData(userProfile, power) }
+            .combine(powerFlow) { userProfile, hr -> StreamData(userProfile, hr) }
+            .combine(settingsFlow) { streamData, settings -> streamData.copy(settings = settings) }
             .distinctUntilChanged()
             .collect { streamData ->
                 val value = streamData.value?.roundToInt()
 
                 if (value != null) {
-                    val color = context.getColor(
-                        getZone(streamData.userProfile.powerZones, value)?.colorResource
-                            ?: R.color.zone7
-                    )
                     val minPower = streamData.userProfile.powerZones.first().min
                     val maxPower = streamData.userProfile.powerZones.last().min + 50
                     val progress =
                         remap(value.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
 
-                    powerbar.progressColor = color
+                    powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
+                        context.getColor(getZone(streamData.userProfile.powerZones, value)?.colorResource ?: R.color.zone7)
+                    } else {
+                        context.getColor(R.color.zone0)
+                    }
                     powerbar.progress = progress
                     powerbar.label = "${value}W"
 

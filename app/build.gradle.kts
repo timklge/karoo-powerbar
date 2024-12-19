@@ -15,8 +15,8 @@ android {
         applicationId = "de.timklge.karoopowerbar"
         minSdk = 26
         targetSdk = 33
-        versionCode = 7
-        versionName = "1.2.2"
+        versionCode = 8
+        versionName = "1.2.3"
     }
 
     signingConfigs {

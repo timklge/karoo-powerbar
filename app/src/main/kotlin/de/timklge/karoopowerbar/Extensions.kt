@@ -29,7 +29,8 @@ data class PowerbarSettings(
     val source: SelectedSource = SelectedSource.POWER,
     val topBarSource: SelectedSource = SelectedSource.NONE,
     val onlyShowWhileRiding: Boolean = true,
-    val showLabelOnBars: Boolean = true
+    val showLabelOnBars: Boolean = true,
+    val useZoneColors: Boolean = true,
 ){
     companion object {
         val defaultSettings = Json.encodeToString(PowerbarSettings())

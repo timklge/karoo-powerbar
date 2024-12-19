@@ -70,6 +70,7 @@ fun MainScreen() {
     var givenPermissions by remember { mutableStateOf(false) }
 
     var onlyShowWhileRiding by remember { mutableStateOf(false) }
+    var colorBasedOnZones by remember { mutableStateOf(false) }
     var showLabelOnBars by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
@@ -80,6 +81,7 @@ fun MainScreen() {
             topSelectedSource = settings.topBarSource
             onlyShowWhileRiding = settings.onlyShowWhileRiding
             showLabelOnBars = settings.showLabelOnBars
+            colorBasedOnZones = settings.useZoneColors
         }
     }
 
@@ -131,6 +133,12 @@ fun MainScreen() {
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = colorBasedOnZones, onCheckedChange = { colorBasedOnZones = it})
+                Spacer(modifier = Modifier.width(10.dp))
+                Text("Color based on HR / power zones")
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(checked = showLabelOnBars, onCheckedChange = { showLabelOnBars = it})
                 Spacer(modifier = Modifier.width(10.dp))
                 Text("Show value on bars")
@@ -147,7 +155,8 @@ fun MainScreen() {
                 .height(50.dp), onClick = {
                 val newSettings = PowerbarSettings(
                     source = bottomSelectedSource, topBarSource = topSelectedSource,
-                    onlyShowWhileRiding = onlyShowWhileRiding, showLabelOnBars = showLabelOnBars
+                    onlyShowWhileRiding = onlyShowWhileRiding, showLabelOnBars = showLabelOnBars,
+                    useZoneColors = colorBasedOnZones
                 )
 
                 coroutineScope.launch {
