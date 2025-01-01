@@ -31,6 +31,7 @@ data class PowerbarSettings(
     val onlyShowWhileRiding: Boolean = true,
     val showLabelOnBars: Boolean = true,
     val useZoneColors: Boolean = true,
+    val barSize: CustomProgressBarSize = CustomProgressBarSize.MEDIUM
 ){
     companion object {
         val defaultSettings = Json.encodeToString(PowerbarSettings())

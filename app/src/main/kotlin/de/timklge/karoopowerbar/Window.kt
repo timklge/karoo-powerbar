@@ -44,7 +44,8 @@ enum class PowerbarLocation {
 class Window(
     private val context: Context,
     val powerbarLocation: PowerbarLocation = PowerbarLocation.BOTTOM,
-    val showLabel: Boolean
+    val showLabel: Boolean,
+    val powerbarSize: CustomProgressBarSize
 ) {
     private val rootView: View
     private var layoutParams: WindowManager.LayoutParams? = null
@@ -120,6 +121,7 @@ class Window(
             powerbar.progress = 0.0
             powerbar.location = powerbarLocation
             powerbar.showLabel = showLabel
+            powerbar.size = powerbarSize
             powerbar.invalidate()
 
             Log.i(TAG, "Streaming $selectedSource")
@@ -129,6 +131,10 @@ class Window(
                 SelectedSource.POWER_3S -> streamPower(PowerStreamSmoothing.SMOOTHED_3S)
                 SelectedSource.POWER_10S -> streamPower(PowerStreamSmoothing.SMOOTHED_10S)
                 SelectedSource.HEART_RATE -> streamHeartrate()
+                SelectedSource.SPEED -> streamSpeed(false)
+                SelectedSource.SPEED_3S -> streamSpeed(true)
+                SelectedSource.CADENCE -> streamCadence(false)
+                SelectedSource.CADENCE_3S -> streamCadence(true)
                 else -> {}
             }
         }
@@ -142,6 +148,114 @@ class Window(
         } catch (e: Exception) {
             Log.e(TAG, e.toString())
         }
+    }
+
+    companion object {
+        val speedZones = listOf(
+            UserProfile.Zone(0, 9),
+            UserProfile.Zone(10, 19),
+            UserProfile.Zone(20, 24),
+            UserProfile.Zone(25, 29),
+            UserProfile.Zone(30, 34),
+            UserProfile.Zone(34, 39),
+            UserProfile.Zone(40, 44),
+        )
+
+        val cadenceZones = listOf(
+            UserProfile.Zone(0, 59),
+            UserProfile.Zone(60, 79),
+            UserProfile.Zone(80, 89),
+            UserProfile.Zone(90, 99),
+            UserProfile.Zone(100, 109),
+            UserProfile.Zone(110, 119),
+            UserProfile.Zone(120, 129),
+        )
+    }
+
+    private suspend fun streamSpeed(smoothed: Boolean) {
+        val speedFlow = karooSystem.streamDataFlow(if(smoothed) DataType.Type.SMOOTHED_3S_AVERAGE_SPEED else DataType.Type.SPEED)
+            .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
+            .distinctUntilChanged()
+
+        val settingsFlow = context.streamSettings()
+
+        karooSystem.streamUserProfile()
+            .distinctUntilChanged()
+            .combine(speedFlow) { userProfile, speed -> StreamData(userProfile, speed) }
+            .combine(settingsFlow) { streamData, settings -> streamData.copy(settings = settings) }
+            .distinctUntilChanged()
+            .collect { streamData ->
+                val valueMetersPerSecond = streamData.value?.roundToInt()
+                val value = when (streamData.userProfile.preferredUnit.distance){
+                    UserProfile.PreferredUnit.UnitType.IMPERIAL -> valueMetersPerSecond?.times(2.23694)
+                    else -> valueMetersPerSecond?.times(3.6)
+                }?.roundToInt()
+
+                if (value != null) {
+                    val minSpeed = speedZones.first().min
+                    val maxSpeed = speedZones.last().min + 5
+                    val progress =
+                        remap(value.toDouble(), minSpeed.toDouble(), maxSpeed.toDouble(), 0.0, 1.0)
+
+                    powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
+                        context.getColor(getZone(speedZones, value)?.colorResource ?: R.color.zone7)
+                    } else {
+                        context.getColor(R.color.zone0)
+                    }
+                    powerbar.progress = progress
+                    powerbar.label = "$value"
+
+                    Log.d(TAG, "Speed: $value min: $minSpeed max: $maxSpeed")
+                } else {
+                    powerbar.progressColor = context.getColor(R.color.zone0)
+                    powerbar.progress = 0.0
+                    powerbar.label = "?"
+
+                    Log.d(TAG, "Speed: Unavailable")
+                }
+                powerbar.invalidate()
+            }
+    }
+
+    private suspend fun streamCadence(smoothed: Boolean) {
+        val speedFlow = karooSystem.streamDataFlow(if(smoothed) DataType.Type.SMOOTHED_3S_AVERAGE_CADENCE else DataType.Type.CADENCE)
+            .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
+            .distinctUntilChanged()
+
+        val settingsFlow = context.streamSettings()
+
+        karooSystem.streamUserProfile()
+            .distinctUntilChanged()
+            .combine(speedFlow) { userProfile, speed -> StreamData(userProfile, speed) }
+            .combine(settingsFlow) { streamData, settings -> streamData.copy(settings = settings) }
+            .distinctUntilChanged()
+            .collect { streamData ->
+                val value = streamData.value?.roundToInt()
+
+                if (value != null) {
+                    val minCadence = cadenceZones.first().min
+                    val maxCadence = cadenceZones.last().min + 5
+                    val progress =
+                        remap(value.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
+
+                    powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
+                        context.getColor(getZone(cadenceZones, value)?.colorResource ?: R.color.zone7)
+                    } else {
+                        context.getColor(R.color.zone0)
+                    }
+                    powerbar.progress = progress
+                    powerbar.label = "$value"
+
+                    Log.d(TAG, "Cadence: $value min: $minCadence max: $maxCadence")
+                } else {
+                    powerbar.progressColor = context.getColor(R.color.zone0)
+                    powerbar.progress = 0.0
+                    powerbar.label = "?"
+
+                    Log.d(TAG, "Cadence: Unavailable")
+                }
+                powerbar.invalidate()
+            }
     }
 
     private suspend fun streamHeartrate() {

@@ -11,6 +11,14 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
+import kotlinx.serialization.Serializable
+
+@Serializable
+enum class CustomProgressBarSize(val id: String, val label: String, val fontSize: Float, val barHeight: Float) {
+    SMALL("small", "Small", 35f, 10f),
+    MEDIUM("medium", "Medium", 40f, 15f),
+    LARGE("large", "Large", 60f, 25f),
+}
 
 class CustomProgressBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -21,8 +29,11 @@ class CustomProgressBar @JvmOverloads constructor(
     var showLabel: Boolean = true
     @ColorInt var progressColor: Int = 0xFF2b86e6.toInt()
 
-    val fontSize = 40f
-    val barHeight = 14f
+    var size = CustomProgressBarSize.MEDIUM
+        set(value) {
+            field = value
+            textPaint.textSize = value.fontSize
+        }
 
     private val linePaint = Paint().apply {
         isAntiAlias = true
@@ -69,7 +80,7 @@ class CustomProgressBar @JvmOverloads constructor(
     private val textPaint = Paint().apply {
         color = Color.WHITE
         strokeWidth = 3f
-        textSize = fontSize
+        textSize = size.fontSize
         typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD);
         textAlign = Paint.Align.CENTER
     }
@@ -88,10 +99,10 @@ class CustomProgressBar @JvmOverloads constructor(
                     1f,
                     15f,
                     ((canvas.width.toDouble() - 1f) * progress.coerceIn(0.0, 1.0)).toFloat(),
-                    15f + barHeight
+                    15f + size.barHeight
                 )
 
-                canvas.drawRect(0f, 15f, canvas.width.toFloat(), 15f + barHeight, backgroundPaint)
+                canvas.drawRect(0f, 15f, canvas.width.toFloat(), 15f + size.barHeight, backgroundPaint)
 
                 if (progress > 0.0) {
                     canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
@@ -102,7 +113,10 @@ class CustomProgressBar @JvmOverloads constructor(
                     if (showLabel){
                         val textBounds = textPaint.measureText(label)
                         val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
-                        val yOffset = (fontSize - 15f) / 2
+                        val yOffset = when(size){
+                            CustomProgressBarSize.SMALL -> (size.fontSize - size.barHeight) / 2 + 2f
+                            CustomProgressBarSize.MEDIUM, CustomProgressBarSize.LARGE -> (size.fontSize - size.barHeight) / 2
+                        }
                         val x = (rect.right - xOffset).coerceIn(0f..canvas.width-xOffset*2f)
                         val y = rect.top - yOffset
                         val r = x + xOffset * 2
@@ -112,19 +126,19 @@ class CustomProgressBar @JvmOverloads constructor(
                         canvas.drawRoundRect(x, y, r, b, 2f, 2f, blurPaint)
                         canvas.drawRoundRect(x, y, r, b, 2f, 2f, lineStrokePaint)
 
-                        canvas.drawText(label, x + xOffset, rect.top + barHeight + 6, textPaint)
+                        canvas.drawText(label, x + xOffset, rect.top + size.barHeight + 6, textPaint)
                     }
                 }
             }
             PowerbarLocation.BOTTOM -> {
                 val rect = RectF(
                     1f,
-                    canvas.height.toFloat() - 1f - barHeight,
+                    canvas.height.toFloat() - 1f - size.barHeight,
                     ((canvas.width.toDouble() - 1f) * progress.coerceIn(0.0, 1.0)).toFloat(),
                     canvas.height.toFloat()
                 )
 
-                canvas.drawRect(0f, canvas.height.toFloat() - barHeight - 1f, canvas.width.toFloat(), canvas.height.toFloat(), backgroundPaint)
+                canvas.drawRect(0f, canvas.height.toFloat() - size.barHeight, canvas.width.toFloat(), canvas.height.toFloat(), backgroundPaint)
 
                 if (progress > 0.0) {
                     canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
@@ -135,7 +149,11 @@ class CustomProgressBar @JvmOverloads constructor(
                     if (showLabel){
                         val textBounds = textPaint.measureText(label)
                         val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
-                        val yOffset = (fontSize + 0f) / 2
+                        val yOffset = when(size){
+                            CustomProgressBarSize.SMALL -> size.fontSize / 2 + 2f
+                            CustomProgressBarSize.MEDIUM -> size.fontSize / 2
+                            CustomProgressBarSize.LARGE -> size.fontSize / 2 - 5f
+                        }
                         val x = (rect.right - xOffset).coerceIn(0f..canvas.width-xOffset*2f)
                         val y = (rect.top - yOffset)
                         val r = x + xOffset * 2
@@ -145,7 +163,7 @@ class CustomProgressBar @JvmOverloads constructor(
                         canvas.drawRoundRect(x, y, r, b, 2f, 2f, blurPaint)
                         canvas.drawRoundRect(x, y, r, b, 2f, 2f, lineStrokePaint)
 
-                        canvas.drawText(label, x + xOffset, rect.top + barHeight - 1, textPaint)
+                        canvas.drawText(label, x + xOffset, rect.top + size.barHeight - 1, textPaint)
                     }
                 }
             }
