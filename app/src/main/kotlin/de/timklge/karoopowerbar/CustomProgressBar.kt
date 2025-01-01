@@ -97,12 +97,12 @@ class CustomProgressBar @JvmOverloads constructor(
             PowerbarLocation.TOP -> {
                 val rect = RectF(
                     1f,
-                    size.barHeight,
+                    15f,
                     ((canvas.width.toDouble() - 1f) * progress.coerceIn(0.0, 1.0)).toFloat(),
-                    size.barHeight + size.barHeight
+                    15f + size.barHeight
                 )
 
-                canvas.drawRect(0f, size.barHeight, canvas.width.toFloat(), size.barHeight + size.barHeight, backgroundPaint)
+                canvas.drawRect(0f, 15f, canvas.width.toFloat(), 15f + size.barHeight, backgroundPaint)
 
                 if (progress > 0.0) {
                     canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
