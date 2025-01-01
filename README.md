@@ -20,6 +20,8 @@ to be displayed at the bottom or at the top of the screen:
 - Heart rate
 - Average power over the last 3 seconds
 - Average power over the last 10 seconds
+- Speed
+- Cadence
 
 Subsequently, the bar(s) will be shown when riding. Bars are filled and colored according
 to your current power output / heart rate zone as setup in your Karoo settings. Optionally, the actual data value can be displayed on top of the bar.
