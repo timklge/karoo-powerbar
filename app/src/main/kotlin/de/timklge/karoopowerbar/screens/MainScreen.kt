@@ -39,6 +39,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import de.timklge.karoopowerbar.CustomProgressBarSize
 import de.timklge.karoopowerbar.PowerbarSettings
 import de.timklge.karoopowerbar.saveSettings
 import de.timklge.karoopowerbar.streamSettings
@@ -52,6 +53,10 @@ enum class SelectedSource(val id: String, val label: String) {
     POWER("power", "Power"),
     POWER_3S("power_3s", "Power (3 second avg)"),
     POWER_10S("power_10s", "Power (10 second avg)"),
+    SPEED("speed", "Speed"),
+    SPEED_3S("speed_3s", "Speed (3 second avg"),
+    CADENCE("cadence", "Cadence"),
+    CADENCE_3S("cadence_3s", "Cadence (3 second avg)"),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,6 +77,7 @@ fun MainScreen() {
     var onlyShowWhileRiding by remember { mutableStateOf(false) }
     var colorBasedOnZones by remember { mutableStateOf(false) }
     var showLabelOnBars by remember { mutableStateOf(true) }
+    var barSize by remember { mutableStateOf(CustomProgressBarSize.MEDIUM) }
 
     LaunchedEffect(Unit) {
         givenPermissions = Settings.canDrawOverlays(ctx)
@@ -82,6 +88,7 @@ fun MainScreen() {
             onlyShowWhileRiding = settings.onlyShowWhileRiding
             showLabelOnBars = settings.showLabelOnBars
             colorBasedOnZones = settings.useZoneColors
+            barSize = settings.barSize
         }
     }
 
@@ -132,6 +139,16 @@ fun MainScreen() {
                 }
             }
 
+            apply {
+                val dropdownOptions = CustomProgressBarSize.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
+                val dropdownInitialSelection by remember(barSize) {
+                    mutableStateOf(dropdownOptions.find { option -> option.id == barSize.id }!!)
+                }
+                Dropdown(label = "Bar Size", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
+                    barSize = CustomProgressBarSize.entries.find { unit -> unit.id == selectedOption.id }!!
+                }
+            }
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(checked = colorBasedOnZones, onCheckedChange = { colorBasedOnZones = it})
                 Spacer(modifier = Modifier.width(10.dp))
@@ -156,7 +173,8 @@ fun MainScreen() {
                 val newSettings = PowerbarSettings(
                     source = bottomSelectedSource, topBarSource = topSelectedSource,
                     onlyShowWhileRiding = onlyShowWhileRiding, showLabelOnBars = showLabelOnBars,
-                    useZoneColors = colorBasedOnZones
+                    useZoneColors = colorBasedOnZones,
+                    barSize = barSize
                 )
 
                 coroutineScope.launch {
