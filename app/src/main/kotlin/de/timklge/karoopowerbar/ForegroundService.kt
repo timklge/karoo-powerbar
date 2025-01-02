@@ -93,7 +93,7 @@ class ForegroundService : Service() {
         val notification: Notification = notificationBuilder.setOngoing(true)
             .setContentTitle("Powerbar service running")
             .setContentText("Displaying on top of other apps")
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(R.drawable.bar)
             .setPriority(NotificationManager.IMPORTANCE_MIN)
             .setCategory(Notification.CATEGORY_SERVICE)
             .build()
