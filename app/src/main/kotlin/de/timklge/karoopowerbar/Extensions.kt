@@ -1,10 +1,5 @@
 package de.timklge.karoopowerbar
 
-import android.content.Context
-import android.util.Log
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import de.timklge.karoopowerbar.screens.SelectedSource
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.OnStreamState
 import io.hammerhead.karooext.models.RideState
@@ -14,10 +9,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 val jsonWithUnknownKeys = Json { ignoreUnknownKeys = true }
