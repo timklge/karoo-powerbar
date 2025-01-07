@@ -22,41 +22,6 @@ import kotlinx.serialization.json.Json
 
 val jsonWithUnknownKeys = Json { ignoreUnknownKeys = true }
 
-val settingsKey = stringPreferencesKey("settings")
-
-@Serializable
-data class PowerbarSettings(
-    val source: SelectedSource = SelectedSource.POWER,
-    val topBarSource: SelectedSource = SelectedSource.NONE,
-    val onlyShowWhileRiding: Boolean = true,
-    val showLabelOnBars: Boolean = true,
-    val useZoneColors: Boolean = true,
-    val barSize: CustomProgressBarSize = CustomProgressBarSize.MEDIUM
-){
-    companion object {
-        val defaultSettings = Json.encodeToString(PowerbarSettings())
-    }
-}
-
-suspend fun saveSettings(context: Context, settings: PowerbarSettings) {
-    context.dataStore.edit { t ->
-        t[settingsKey] = Json.encodeToString(settings)
-    }
-}
-
-fun Context.streamSettings(): Flow<PowerbarSettings> {
-    return dataStore.data.map { settingsJson ->
-        try {
-            jsonWithUnknownKeys.decodeFromString<PowerbarSettings>(
-                settingsJson[settingsKey] ?: PowerbarSettings.defaultSettings
-            )
-        } catch(e: Throwable){
-            Log.e(KarooPowerbarExtension.TAG, "Failed to read preferences", e)
-            jsonWithUnknownKeys.decodeFromString<PowerbarSettings>(PowerbarSettings.defaultSettings)
-        }
-    }.distinctUntilChanged()
-}
-
 fun KarooSystemService.streamDataFlow(dataTypeId: String): Flow<StreamState> {
     return callbackFlow {
         val listenerId = addConsumer(OnStreamState.StartStreaming(dataTypeId)) { event: OnStreamState ->

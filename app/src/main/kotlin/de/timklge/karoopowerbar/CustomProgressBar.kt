@@ -24,6 +24,7 @@ class CustomProgressBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
     var progress: Double = 0.5
+    var showValueIfNull: Boolean = false
     var location: PowerbarLocation = PowerbarLocation.BOTTOM
     var label: String = ""
     var showLabel: Boolean = true
@@ -104,7 +105,7 @@ class CustomProgressBar @JvmOverloads constructor(
 
                 canvas.drawRect(0f, 15f, canvas.width.toFloat(), 15f + size.barHeight, backgroundPaint)
 
-                if (progress > 0.0) {
+                if (progress > 0.0 || showValueIfNull) {
                     canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
                     canvas.drawRoundRect(rect, 2f, 2f, linePaint)
 
@@ -140,7 +141,7 @@ class CustomProgressBar @JvmOverloads constructor(
 
                 canvas.drawRect(0f, canvas.height.toFloat() - size.barHeight, canvas.width.toFloat(), canvas.height.toFloat(), backgroundPaint)
 
-                if (progress > 0.0) {
+                if (progress > 0.0 || showValueIfNull) {
                     canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
                     canvas.drawRoundRect(rect, 2f, 2f, linePaint)
 
