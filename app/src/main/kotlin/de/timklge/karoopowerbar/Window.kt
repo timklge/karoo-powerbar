@@ -16,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
+import androidx.annotation.ColorRes
 import de.timklge.karoopowerbar.KarooPowerbarExtension.Companion.TAG
 import de.timklge.karoopowerbar.screens.SelectedSource
 import io.hammerhead.karooext.KarooSystemService
@@ -150,28 +151,6 @@ class Window(
         }
     }
 
-    companion object {
-        val speedZones = listOf(
-            UserProfile.Zone(0, 9),
-            UserProfile.Zone(10, 19),
-            UserProfile.Zone(20, 24),
-            UserProfile.Zone(25, 29),
-            UserProfile.Zone(30, 34),
-            UserProfile.Zone(34, 39),
-            UserProfile.Zone(40, 44),
-        )
-
-        val cadenceZones = listOf(
-            UserProfile.Zone(0, 59),
-            UserProfile.Zone(60, 79),
-            UserProfile.Zone(80, 89),
-            UserProfile.Zone(90, 99),
-            UserProfile.Zone(100, 109),
-            UserProfile.Zone(110, 119),
-            UserProfile.Zone(120, 129),
-        )
-    }
-
     private suspend fun streamSpeed(smoothed: Boolean) {
         val speedFlow = karooSystem.streamDataFlow(if(smoothed) DataType.Type.SMOOTHED_3S_AVERAGE_SPEED else DataType.Type.SPEED)
             .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
@@ -185,20 +164,23 @@ class Window(
             .combine(settingsFlow) { streamData, settings -> streamData.copy(settings = settings) }
             .distinctUntilChanged()
             .collect { streamData ->
-                val valueMetersPerSecond = streamData.value?.roundToInt()
+                val valueMetersPerSecond = streamData.value
                 val value = when (streamData.userProfile.preferredUnit.distance){
                     UserProfile.PreferredUnit.UnitType.IMPERIAL -> valueMetersPerSecond?.times(2.23694)
                     else -> valueMetersPerSecond?.times(3.6)
                 }?.roundToInt()
 
-                if (value != null) {
-                    val minSpeed = speedZones.first().min
-                    val maxSpeed = speedZones.last().min + 5
+                if (value != null && valueMetersPerSecond != null) {
+                    val minSpeed = streamData.settings?.minSpeed ?: PowerbarSettings.defaultMinSpeedMs
+                    val maxSpeed = streamData.settings?.maxSpeed ?: PowerbarSettings.defaultMaxSpeedMs
                     val progress =
-                        remap(value.toDouble(), minSpeed.toDouble(), maxSpeed.toDouble(), 0.0, 1.0)
+                        remap(valueMetersPerSecond, minSpeed.toDouble(), maxSpeed.toDouble(), 0.0, 1.0)
+                    powerbar.showValueIfNull = valueMetersPerSecond != 0.0
+
+                    @ColorRes val zoneColorRes = Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
 
                     powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
-                        context.getColor(getZone(speedZones, value)?.colorResource ?: R.color.zone7)
+                        context.getColor(zoneColorRes)
                     } else {
                         context.getColor(R.color.zone0)
                     }
@@ -209,6 +191,7 @@ class Window(
                 } else {
                     powerbar.progressColor = context.getColor(R.color.zone0)
                     powerbar.progress = 0.0
+                    powerbar.showValueIfNull = false
                     powerbar.label = "?"
 
                     Log.d(TAG, "Speed: Unavailable")
@@ -233,13 +216,16 @@ class Window(
                 val value = streamData.value?.roundToInt()
 
                 if (value != null) {
-                    val minCadence = cadenceZones.first().min
-                    val maxCadence = cadenceZones.last().min + 5
+                    val minCadence = streamData.settings?.minCadence ?: PowerbarSettings.defaultMinCadence
+                    val maxCadence = streamData.settings?.maxCadence ?: PowerbarSettings.defaultMaxCadence
                     val progress =
                         remap(value.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
 
+                    @ColorRes val zoneColorRes = Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
+
+                    powerbar.showValueIfNull = value != 0
                     powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
-                        context.getColor(getZone(cadenceZones, value)?.colorResource ?: R.color.zone7)
+                        context.getColor(zoneColorRes)
                     } else {
                         context.getColor(R.color.zone0)
                     }
@@ -250,6 +236,7 @@ class Window(
                 } else {
                     powerbar.progressColor = context.getColor(R.color.zone0)
                     powerbar.progress = 0.0
+                    powerbar.showValueIfNull = false
                     powerbar.label = "?"
 
                     Log.d(TAG, "Cadence: Unavailable")

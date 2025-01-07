@@ -1,0 +1,55 @@
+package de.timklge.karoopowerbar
+
+import android.content.Context
+import android.util.Log
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import de.timklge.karoopowerbar.screens.SelectedSource
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
+val settingsKey = stringPreferencesKey("settings")
+
+@Serializable
+data class PowerbarSettings(
+    val source: SelectedSource = SelectedSource.POWER,
+    val topBarSource: SelectedSource = SelectedSource.NONE,
+    val onlyShowWhileRiding: Boolean = true,
+    val showLabelOnBars: Boolean = true,
+    val useZoneColors: Boolean = true,
+    val barSize: CustomProgressBarSize = CustomProgressBarSize.MEDIUM,
+
+    val minCadence: Int = defaultMinCadence, val maxCadence: Int = defaultMaxCadence,
+    val minSpeed: Float = defaultMinSpeedMs, val maxSpeed: Float = defaultMaxSpeedMs, // 50 km/h in m/s
+){
+    companion object {
+        val defaultSettings = Json.encodeToString(PowerbarSettings())
+        val defaultMinSpeedMs = 0f
+        val defaultMaxSpeedMs = 13.89f
+        val defaultMinCadence = 50
+        val defaultMaxCadence = 120
+    }
+}
+
+suspend fun saveSettings(context: Context, settings: PowerbarSettings) {
+    context.dataStore.edit { t ->
+        t[settingsKey] = Json.encodeToString(settings)
+    }
+}
+
+fun Context.streamSettings(): Flow<PowerbarSettings> {
+    return dataStore.data.map { settingsJson ->
+        try {
+            jsonWithUnknownKeys.decodeFromString<PowerbarSettings>(
+                settingsJson[settingsKey] ?: PowerbarSettings.defaultSettings
+            )
+        } catch(e: Throwable){
+            Log.e(KarooPowerbarExtension.TAG, "Failed to read preferences", e)
+            jsonWithUnknownKeys.decodeFromString<PowerbarSettings>(PowerbarSettings.defaultSettings)
+        }
+    }.distinctUntilChanged()
+}

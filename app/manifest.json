@@ -3,9 +3,9 @@
   "packageName": "de.timklge.karoopowerbar",
   "iconUrl": "https://github.com/timklge/karoo-powerbar/releases/latest/download/karoo-powerbar.png",
   "latestApkUrl": "https://github.com/timklge/karoo-powerbar/releases/latest/download/app-release.apk",
-  "latestVersion": "1.3.1",
-  "latestVersionCode": 10,
+  "latestVersion": "1.3.2",
+  "latestVersionCode": 11,
   "developer": "timklge",
   "description": "Adds a colored power bar to the bottom of the screen",
-  "releaseNotes": "Add size setting, cadence and speed data sources"
+  "releaseNotes": "Add size setting, cadence and speed data sources with custom ranges"
 }
