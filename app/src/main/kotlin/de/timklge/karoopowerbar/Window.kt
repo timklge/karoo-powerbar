@@ -69,7 +69,7 @@ class Window(
         layoutInflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         rootView = layoutInflater.inflate(R.layout.popup_window, null)
         powerbar = rootView.findViewById(R.id.progressBar)
-        powerbar.progress = 0.0
+        powerbar.progress = null
 
         windowManager = context.getSystemService(WINDOW_SERVICE) as WindowManager
         val displayMetrics = DisplayMetrics()
@@ -119,7 +119,7 @@ class Window(
             }
 
             powerbar.progressColor = context.resources.getColor(R.color.zone7)
-            powerbar.progress = 0.0
+            powerbar.progress = null
             powerbar.location = powerbarLocation
             powerbar.showLabel = showLabel
             powerbar.size = powerbarSize
@@ -175,7 +175,6 @@ class Window(
                     val maxSpeed = streamData.settings?.maxSpeed ?: PowerbarSettings.defaultMaxSpeedMs
                     val progress =
                         remap(valueMetersPerSecond, minSpeed.toDouble(), maxSpeed.toDouble(), 0.0, 1.0)
-                    powerbar.showValueIfNull = valueMetersPerSecond != 0.0
 
                     @ColorRes val zoneColorRes = Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
 
@@ -184,14 +183,13 @@ class Window(
                     } else {
                         context.getColor(R.color.zone0)
                     }
-                    powerbar.progress = progress
+                    powerbar.progress = if (value >= 0) value.toDouble() else null
                     powerbar.label = "$value"
 
                     Log.d(TAG, "Speed: $value min: $minSpeed max: $maxSpeed")
                 } else {
                     powerbar.progressColor = context.getColor(R.color.zone0)
-                    powerbar.progress = 0.0
-                    powerbar.showValueIfNull = false
+                    powerbar.progress = null
                     powerbar.label = "?"
 
                     Log.d(TAG, "Speed: Unavailable")
@@ -223,20 +221,18 @@ class Window(
 
                     @ColorRes val zoneColorRes = Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
 
-                    powerbar.showValueIfNull = value != 0
                     powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
                         context.getColor(zoneColorRes)
                     } else {
                         context.getColor(R.color.zone0)
                     }
-                    powerbar.progress = progress
+                    powerbar.progress = if (value >= 0) progress else null
                     powerbar.label = "$value"
 
                     Log.d(TAG, "Cadence: $value min: $minCadence max: $maxCadence")
                 } else {
                     powerbar.progressColor = context.getColor(R.color.zone0)
-                    powerbar.progress = 0.0
-                    powerbar.showValueIfNull = false
+                    powerbar.progress = null
                     powerbar.label = "?"
 
                     Log.d(TAG, "Cadence: Unavailable")
@@ -272,13 +268,13 @@ class Window(
                     } else {
                         context.getColor(R.color.zone0)
                     }
-                    powerbar.progress = progress
+                    powerbar.progress = if (value > 0) progress else null
                     powerbar.label = "$value"
 
                     Log.d(TAG, "Hr: $value min: $minHr max: $maxHr")
                 } else {
                     powerbar.progressColor = context.getColor(R.color.zone0)
-                    powerbar.progress = 0.0
+                    powerbar.progress = null
                     powerbar.label = "?"
 
                     Log.d(TAG, "Hr: Unavailable")
@@ -320,13 +316,13 @@ class Window(
                     } else {
                         context.getColor(R.color.zone0)
                     }
-                    powerbar.progress = progress
+                    powerbar.progress = if (value > 0) progress else null
                     powerbar.label = "${value}W"
 
                     Log.d(TAG, "Power: $value min: $minPower max: $maxPower")
                 } else {
                     powerbar.progressColor = context.getColor(R.color.zone0)
-                    powerbar.progress = 0.0
+                    powerbar.progress = null
                     powerbar.label = "?"
 
                     Log.d(TAG, "Power: Unavailable")
