@@ -183,7 +183,7 @@ class Window(
                     } else {
                         context.getColor(R.color.zone0)
                     }
-                    powerbar.progress = if (value >= 0) value.toDouble() else null
+                    powerbar.progress = if (value > 0) progress else null
                     powerbar.label = "$value"
 
                     Log.d(TAG, "Speed: $value min: $minSpeed max: $maxSpeed")
@@ -226,7 +226,7 @@ class Window(
                     } else {
                         context.getColor(R.color.zone0)
                     }
-                    powerbar.progress = if (value >= 0) progress else null
+                    powerbar.progress = if (value > 0) progress else null
                     powerbar.label = "$value"
 
                     Log.d(TAG, "Cadence: $value min: $minCadence max: $maxCadence")
