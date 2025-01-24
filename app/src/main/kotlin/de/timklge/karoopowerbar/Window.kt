@@ -261,10 +261,11 @@ class Window(
                 val value = streamData.value?.roundToInt()
 
                 if (value != null) {
-                    val minHr = streamData.userProfile.restingHr
-                    val maxHr = streamData.userProfile.maxHr
-                    val progress =
-                        remap(value.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
+                    val customMinHr = if (streamData.settings?.useCustomHrRange == true) streamData.settings.minHr else null
+                    val customMaxHr = if (streamData.settings?.useCustomHrRange == true) streamData.settings.maxHr else null
+                    val minHr = customMinHr ?: streamData.userProfile.restingHr
+                    val maxHr = customMaxHr ?: streamData.userProfile.maxHr
+                    val progress = remap(value.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
 
                     powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
                         context.getColor(getZone(streamData.userProfile.heartRateZones, value)?.colorResource ?: R.color.zone7)
@@ -308,10 +309,11 @@ class Window(
                 val value = streamData.value?.roundToInt()
 
                 if (value != null) {
-                    val minPower = streamData.userProfile.powerZones.first().min
-                    val maxPower = streamData.userProfile.powerZones.last().min + 50
-                    val progress =
-                        remap(value.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
+                    val customMinPower = if (streamData.settings?.useCustomPowerRange == true) streamData.settings.minPower else null
+                    val customMaxPower = if (streamData.settings?.useCustomPowerRange == true) streamData.settings.maxPower else null
+                    val minPower = customMinPower ?: streamData.userProfile.powerZones.first().min
+                    val maxPower = customMaxPower ?: (streamData.userProfile.powerZones.last().min + 50)
+                    val progress = remap(value.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
 
                     powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
                         context.getColor(getZone(streamData.userProfile.powerZones, value)?.colorResource ?: R.color.zone7)

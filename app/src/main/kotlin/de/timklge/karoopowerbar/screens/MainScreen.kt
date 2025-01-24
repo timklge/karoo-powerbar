@@ -32,6 +32,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat.startActivity
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import de.timklge.karoopowerbar.CustomProgressBarSize
@@ -65,7 +67,9 @@ enum class SelectedSource(val id: String, val label: String) {
     SPEED("speed", "Speed"),
     SPEED_3S("speed_3s", "Speed (3 sec avg"),
     CADENCE("cadence", "Cadence"),
-    CADENCE_3S("cadence_3s", "Cadence (3 sec avg)"),
+    CADENCE_3S("cadence_3s", "Cadence (3 sec avg)");
+
+    fun isPower() = this == POWER || this == POWER_3S || this == POWER_10S
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,10 +97,25 @@ fun MainScreen() {
     var minSpeed by remember { mutableStateOf("0") }
     var maxSpeed by remember { mutableStateOf("0") }
     var isImperial by remember { mutableStateOf(false) }
+    var customMinPower by remember { mutableStateOf("") }
+    var customMaxPower by remember { mutableStateOf("") }
+    var customMinHr by remember { mutableStateOf("") }
+    var customMaxHr by remember { mutableStateOf("") }
+    var useCustomPowerRange by remember { mutableStateOf(false) }
+    var useCustomHrRange by remember { mutableStateOf(false) }
+
+    var profileMaxHr by remember { mutableIntStateOf(0) }
+    var profileRestHr by remember { mutableIntStateOf(0) }
+    var profileMinPower by remember { mutableIntStateOf(0) }
+    var profileMaxPower by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
-        karooSystem.streamUserProfile().distinctUntilChanged().collect {
-            isImperial = it.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+        karooSystem.streamUserProfile().distinctUntilChanged().collect { profileData ->
+            isImperial = profileData.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+            profileMaxHr = profileData.maxHr
+            profileRestHr = profileData.restingHr
+            profileMinPower = profileData.powerZones.first().min
+            profileMaxPower = profileData.powerZones.last().min + 50
         }
     }
 
@@ -118,6 +137,12 @@ fun MainScreen() {
                 isImperial = profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
                 minSpeed = (if(isImperial) settings.minSpeed * 2.23694f else settings.minSpeed * 3.6f).roundToInt().toString()
                 maxSpeed = (if(isImperial) settings.maxSpeed * 2.23694f else settings.maxSpeed * 3.6f).roundToInt().toString()
+                customMinPower = settings.minPower?.toString() ?: ""
+                customMaxPower = settings.maxPower?.toString() ?: ""
+                customMinHr = settings.minHr?.toString() ?: ""
+                customMaxHr = settings.maxHr?.toString() ?: ""
+                useCustomPowerRange = settings.useCustomPowerRange
+                useCustomHrRange = settings.useCustomHrRange
         }
     }
 
@@ -182,7 +207,9 @@ fun MainScreen() {
                 bottomSelectedSource == SelectedSource.SPEED || bottomSelectedSource == SelectedSource.SPEED_3S){
 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(value = minSpeed, modifier = Modifier.weight(1f).absolutePadding(right = 2.dp),
+                    OutlinedTextField(value = minSpeed, modifier = Modifier
+                        .weight(1f)
+                        .absolutePadding(right = 2.dp),
                         onValueChange = { minSpeed = it },
                         label = { Text("Min Speed") },
                         suffix = { Text(if (isImperial) "mph" else "kph") },
@@ -190,7 +217,9 @@ fun MainScreen() {
                         singleLine = true
                     )
 
-                    OutlinedTextField(value = maxSpeed, modifier = Modifier.weight(1f).absolutePadding(left = 2.dp),
+                    OutlinedTextField(value = maxSpeed, modifier = Modifier
+                        .weight(1f)
+                        .absolutePadding(left = 2.dp),
                         onValueChange = { maxSpeed = it },
                         label = { Text("Max Speed") },
                         suffix = { Text(if (isImperial) "mph" else "kph") },
@@ -200,11 +229,81 @@ fun MainScreen() {
                 }
             }
 
+            if (topSelectedSource.isPower() || bottomSelectedSource.isPower()){
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = useCustomPowerRange, onCheckedChange = { useCustomPowerRange = it})
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("Use custom power range")
+                }
+
+                if(useCustomPowerRange){
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(value = customMinPower, modifier = Modifier
+                            .weight(1f)
+                            .absolutePadding(right = 2.dp),
+                            onValueChange = { customMinPower = it },
+                            label = { Text("Min Power", fontSize = 12.sp) },
+                            suffix = { Text("W") },
+                            placeholder = { Text("$profileMinPower") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+
+                        OutlinedTextField(value = customMaxPower, modifier = Modifier
+                            .weight(1f)
+                            .absolutePadding(left = 2.dp),
+                            onValueChange = { customMaxPower = it },
+                            label = { Text("Max Power", fontSize = 12.sp) },
+                            suffix = { Text("W") },
+                            placeholder = { Text("$profileMaxPower") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
+                }
+            }
+
+            if (topSelectedSource == SelectedSource.HEART_RATE || bottomSelectedSource == SelectedSource.HEART_RATE){
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = useCustomHrRange, onCheckedChange = { useCustomHrRange = it})
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("Use custom HR range")
+                }
+
+                if (useCustomHrRange){
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(value = customMinHr, modifier = Modifier
+                            .weight(1f)
+                            .absolutePadding(right = 2.dp),
+                            onValueChange = { customMinHr = it },
+                            label = { Text("Min Hr") },
+                            suffix = { Text("bpm") },
+                            placeholder = { if(profileRestHr > 0) Text("$profileRestHr") else Unit },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+
+                        OutlinedTextField(value = customMaxHr, modifier = Modifier
+                            .weight(1f)
+                            .absolutePadding(left = 2.dp),
+                            onValueChange = { customMaxHr = it },
+                            label = { Text("Max Hr") },
+                            suffix = { Text("bpm") },
+                            placeholder = { if(profileMaxHr > 0) Text("$profileMaxHr") else Unit },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
+                }
+            }
+
             if (bottomSelectedSource == SelectedSource.CADENCE || topSelectedSource == SelectedSource.CADENCE ||
                 bottomSelectedSource == SelectedSource.CADENCE_3S || topSelectedSource == SelectedSource.CADENCE_3S){
 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(value = minCadence, modifier = Modifier.weight(1f).absolutePadding(right = 2.dp),
+                    OutlinedTextField(value = minCadence, modifier = Modifier
+                        .weight(1f)
+                        .absolutePadding(right = 2.dp),
                         onValueChange = { minCadence = it },
                         label = { Text("Min Cadence") },
                         suffix = { Text("rpm") },
@@ -212,7 +311,9 @@ fun MainScreen() {
                         singleLine = true
                     )
 
-                    OutlinedTextField(value = maxCadence, modifier = Modifier.weight(1f).absolutePadding(left = 2.dp),
+                    OutlinedTextField(value = maxCadence, modifier = Modifier
+                        .weight(1f)
+                        .absolutePadding(left = 2.dp),
                         onValueChange = { maxCadence = it },
                         label = { Text("Min Cadence") },
                         suffix = { Text("rpm") },
@@ -253,7 +354,13 @@ fun MainScreen() {
                         minCadence = minCadence.toIntOrNull() ?: PowerbarSettings.defaultMinCadence,
                         maxCadence = maxCadence.toIntOrNull() ?: PowerbarSettings.defaultMaxCadence,
                         minSpeed = minSpeedSetting, maxSpeed = maxSpeedSetting,
-                        barSize = barSize
+                        minPower = customMinPower.toIntOrNull(),
+                        maxPower = customMaxPower.toIntOrNull(),
+                        minHr = customMinHr.toIntOrNull(),
+                        maxHr = customMaxHr.toIntOrNull(),
+                        barSize = barSize,
+                        useCustomPowerRange = useCustomPowerRange,
+                        useCustomHrRange = useCustomHrRange,
                     )
 
                     coroutineScope.launch {
