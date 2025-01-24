@@ -23,8 +23,7 @@ enum class CustomProgressBarSize(val id: String, val label: String, val fontSize
 class CustomProgressBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
-    var progress: Double = 0.5
-    var showValueIfNull: Boolean = false
+    var progress: Double? = 0.5
     var location: PowerbarLocation = PowerbarLocation.BOTTOM
     var label: String = ""
     var showLabel: Boolean = true
@@ -99,13 +98,13 @@ class CustomProgressBar @JvmOverloads constructor(
                 val rect = RectF(
                     1f,
                     15f,
-                    ((canvas.width.toDouble() - 1f) * progress.coerceIn(0.0, 1.0)).toFloat(),
+                    ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(0.0, 1.0)).toFloat(),
                     15f + size.barHeight
                 )
 
                 canvas.drawRect(0f, 15f, canvas.width.toFloat(), 15f + size.barHeight, backgroundPaint)
 
-                if (progress > 0.0 || showValueIfNull) {
+                if (progress != null) {
                     canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
                     canvas.drawRoundRect(rect, 2f, 2f, linePaint)
 
@@ -135,13 +134,13 @@ class CustomProgressBar @JvmOverloads constructor(
                 val rect = RectF(
                     1f,
                     canvas.height.toFloat() - 1f - size.barHeight,
-                    ((canvas.width.toDouble() - 1f) * progress.coerceIn(0.0, 1.0)).toFloat(),
+                    ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(0.0, 1.0)).toFloat(),
                     canvas.height.toFloat()
                 )
 
                 canvas.drawRect(0f, canvas.height.toFloat() - size.barHeight, canvas.width.toFloat(), canvas.height.toFloat(), backgroundPaint)
 
-                if (progress > 0.0 || showValueIfNull) {
+                if (progress != null) {
                     canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
                     canvas.drawRoundRect(rect, 2f, 2f, linePaint)
 
