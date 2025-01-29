@@ -32,7 +32,7 @@ to your current power output / heart rate zone as setup in your Karoo settings. 
 
 If you are using a Karoo 3, you can use [Hammerhead's sideloading procedure](https://support.hammerhead.io/hc/en-us/articles/31576497036827-Companion-App-Sideloading) to install the app:
 
-1. Open the [releases page](https://github.com/timklge/karoo-powerbar/releases) on your phone's browser, long-press the `app-release.apk` link and share it with the Hammerhead Companion app.
+1. Using the browser on your phone, long-press [this download link](https://github.com/timklge/karoo-powerbar/releases/latest/download/app-release.apk) and share it with the Hammerhead Companion app.
 2. Your karoo should show an info screen about the app now. Press "Install".
 
 If you are using a Karoo 2, you can use manual sideloading:
@@ -46,9 +46,9 @@ If you are using a Karoo 2, you can use manual sideloading:
 - Icons by [boxicons.com](https://boxicons.com) (MIT-licensed).
 - Based on [karoo-ext](https://github.com/hammerheadnav/karoo-ext) (Apache 2.0-licensed).
 
-## Hide powerbar from other apps
+## Extension developers: Hide powerbar from other apps
 
-If you want to temporarily hide the powerbar from other apps when you show something on the screen
+If you are an extension developer and want to temporarily hide the powerbar when you show something on the screen
 that would be hidden by the bar overlay, you can send a `de.timklge.HIDE_POWERBAR` broadcast intent to the app.
 Optionally, include the following extras:
 
