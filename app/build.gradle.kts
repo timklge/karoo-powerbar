@@ -15,8 +15,8 @@ android {
         applicationId = "de.timklge.karoopowerbar"
         minSdk = 26
         targetSdk = 33
-        versionCode = 13
-        versionName = "1.3.4"
+        versionCode = 100 + (System.getenv("BUILD_NUMBER")?.toInt() ?: 1)
+        versionName = System.getenv("RELEASE_VERSION") ?: "1.0"
     }
 
     signingConfigs {
@@ -51,8 +51,38 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
+
+tasks.register("generateManifest") {
+    description = "Generates manifest.json with current version information"
+    group = "build"
+
+    doLast {
+        val manifestFile = file("$projectDir/manifest.json")
+        val manifest = mapOf(
+            "label" to "karoo-powerbar",
+            "packageName" to "de.timklge.karoopowerbar",
+            "iconUrl" to "https://github.com/timklge/karoo-powerbar/releases/latest/download/karoo-powerbar.png",
+            "latestApkUrl" to "https://github.com/timklge/karoo-powerbar/releases/latest/download/app-release.apk",
+            "latestVersion" to android.defaultConfig.versionName,
+            "latestVersionCode" to android.defaultConfig.versionCode,
+            "developer" to "timklge",
+            "description" to "Adds a colored power or heart rate progress bar to the bottom of the screen, similar to the LEDs on Wahoo computers",
+            "releaseNotes" to "Add touchable back button"
+        )
+
+        val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
+        manifestFile.writeText(gson)
+        println("Generated manifest.json with version ${android.defaultConfig.versionName} (${android.defaultConfig.versionCode})")
+    }
+}
+
+tasks.named("assemble") {
+    dependsOn("generateManifest")
+}
+
 
 dependencies {
     implementation(libs.hammerhead.karoo.ext)
