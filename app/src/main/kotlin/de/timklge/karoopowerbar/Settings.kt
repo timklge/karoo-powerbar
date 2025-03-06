@@ -38,12 +38,6 @@ data class PowerbarSettings(
     }
 }
 
-suspend fun saveSettings(context: Context, settings: PowerbarSettings) {
-    context.dataStore.edit { t ->
-        t[settingsKey] = Json.encodeToString(settings)
-    }
-}
-
 fun Context.streamSettings(): Flow<PowerbarSettings> {
     return dataStore.data.map { settingsJson ->
         try {

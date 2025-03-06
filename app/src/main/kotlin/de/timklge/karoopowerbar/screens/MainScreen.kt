@@ -2,8 +2,13 @@ package de.timklge.karoopowerbar.screens
 
 import android.content.Intent
 import android.provider.Settings
+import android.util.Log
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,15 +17,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -30,6 +33,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -39,15 +43,22 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusState
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat.startActivity
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import de.timklge.karoopowerbar.CustomProgressBarSize
+import de.timklge.karoopowerbar.KarooPowerbarExtension
 import de.timklge.karoopowerbar.PowerbarSettings
-import de.timklge.karoopowerbar.saveSettings
+import de.timklge.karoopowerbar.R
+import de.timklge.karoopowerbar.dataStore
+import de.timklge.karoopowerbar.settingsKey
 import de.timklge.karoopowerbar.streamSettings
 import de.timklge.karoopowerbar.streamUserProfile
 import io.hammerhead.karooext.KarooSystemService
@@ -56,6 +67,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlin.math.roundToInt
 
 enum class SelectedSource(val id: String, val label: String) {
@@ -74,7 +88,7 @@ enum class SelectedSource(val id: String, val label: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(onFinish: () -> Unit) {
     var karooConnected by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -83,7 +97,6 @@ fun MainScreen() {
     var bottomSelectedSource by remember { mutableStateOf(SelectedSource.POWER) }
     var topSelectedSource by remember { mutableStateOf(SelectedSource.NONE) }
 
-    var savedDialogVisible by remember { mutableStateOf(false) }
     var showAlerts by remember { mutableStateOf(false) }
     var givenPermissions by remember { mutableStateOf(false) }
 
@@ -109,6 +122,46 @@ fun MainScreen() {
     var profileMinPower by remember { mutableIntStateOf(0) }
     var profileMaxPower by remember { mutableIntStateOf(0) }
 
+    var anyFieldHasFocus by remember { mutableStateOf(false) }
+
+    suspend fun updateSettings(){
+        Log.d(KarooPowerbarExtension.TAG, "Saving settings")
+
+        val minSpeedSetting = (minSpeed.toIntOrNull()?.toFloat()?.div((if(isImperial) 2.23694f else 3.6f))) ?: PowerbarSettings.defaultMinSpeedMs
+        val maxSpeedSetting = (maxSpeed.toIntOrNull()?.toFloat()?.div((if(isImperial) 2.23694f else 3.6f))) ?: PowerbarSettings.defaultMaxSpeedMs
+
+        val newSettings = PowerbarSettings(
+            source = bottomSelectedSource, topBarSource = topSelectedSource,
+            onlyShowWhileRiding = onlyShowWhileRiding, showLabelOnBars = showLabelOnBars,
+            useZoneColors = colorBasedOnZones,
+            minCadence = minCadence.toIntOrNull() ?: PowerbarSettings.defaultMinCadence,
+            maxCadence = maxCadence.toIntOrNull() ?: PowerbarSettings.defaultMaxCadence,
+            minSpeed = minSpeedSetting, maxSpeed = maxSpeedSetting,
+            minPower = customMinPower.toIntOrNull(),
+            maxPower = customMaxPower.toIntOrNull(),
+            minHr = customMinHr.toIntOrNull(),
+            maxHr = customMaxHr.toIntOrNull(),
+            barSize = barSize,
+            useCustomPowerRange = useCustomPowerRange,
+            useCustomHrRange = useCustomHrRange,
+        )
+
+        ctx.dataStore.edit { t ->
+            t[settingsKey] = Json.encodeToString(newSettings)
+        }
+    }
+
+    fun updateFocus(focusState: FocusState){
+        val fieldGotFocus = focusState.isFocused
+        // Only save settings when truly losing focus (not because another field gained focus)
+        if (!fieldGotFocus && anyFieldHasFocus) {
+            anyFieldHasFocus = false
+            coroutineScope.launch { updateSettings() }
+        } else if (fieldGotFocus) {
+            anyFieldHasFocus = true
+        }
+    }
+
     LaunchedEffect(Unit) {
         karooSystem.streamUserProfile().distinctUntilChanged().collect { profileData ->
             isImperial = profileData.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
@@ -118,7 +171,6 @@ fun MainScreen() {
             profileMaxPower = profileData.powerZones.last().min + 50
         }
     }
-
     LaunchedEffect(isImperial) {
         givenPermissions = Settings.canDrawOverlays(ctx)
 
@@ -164,244 +216,266 @@ fun MainScreen() {
     }
 
 
-    Column(modifier = Modifier
+    Box(modifier = Modifier.fillMaxSize()){
+        Column(modifier = Modifier
         .fillMaxSize()
         .background(MaterialTheme.colorScheme.background)) {
-        TopAppBar(title = { Text("Powerbar") })
-        Column(modifier = Modifier
-            .padding(5.dp)
-            .verticalScroll(rememberScrollState())
-            .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            TopAppBar(title = { Text("Powerbar") })
+            Column(modifier = Modifier
+                .padding(5.dp)
+                .verticalScroll(rememberScrollState())
+                .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
-            apply {
-                val dropdownOptions = SelectedSource.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
-                val dropdownInitialSelection by remember(bottomSelectedSource) {
-                    mutableStateOf(dropdownOptions.find { option -> option.id == bottomSelectedSource.id }!!)
-                }
-                Dropdown(label = "Bottom Bar", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
-                    bottomSelectedSource = SelectedSource.entries.find { unit -> unit.id == selectedOption.id }!!
-                }
-            }
-
-            apply {
-                val dropdownOptions = SelectedSource.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
-                val dropdownInitialSelection by remember(topSelectedSource) {
-                    mutableStateOf(dropdownOptions.find { option -> option.id == topSelectedSource.id }!!)
-                }
-                Dropdown(label = "Top Bar", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
-                    topSelectedSource = SelectedSource.entries.find { unit -> unit.id == selectedOption.id }!!
-                }
-            }
-
-            apply {
-                val dropdownOptions = CustomProgressBarSize.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
-                val dropdownInitialSelection by remember(barSize) {
-                    mutableStateOf(dropdownOptions.find { option -> option.id == barSize.id }!!)
-                }
-                Dropdown(label = "Bar Size", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
-                    barSize = CustomProgressBarSize.entries.find { unit -> unit.id == selectedOption.id }!!
-                }
-            }
-
-            if (topSelectedSource == SelectedSource.SPEED || topSelectedSource == SelectedSource.SPEED_3S ||
-                bottomSelectedSource == SelectedSource.SPEED || bottomSelectedSource == SelectedSource.SPEED_3S){
-
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(value = minSpeed, modifier = Modifier
-                        .weight(1f)
-                        .absolutePadding(right = 2.dp),
-                        onValueChange = { minSpeed = it },
-                        label = { Text("Min Speed") },
-                        suffix = { Text(if (isImperial) "mph" else "kph") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
-                    )
-
-                    OutlinedTextField(value = maxSpeed, modifier = Modifier
-                        .weight(1f)
-                        .absolutePadding(left = 2.dp),
-                        onValueChange = { maxSpeed = it },
-                        label = { Text("Max Speed") },
-                        suffix = { Text(if (isImperial) "mph" else "kph") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
-                    )
-                }
-            }
-
-            if (topSelectedSource.isPower() || bottomSelectedSource.isPower()){
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(checked = useCustomPowerRange, onCheckedChange = { useCustomPowerRange = it})
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text("Use custom power range")
+                apply {
+                    val dropdownOptions = SelectedSource.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
+                    val dropdownInitialSelection by remember(bottomSelectedSource) {
+                        mutableStateOf(dropdownOptions.find { option -> option.id == bottomSelectedSource.id }!!)
+                    }
+                    Dropdown(label = "Bottom Bar", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
+                        bottomSelectedSource = SelectedSource.entries.find { unit -> unit.id == selectedOption.id }!!
+                        coroutineScope.launch { updateSettings() }
+                    }
                 }
 
-                if(useCustomPowerRange){
+                apply {
+                    val dropdownOptions = SelectedSource.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
+                    val dropdownInitialSelection by remember(topSelectedSource) {
+                        mutableStateOf(dropdownOptions.find { option -> option.id == topSelectedSource.id }!!)
+                    }
+                    Dropdown(label = "Top Bar", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
+                        topSelectedSource = SelectedSource.entries.find { unit -> unit.id == selectedOption.id }!!
+                        coroutineScope.launch { updateSettings() }
+                    }
+                }
+
+                apply {
+                    val dropdownOptions = CustomProgressBarSize.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
+                    val dropdownInitialSelection by remember(barSize) {
+                        mutableStateOf(dropdownOptions.find { option -> option.id == barSize.id }!!)
+                    }
+                    Dropdown(label = "Bar Size", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
+                        barSize = CustomProgressBarSize.entries.find { unit -> unit.id == selectedOption.id }!!
+                        coroutineScope.launch { updateSettings() }
+                    }
+                }
+
+                if (topSelectedSource == SelectedSource.SPEED || topSelectedSource == SelectedSource.SPEED_3S ||
+                    bottomSelectedSource == SelectedSource.SPEED || bottomSelectedSource == SelectedSource.SPEED_3S){
+
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(value = customMinPower, modifier = Modifier
+                        OutlinedTextField(value = minSpeed, modifier = Modifier
                             .weight(1f)
-                            .absolutePadding(right = 2.dp),
-                            onValueChange = { customMinPower = it },
-                            label = { Text("Min Power", fontSize = 12.sp) },
-                            suffix = { Text("W") },
-                            placeholder = { Text("$profileMinPower") },
+                            .absolutePadding(right = 2.dp)
+                            .onFocusEvent(::updateFocus),
+                            onValueChange = { minSpeed = it },
+                            label = { Text("Min Speed") },
+                            suffix = { Text(if (isImperial) "mph" else "kph") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )
 
-                        OutlinedTextField(value = customMaxPower, modifier = Modifier
+                        OutlinedTextField(value = maxSpeed, modifier = Modifier
                             .weight(1f)
-                            .absolutePadding(left = 2.dp),
-                            onValueChange = { customMaxPower = it },
-                            label = { Text("Max Power", fontSize = 12.sp) },
-                            suffix = { Text("W") },
-                            placeholder = { Text("$profileMaxPower") },
+                            .absolutePadding(left = 2.dp)
+                            .onFocusEvent(::updateFocus),
+                            onValueChange = { maxSpeed = it },
+                            label = { Text("Max Speed") },
+                            suffix = { Text(if (isImperial) "mph" else "kph") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )
                     }
                 }
-            }
 
-            if (topSelectedSource == SelectedSource.HEART_RATE || bottomSelectedSource == SelectedSource.HEART_RATE){
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(checked = useCustomHrRange, onCheckedChange = { useCustomHrRange = it})
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text("Use custom HR range")
+                if (topSelectedSource.isPower() || bottomSelectedSource.isPower()){
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(checked = useCustomPowerRange, onCheckedChange = {
+                            useCustomPowerRange = it
+                            coroutineScope.launch { updateSettings() }
+                        })
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("Use custom power range")
+                    }
+
+                    if(useCustomPowerRange){
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(value = customMinPower, modifier = Modifier
+                                .weight(1f)
+                                .absolutePadding(right = 2.dp)
+                                .onFocusEvent(::updateFocus),
+                                onValueChange = { customMinPower = it },
+                                label = { Text("Min Power", fontSize = 12.sp) },
+                                suffix = { Text("W") },
+                                placeholder = { Text("$profileMinPower") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+
+                            OutlinedTextField(value = customMaxPower, modifier = Modifier
+                                .weight(1f)
+                                .absolutePadding(left = 2.dp)
+                                .onFocusEvent(::updateFocus),
+                                onValueChange = { customMaxPower = it },
+                                label = { Text("Max Power", fontSize = 12.sp) },
+                                suffix = { Text("W") },
+                                placeholder = { Text("$profileMaxPower") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+                        }
+                    }
                 }
 
-                if (useCustomHrRange){
+                if (topSelectedSource == SelectedSource.HEART_RATE || bottomSelectedSource == SelectedSource.HEART_RATE){
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Switch(checked = useCustomHrRange, onCheckedChange = {
+                            useCustomHrRange = it
+                            coroutineScope.launch { updateSettings() }
+                        })
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("Use custom HR range")
+                    }
+
+                    if (useCustomHrRange){
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            OutlinedTextField(value = customMinHr, modifier = Modifier
+                                .weight(1f)
+                                .absolutePadding(right = 2.dp)
+                                .onFocusEvent(::updateFocus),
+                                onValueChange = { customMinHr = it },
+                                label = { Text("Min Hr") },
+                                suffix = { Text("bpm") },
+                                placeholder = { if(profileRestHr > 0) Text("$profileRestHr") else Unit },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+
+                            OutlinedTextField(value = customMaxHr, modifier = Modifier
+                                .weight(1f)
+                                .absolutePadding(left = 2.dp)
+                                .onFocusEvent(::updateFocus),
+                                onValueChange = { customMaxHr = it },
+                                label = { Text("Max Hr") },
+                                suffix = { Text("bpm") },
+                                placeholder = { if(profileMaxHr > 0) Text("$profileMaxHr") else Unit },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+                        }
+                    }
+                }
+
+                if (bottomSelectedSource == SelectedSource.CADENCE || topSelectedSource == SelectedSource.CADENCE ||
+                    bottomSelectedSource == SelectedSource.CADENCE_3S || topSelectedSource == SelectedSource.CADENCE_3S){
+
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(value = customMinHr, modifier = Modifier
+                        OutlinedTextField(value = minCadence, modifier = Modifier
                             .weight(1f)
-                            .absolutePadding(right = 2.dp),
-                            onValueChange = { customMinHr = it },
-                            label = { Text("Min Hr") },
-                            suffix = { Text("bpm") },
-                            placeholder = { if(profileRestHr > 0) Text("$profileRestHr") else Unit },
+                            .absolutePadding(right = 2.dp)
+                            .onFocusEvent(::updateFocus),
+                            onValueChange = { minCadence = it },
+                            label = { Text("Min Cadence") },
+                            suffix = { Text("rpm") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )
 
-                        OutlinedTextField(value = customMaxHr, modifier = Modifier
+                        OutlinedTextField(value = maxCadence, modifier = Modifier
                             .weight(1f)
-                            .absolutePadding(left = 2.dp),
-                            onValueChange = { customMaxHr = it },
-                            label = { Text("Max Hr") },
-                            suffix = { Text("bpm") },
-                            placeholder = { if(profileMaxHr > 0) Text("$profileMaxHr") else Unit },
+                            .absolutePadding(left = 2.dp)
+                            .onFocusEvent(::updateFocus),
+                            onValueChange = { maxCadence = it },
+                            label = { Text("Min Cadence") },
+                            suffix = { Text("rpm") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )
                     }
                 }
-            }
 
-            if (bottomSelectedSource == SelectedSource.CADENCE || topSelectedSource == SelectedSource.CADENCE ||
-                bottomSelectedSource == SelectedSource.CADENCE_3S || topSelectedSource == SelectedSource.CADENCE_3S){
-
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(value = minCadence, modifier = Modifier
-                        .weight(1f)
-                        .absolutePadding(right = 2.dp),
-                        onValueChange = { minCadence = it },
-                        label = { Text("Min Cadence") },
-                        suffix = { Text("rpm") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
-                    )
-
-                    OutlinedTextField(value = maxCadence, modifier = Modifier
-                        .weight(1f)
-                        .absolutePadding(left = 2.dp),
-                        onValueChange = { maxCadence = it },
-                        label = { Text("Min Cadence") },
-                        suffix = { Text("rpm") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = colorBasedOnZones, onCheckedChange = {
+                        colorBasedOnZones = it
+                        coroutineScope.launch { updateSettings() }
+                    })
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("Color based on HR / power zones")
                 }
-            }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = colorBasedOnZones, onCheckedChange = { colorBasedOnZones = it})
-                Spacer(modifier = Modifier.width(10.dp))
-                Text("Color based on HR / power zones")
-            }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = showLabelOnBars, onCheckedChange = {
+                        showLabelOnBars = it
+                        coroutineScope.launch { updateSettings() }
+                    })
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("Show value on bars")
+                }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = showLabelOnBars, onCheckedChange = { showLabelOnBars = it})
-                Spacer(modifier = Modifier.width(10.dp))
-                Text("Show value on bars")
-            }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = onlyShowWhileRiding, onCheckedChange = {
+                        onlyShowWhileRiding = it
+                        coroutineScope.launch { updateSettings() }
+                    })
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("Only show while riding")
+                }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = onlyShowWhileRiding, onCheckedChange = { onlyShowWhileRiding = it})
-                Spacer(modifier = Modifier.width(10.dp))
-                Text("Only show while riding")
-            }
+                Spacer(modifier = Modifier.padding(30.dp))
 
-            FilledTonalButton(modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp), onClick = {
-                    val minSpeedSetting = (minSpeed.toIntOrNull()?.toFloat()?.div((if(isImperial) 2.23694f else 3.6f))) ?: PowerbarSettings.defaultMinSpeedMs
-                    val maxSpeedSetting = (maxSpeed.toIntOrNull()?.toFloat()?.div((if(isImperial) 2.23694f else 3.6f))) ?: PowerbarSettings.defaultMaxSpeedMs
-
-                    val newSettings = PowerbarSettings(
-                        source = bottomSelectedSource, topBarSource = topSelectedSource,
-                        onlyShowWhileRiding = onlyShowWhileRiding, showLabelOnBars = showLabelOnBars,
-                        useZoneColors = colorBasedOnZones,
-                        minCadence = minCadence.toIntOrNull() ?: PowerbarSettings.defaultMinCadence,
-                        maxCadence = maxCadence.toIntOrNull() ?: PowerbarSettings.defaultMaxCadence,
-                        minSpeed = minSpeedSetting, maxSpeed = maxSpeedSetting,
-                        minPower = customMinPower.toIntOrNull(),
-                        maxPower = customMaxPower.toIntOrNull(),
-                        minHr = customMinHr.toIntOrNull(),
-                        maxHr = customMaxHr.toIntOrNull(),
-                        barSize = barSize,
-                        useCustomPowerRange = useCustomPowerRange,
-                        useCustomHrRange = useCustomHrRange,
-                    )
-
-                    coroutineScope.launch {
-                        saveSettings(ctx, newSettings)
-                        savedDialogVisible = true
+                if (showAlerts){
+                    if(!karooConnected){
+                        Text(modifier = Modifier.padding(5.dp), text = "Could not read device status. Is your Karoo updated?")
                     }
-            }) {
-                Icon(Icons.Default.Done, contentDescription = "Save")
-                Spacer(modifier = Modifier.width(5.dp))
-                Text("Save")
-            }
 
-            if (showAlerts){
-                if(!karooConnected){
-                    Text(modifier = Modifier.padding(5.dp), text = "Could not read device status. Is your Karoo updated?")
-                }
+                    if (!givenPermissions) {
+                        Text(modifier = Modifier.padding(5.dp), text = "You have not given permissions to show the power bar overlay. Please do so.")
 
-                if (!givenPermissions) {
-                    Text(modifier = Modifier.padding(5.dp), text = "You have not given permissions to show the power bar overlay. Please do so.")
-
-                    FilledTonalButton(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp), onClick = {
-                        val myIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-                        startActivity(ctx, myIntent, null)
-                    }) {
-                        Icon(Icons.Default.Build, contentDescription = "Give permission")
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text("Give permission")
+                        FilledTonalButton(modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp), onClick = {
+                            val myIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                            startActivity(ctx, myIntent, null)
+                        }) {
+                            Icon(Icons.Default.Build, contentDescription = "Give permission")
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text("Give permission")
+                        }
                     }
                 }
             }
         }
+
+        Image(
+            painter = painterResource(id = R.drawable.back),
+            contentDescription = "Back",
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(bottom = 10.dp)
+                .size(54.dp)
+                .clickable {
+                    onFinish()
+                }
+        )
     }
 
-    if (savedDialogVisible){
-        AlertDialog(onDismissRequest = { savedDialogVisible = false },
-            confirmButton = { Button(onClick = {
-                savedDialogVisible = false
-            }) { Text("OK") } },
-            text = { Text("Settings saved successfully.") }
-        )
+    DisposableEffect(Unit) {
+        onDispose {
+            runBlocking {
+                updateSettings()
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            karooSystem.disconnect()
+        }
+    }
+
+    BackHandler {
+        coroutineScope.launch {
+            updateSettings()
+            onFinish()
+        }
     }
 }
