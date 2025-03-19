@@ -20,15 +20,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -50,6 +53,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat.startActivity
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -62,6 +66,8 @@ import de.timklge.karoopowerbar.settingsKey
 import de.timklge.karoopowerbar.streamSettings
 import de.timklge.karoopowerbar.streamUserProfile
 import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.HardwareType
+import io.hammerhead.karooext.models.PlayBeepPattern
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
@@ -86,6 +92,40 @@ enum class SelectedSource(val id: String, val label: String) {
     fun isPower() = this == POWER || this == POWER_3S || this == POWER_10S
 }
 
+@Composable
+fun BarSelectDialog(currentSelectedSource: SelectedSource, onHide: () -> Unit, onSelect: (SelectedSource) -> Unit) {
+    Dialog(onDismissRequest = { onHide() }) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            shape = RoundedCornerShape(10.dp),
+        ) {
+            Column(modifier = Modifier
+                .padding(5.dp)
+                .verticalScroll(rememberScrollState())
+                .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+                SelectedSource.entries.forEach { pattern ->
+                    Row(modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onSelect(pattern)
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = currentSelectedSource == pattern, onClick = {
+                            onSelect(pattern)
+                        })
+                        Text(
+                            text = pattern.label,
+                            modifier = Modifier.padding(start = 10.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(onFinish: () -> Unit) {
@@ -96,6 +136,9 @@ fun MainScreen(onFinish: () -> Unit) {
 
     var bottomSelectedSource by remember { mutableStateOf(SelectedSource.POWER) }
     var topSelectedSource by remember { mutableStateOf(SelectedSource.NONE) }
+
+    var bottomBarDialogVisible by remember { mutableStateOf(false) }
+    var topBarDialogVisible by remember { mutableStateOf(false) }
 
     var showAlerts by remember { mutableStateOf(false) }
     var givenPermissions by remember { mutableStateOf(false) }
@@ -226,26 +269,42 @@ fun MainScreen(onFinish: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
-                apply {
-                    val dropdownOptions = SelectedSource.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
-                    val dropdownInitialSelection by remember(bottomSelectedSource) {
-                        mutableStateOf(dropdownOptions.find { option -> option.id == bottomSelectedSource.id }!!)
-                    }
-                    Dropdown(label = "Bottom Bar", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
-                        bottomSelectedSource = SelectedSource.entries.find { unit -> unit.id == selectedOption.id }!!
-                        coroutineScope.launch { updateSettings() }
-                    }
+                FilledTonalButton(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+                    onClick = {
+                        bottomBarDialogVisible = true
+                    }) {
+                    Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text("Bottom Bar: ${bottomSelectedSource.label}")
                 }
 
-                apply {
-                    val dropdownOptions = SelectedSource.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
-                    val dropdownInitialSelection by remember(topSelectedSource) {
-                        mutableStateOf(dropdownOptions.find { option -> option.id == topSelectedSource.id }!!)
-                    }
-                    Dropdown(label = "Top Bar", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
-                        topSelectedSource = SelectedSource.entries.find { unit -> unit.id == selectedOption.id }!!
+                if (bottomBarDialogVisible){
+                    BarSelectDialog(bottomSelectedSource, onHide = { bottomBarDialogVisible = false }, onSelect = { selected ->
+                        bottomSelectedSource = selected
                         coroutineScope.launch { updateSettings() }
-                    }
+                        bottomBarDialogVisible = false
+                    })
+                }
+
+                FilledTonalButton(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+                    onClick = {
+                        topBarDialogVisible = true
+                    }) {
+                    Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text("Top Bar: ${topSelectedSource.label}")
+                }
+
+                if (topBarDialogVisible){
+                    BarSelectDialog(topSelectedSource, onHide = { topBarDialogVisible = false }, onSelect = { selected ->
+                        topSelectedSource = selected
+                        coroutineScope.launch { updateSettings() }
+                        topBarDialogVisible = false
+                    })
                 }
 
                 apply {
