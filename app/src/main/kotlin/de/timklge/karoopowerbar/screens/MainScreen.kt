@@ -277,7 +277,7 @@ fun MainScreen(onFinish: () -> Unit) {
                     }) {
                     Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(5.dp))
-                    Text("Bottom Bar: ${bottomSelectedSource.label}")
+                    Text("Bottom Bar: ${bottomSelectedSource.label}", modifier = Modifier.weight(1.0f))
                 }
 
                 if (bottomBarDialogVisible){
@@ -296,7 +296,7 @@ fun MainScreen(onFinish: () -> Unit) {
                     }) {
                     Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(5.dp))
-                    Text("Top Bar: ${topSelectedSource.label}")
+                    Text("Top Bar: ${topSelectedSource.label}", modifier = Modifier.weight(1.0f))
                 }
 
                 if (topBarDialogVisible){
