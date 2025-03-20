@@ -70,7 +70,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "timklge",
             "description" to "Adds a colored power or heart rate progress bar to the bottom of the screen, similar to the LEDs on Wahoo computers",
-            "releaseNotes" to "Add touchable back button"
+            "releaseNotes" to "* Replace dropdown popup with fullscreen dialog"
         )
 
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
