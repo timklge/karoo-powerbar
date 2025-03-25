@@ -9,8 +9,6 @@ dedicated LEDs featured on Wahoo devices.
 
 Compatible with Karoo 2 and Karoo 3 devices.
 
-<a href="https://www.buymeacoffee.com/timklge" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
-
 ![Powerbar](powerbar0.png)
 ![Settings](powerbar1.png)
 ![Powerbar GIF](powerbar_min.gif)
