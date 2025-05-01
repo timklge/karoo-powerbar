@@ -62,15 +62,20 @@ tasks.register("generateManifest") {
     doLast {
         val manifestFile = file("$projectDir/manifest.json")
         val manifest = mapOf(
-            "label" to "karoo-powerbar",
+            "label" to "Powerbar",
             "packageName" to "de.timklge.karoopowerbar",
             "iconUrl" to "https://github.com/timklge/karoo-powerbar/releases/latest/download/karoo-powerbar.png",
             "latestApkUrl" to "https://github.com/timklge/karoo-powerbar/releases/latest/download/app-release.apk",
             "latestVersion" to android.defaultConfig.versionName,
             "latestVersionCode" to android.defaultConfig.versionCode,
-            "developer" to "timklge",
-            "description" to "Adds a colored power or heart rate progress bar to the bottom of the screen, similar to the LEDs on Wahoo computers",
-            "releaseNotes" to "* Replace dropdown popup with fullscreen dialog"
+            "developer" to "github.com/timklge",
+            "description" to "Open-source extension that adds colored power or heart rate progress bars to the edges of the screen, similar to the LEDs on Wahoo computers",
+            "releaseNotes" to "* Replace dropdown popup with fullscreen dialog",
+            "screenshotUrls" to listOf(
+                "https://github.com/timklge/karoo-powerbar/releases/latest/download/powerbar_min.gif",
+                "https://github.com/timklge/karoo-powerbar/releases/latest/download/powerbar0.png",
+                "https://github.com/timklge/karoo-powerbar/releases/latest/download/powerbar2.png",
+            )
         )
 
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
