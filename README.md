@@ -31,16 +31,7 @@ to your current power output / heart rate zone as setup in your Karoo settings. 
 
 ## Installation
 
-If you are using a Karoo 3, you can use [Hammerhead's sideloading procedure](https://support.hammerhead.io/hc/en-us/articles/31576497036827-Companion-App-Sideloading) to install the app:
-
-1. Using the browser on your phone, long-press [this download link](https://github.com/timklge/karoo-powerbar/releases/latest/download/app-release.apk) and share it with the Hammerhead Companion app.
-2. Your karoo should show an info screen about the app now. Press "Install".
-
-If you are using a Karoo 2, you can use manual sideloading:
-
-1. Download the apk from the [releases page](https://github.com/timklge/karoo-powerbar/releases) (or build it from source)
-2. Set up your Karoo for sideloading. DC Rainmaker has a great [step-by-step guide](https://www.dcrainmaker.com/2021/02/how-to-sideload-android-apps-on-your-hammerhead-karoo-1-karoo-2.html).
-3. Install the app by running `adb install app-release.apk`.
+This extension is available as part of the extension library on your Karoo device. More information is available in the [Hammerhead FAQ](https://support.hammerhead.io/hc/en-us/articles/34676015530907-Karoo-OS-Extensions-Library).
 
 ## Credits
 
