@@ -102,4 +102,5 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.cardview)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.mapbox.sdk.turf)
 }
