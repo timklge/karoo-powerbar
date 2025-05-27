@@ -209,6 +209,7 @@ class Window(
             powerbar.progressColor = context.getColor(R.color.zone0)
             powerbar.progress = routeProgress
             powerbar.label = "$routeProgressInUserUnit"
+            powerbar.invalidate()
         }
     }
 
