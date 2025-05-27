@@ -175,7 +175,7 @@ class Window(
         var lastKnownRouteLength: Double? = null
 
         combine(karooSystem.streamUserProfile(), karooSystem.streamDataFlow(DataType.Type.DISTANCE_TO_DESTINATION), karooSystem.streamNavigationState()) { userProfile, distanceToDestination, navigationState ->
-            StreamData(userProfile, (distanceToDestination as? StreamState.Streaming)?.dataPoint?.singleValue, navigationState)
+            StreamData(userProfile, (distanceToDestination as? StreamState.Streaming)?.dataPoint?.values[DataType.Field.DISTANCE_TO_DESTINATION], navigationState)
         }.distinctUntilChanged().throttle(5_000).collect { (userProfile, distanceToDestination, navigationState) ->
             val state = navigationState.state
             val routePolyline = when (state) {
@@ -363,7 +363,7 @@ class Window(
         val powerFlow = karooSystem.streamDataFlow(smoothed.dataTypeId)
             .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
             .distinctUntilChanged()
-
+        
         val settingsFlow = context.streamSettings()
 
         val powerTargetFlow = karooSystem.streamDataFlow("TYPE_WORKOUT_POWER_TARGET_ID") // TYPE_WORKOUT_HEART_RATE_TARGET_ID, TYPE_WORKOUT_CADENCE_TARGET_ID,

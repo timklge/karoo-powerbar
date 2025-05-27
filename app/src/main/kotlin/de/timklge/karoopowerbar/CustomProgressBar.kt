@@ -36,13 +36,30 @@ class CustomProgressBar @JvmOverloads constructor(
         set(value) {
             field = value
             textPaint.textSize = value.fontSize
+            targetZoneStrokePaint.strokeWidth = when(value){
+                CustomProgressBarSize.SMALL -> 3f
+                CustomProgressBarSize.MEDIUM -> 6f
+                CustomProgressBarSize.LARGE -> 8f
+            }
+            targetIndicatorPaint.strokeWidth = when(value){
+                CustomProgressBarSize.SMALL -> 6f
+                CustomProgressBarSize.MEDIUM -> 8f
+                CustomProgressBarSize.LARGE -> 10f
+            }
         }
 
     private val targetColor = 0xFF9933FF.toInt()
 
-    private val targetZonePaint = Paint().apply {
+    private val targetZoneFillPaint = Paint().apply {
         isAntiAlias = true
-        strokeWidth = 10f
+        style = Paint.Style.FILL
+        color = targetColor
+        alpha = 100 // Semi-transparent fill
+    }
+
+    private val targetZoneStrokePaint = Paint().apply {
+        isAntiAlias = true
+        strokeWidth = 6f
         style = Paint.Style.STROKE
         color = targetColor
     }
@@ -97,130 +114,311 @@ class CustomProgressBar @JvmOverloads constructor(
         textAlign = Paint.Align.CENTER
     }
 
+    private val targetIndicatorPaint = Paint().apply {
+        isAntiAlias = true
+        strokeWidth = 8f
+        style = Paint.Style.STROKE
+    }
+
     override fun onDrawForeground(canvas: Canvas) {
         super.onDrawForeground(canvas)
 
         // Determine if the current progress is within the target range
-        val isTargetMet = progress != null && minTarget != null && maxTarget != null && progress!! >= minTarget!! && progress!! <= maxTarget!!
+        val isTargetMet =
+            progress != null && minTarget != null && maxTarget != null && progress!! >= minTarget!! && progress!! <= maxTarget!!
 
-        val color = if (isTargetMet) {
-            targetColor // Use Zone 8 color if target is met
-        } else {
-            progressColor // Use default progress color otherwise
-        }
+        linePaint.color = progressColor
+        lineStrokePaint.color = progressColor
+        blurPaint.color = progressColor
+        blurPaintHighlight.color = ColorUtils.blendARGB(progressColor, 0xFFFFFF, 0.5f)
 
-        linePaint.color = color
-        lineStrokePaint.color = color
-        blurPaint.color = color
-        blurPaintHighlight.color = ColorUtils.blendARGB(color, 0xFFFFFF, 0.5f)
-
-        when(location){
+        when (location) {
             PowerbarLocation.TOP -> {
                 val barTop = 15f
                 val barBottom = barTop + size.barHeight
                 val rect = RectF(
                     1f,
                     barTop,
-                    ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(0.0, 1.0)).toFloat(),
+                    ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(
+                        0.0,
+                        1.0
+                    )).toFloat(),
                     barBottom
                 )
 
                 canvas.drawRect(0f, barTop, canvas.width.toFloat(), barBottom, backgroundPaint)
 
+                // Draw target zone fill behind the progress bar
+                if (minTarget != null && maxTarget != null) {
+                    val minTargetX = (canvas.width * minTarget!!).toFloat()
+                    val maxTargetX = (canvas.width * maxTarget!!).toFloat()
+                    canvas.drawRoundRect(
+                        minTargetX,
+                        barTop,
+                        maxTargetX,
+                        barBottom,
+                        2f,
+                        2f,
+                        targetZoneFillPaint
+                    )
+                }
+
                 if (progress != null) {
                     canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
                     canvas.drawRoundRect(rect, 2f, 2f, linePaint)
 
-                    canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
+                    canvas.drawRoundRect(
+                        rect.right - 4,
+                        rect.top,
+                        rect.right + 4,
+                        rect.bottom,
+                        2f,
+                        2f,
+                        blurPaintHighlight
+                    )
 
-                    // Draw target indicator lines first to be "behind" the label
+                    // Draw target zone stroke after progress bar, before label
                     if (minTarget != null && maxTarget != null) {
                         val minTargetX = (canvas.width * minTarget!!).toFloat()
                         val maxTargetX = (canvas.width * maxTarget!!).toFloat()
-                        val edgeOffset = targetZonePaint.strokeWidth / 2f
-
-                        // Horizontal line at the top edge of the canvas
-                        canvas.drawLine(minTargetX, edgeOffset, maxTargetX, edgeOffset, targetZonePaint)
-                        // Vertical lines spanning most of the canvas height
-                        canvas.drawLine(minTargetX, edgeOffset, minTargetX, edgeOffset + 40, targetZonePaint)
-                        canvas.drawLine(maxTargetX, edgeOffset, maxTargetX, edgeOffset + 40, targetZonePaint)
+                        // Draw stroked rounded rectangle for the target zone
+                        canvas.drawRoundRect(
+                            minTargetX,
+                            barTop,
+                            maxTargetX,
+                            barBottom,
+                            2f,
+                            2f,
+                            targetZoneStrokePaint
+                        )
                     }
 
-                    if (showLabel){
-                        val textBounds = textPaint.measureText(label)
-                        val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
-                        val yOffset = when(size){
-                            CustomProgressBarSize.SMALL -> (size.fontSize - size.barHeight) / 2 + 2f
-                            CustomProgressBarSize.MEDIUM, CustomProgressBarSize.LARGE -> (size.fontSize - size.barHeight) / 2
+                    // Draw vertical target indicator line if target is present
+                    if (target != null) {
+                        val targetX = (canvas.width * target!!).toFloat()
+                        targetIndicatorPaint.color = if (isTargetMet) Color.GREEN else Color.RED
+                        canvas.drawLine(targetX, barTop, targetX, barBottom, targetIndicatorPaint)
+                    }
+
+                    if (showLabel) {
+                        val textContent =
+                            label // Store original label, as textPaint.measureText can be slow
+                        val measuredTextWidth = textPaint.measureText(textContent)
+                        val labelBoxWidth = (measuredTextWidth + 20).coerceAtLeast(10f)
+                        val labelBoxHeight = size.fontSize + 10f // Consistent height with padding
+
+                        // Calculate horizontal position for the label box (centered around progress end, clamped)
+                        val labelBoxLeft = (rect.right - labelBoxWidth / 2f).coerceIn(
+                            0f,
+                            canvas.width - labelBoxWidth
+                        )
+
+                        var labelBoxTop: Float
+                        var labelBoxBottom: Float
+                        var textYPosition: Float
+
+                        if (target != null) { // If workout target is present, move label BELOW the bar
+                            val labelPadding = 5f // Padding between bar and label box
+                            labelBoxTop = barBottom + labelPadding
+                            labelBoxBottom = labelBoxTop + labelBoxHeight
+                            // Vertically center text in the new box
+                            val labelBoxCenterY = labelBoxTop + labelBoxHeight / 2f
+                            textYPosition =
+                                labelBoxCenterY - (textPaint.ascent() + textPaint.descent()) / 2f
+                        } else { // Original position for TOP
+                            val yOffsetOriginal = when (size) {
+                                CustomProgressBarSize.SMALL -> (size.fontSize - size.barHeight) / 2 + 2f
+                                CustomProgressBarSize.MEDIUM, CustomProgressBarSize.LARGE -> (size.fontSize - size.barHeight) / 2
+                            }
+                            labelBoxTop = barTop - yOffsetOriginal
+                            labelBoxBottom =
+                                barBottom + yOffsetOriginal // Original calculation was based on rect.bottom which is barBottom
+                            textYPosition = barBottom + 6f // Original text Y
                         }
-                        val x = (rect.right - xOffset).coerceIn(0f..canvas.width-xOffset*2f)
-                        val y = rect.top - yOffset
-                        val r = x + xOffset * 2
-                        val b = rect.bottom + yOffset
 
-                        // Use targetZonePaint for outline if target is met
-                        val currentOutlinePaint = if (isTargetMet) targetZonePaint else lineStrokePaint
+                        lineStrokePaint.color = if (target != null){
+                            if (isTargetMet) Color.GREEN else Color.RED
+                        } else progressColor
 
-                        canvas.drawRoundRect(x, y, r, b, 2f, 2f, textBackgroundPaint)
-                        canvas.drawRoundRect(x, y, r, b, 2f, 2f, blurPaint)
-                        canvas.drawRoundRect(x, y, r, b, 2f, 2f, currentOutlinePaint)
+                        canvas.drawRoundRect(
+                            labelBoxLeft,
+                            labelBoxTop,
+                            labelBoxLeft + labelBoxWidth,
+                            labelBoxBottom,
+                            2f,
+                            2f,
+                            textBackgroundPaint
+                        )
+                        canvas.drawRoundRect(
+                            labelBoxLeft,
+                            labelBoxTop,
+                            labelBoxLeft + labelBoxWidth,
+                            labelBoxBottom,
+                            2f,
+                            2f,
+                            blurPaint
+                        )
+                        canvas.drawRoundRect(
+                            labelBoxLeft,
+                            labelBoxTop,
+                            labelBoxLeft + labelBoxWidth,
+                            labelBoxBottom,
+                            2f,
+                            2f,
+                            lineStrokePaint
+                        )
 
-                        canvas.drawText(label, x + xOffset, rect.top + size.barHeight + 6, textPaint)
+                        canvas.drawText(
+                            textContent,
+                            labelBoxLeft + labelBoxWidth / 2f,
+                            textYPosition,
+                            textPaint
+                        )
                     }
                 }
             }
+
             PowerbarLocation.BOTTOM -> {
                 val barTop = canvas.height.toFloat() - 1f - size.barHeight
                 val barBottom = canvas.height.toFloat()
                 val rect = RectF(
                     1f,
                     barTop,
-                    ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(0.0, 1.0)).toFloat(),
+                    ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(
+                        0.0,
+                        1.0
+                    )).toFloat(),
                     barBottom
                 )
 
                 canvas.drawRect(0f, barTop, canvas.width.toFloat(), barBottom, backgroundPaint)
 
+                // Draw target zone fill behind the progress bar
+                if (minTarget != null && maxTarget != null) {
+                    val minTargetX = (canvas.width * minTarget!!).toFloat()
+                    val maxTargetX = (canvas.width * maxTarget!!).toFloat()
+                    canvas.drawRoundRect(
+                        minTargetX,
+                        barTop,
+                        maxTargetX,
+                        barBottom,
+                        2f,
+                        2f,
+                        targetZoneFillPaint
+                    )
+                }
+
                 if (progress != null) {
                     canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
                     canvas.drawRoundRect(rect, 2f, 2f, linePaint)
 
-                    canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
+                    canvas.drawRoundRect(
+                        rect.right - 4,
+                        rect.top,
+                        rect.right + 4,
+                        rect.bottom,
+                        2f,
+                        2f,
+                        blurPaintHighlight
+                    )
 
-                    // Draw target indicator lines first to be "behind" the label
+                    // Draw target zone stroke after progress bar, before label
                     if (minTarget != null && maxTarget != null) {
                         val minTargetX = (canvas.width * minTarget!!).toFloat()
                         val maxTargetX = (canvas.width * maxTarget!!).toFloat()
-                        val edgeOffset = targetZonePaint.strokeWidth / 2f
-
-                        // Horizontal line at the bottom edge of the canvas
-                        canvas.drawLine(minTargetX, canvas.height - edgeOffset, maxTargetX, canvas.height - edgeOffset, targetZonePaint)
-                        // Vertical lines spanning most of the canvas height
-                        canvas.drawLine(minTargetX, canvas.height - edgeOffset - 40, minTargetX, canvas.height - edgeOffset, targetZonePaint)
-                        canvas.drawLine(maxTargetX, canvas.height - edgeOffset - 40, maxTargetX, canvas.height - edgeOffset, targetZonePaint)
+                        // Draw stroked rounded rectangle for the target zone
+                        canvas.drawRoundRect(
+                            minTargetX,
+                            barTop,
+                            maxTargetX,
+                            barBottom,
+                            2f,
+                            2f,
+                            targetZoneStrokePaint
+                        )
                     }
 
-                    if (showLabel){
-                        val textBounds = textPaint.measureText(label)
-                        val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
-                        val yOffset = when(size){
-                            CustomProgressBarSize.SMALL -> size.fontSize / 2 + 2f
-                            CustomProgressBarSize.MEDIUM -> size.fontSize / 2
-                            CustomProgressBarSize.LARGE -> size.fontSize / 2 - 5f
+                    // Draw vertical target indicator line if target is present
+                    if (target != null) {
+                        val targetX = (canvas.width * target!!).toFloat()
+                        targetIndicatorPaint.color = if (isTargetMet) Color.GREEN else Color.RED
+                        canvas.drawLine(targetX, barTop, targetX, barBottom, targetIndicatorPaint)
+                    }
+
+                    if (showLabel) {
+                        val textContent = label // Store original label
+                        val measuredTextWidth = textPaint.measureText(textContent)
+                        val labelBoxWidth = (measuredTextWidth + 20).coerceAtLeast(10f)
+                        val labelBoxHeight = size.fontSize + 10f // Consistent height with padding
+
+                        // Calculate horizontal position for the label box (centered around progress end, clamped)
+                        val labelBoxLeft = (rect.right - labelBoxWidth / 2f).coerceIn(
+                            0f,
+                            canvas.width - labelBoxWidth
+                        )
+
+                        var labelBoxTop: Float
+                        var labelBoxBottom: Float
+                        var textYPosition: Float
+
+                        if (target != null) { // If workout target is present, move label ABOVE the bar
+                            val labelPadding = 5f // Padding between bar and label box
+                            labelBoxBottom = barTop - labelPadding
+                            labelBoxTop = labelBoxBottom - labelBoxHeight
+                            // Vertically center text in the new box
+                            val labelBoxCenterY = labelBoxTop + labelBoxHeight / 2f
+                            textYPosition =
+                                labelBoxCenterY - (textPaint.ascent() + textPaint.descent()) / 2f
+                        } else { // Original position for BOTTOM
+                            val yOffsetOriginal = when (size) {
+                                CustomProgressBarSize.SMALL -> size.fontSize / 2 + 2f
+                                CustomProgressBarSize.MEDIUM -> size.fontSize / 2
+                                CustomProgressBarSize.LARGE -> size.fontSize / 2 - 5f
+                            }
+                            labelBoxTop = barTop - yOffsetOriginal
+                            labelBoxBottom = barBottom + 5f // Original 'b' calculation
+                            textYPosition =
+                                barBottom - 1f // Original text Y (rect.top + size.barHeight -1)
                         }
-                        val x = (rect.right - xOffset).coerceIn(0f..canvas.width-xOffset*2f)
-                        val y = (rect.top - yOffset)
-                        val r = x + xOffset * 2
-                        val b = rect.bottom + 5
 
-                        // Use targetZonePaint for outline if target is met
-                        val currentOutlinePaint = if (isTargetMet) targetZonePaint else lineStrokePaint
+                        lineStrokePaint.color = if (target != null){
+                            if (isTargetMet) Color.GREEN else Color.RED
+                        } else progressColor
 
-                        canvas.drawRoundRect(x, y, r, b, 2f, 2f, textBackgroundPaint)
-                        canvas.drawRoundRect(x, y, r, b, 2f, 2f, blurPaint)
-                        canvas.drawRoundRect(x, y, r, b, 2f, 2f, currentOutlinePaint)
+                        canvas.drawRoundRect(
+                            labelBoxLeft,
+                            labelBoxTop,
+                            labelBoxLeft + labelBoxWidth,
+                            labelBoxBottom,
+                            2f,
+                            2f,
+                            textBackgroundPaint
+                        )
+                        canvas.drawRoundRect(
+                            labelBoxLeft,
+                            labelBoxTop,
+                            labelBoxLeft + labelBoxWidth,
+                            labelBoxBottom,
+                            2f,
+                            2f,
+                            blurPaint
+                        )
+                        canvas.drawRoundRect(
+                            labelBoxLeft,
+                            labelBoxTop,
+                            labelBoxLeft + labelBoxWidth,
+                            labelBoxBottom,
+                            2f,
+                            2f,
+                            lineStrokePaint
+                        )
 
-                        canvas.drawText(label, x + xOffset, rect.top + size.barHeight - 1, textPaint)
+                        canvas.drawText(
+                            textContent,
+                            labelBoxLeft + labelBoxWidth / 2f,
+                            textYPosition,
+                            textPaint
+                        )
                     }
                 }
             }
