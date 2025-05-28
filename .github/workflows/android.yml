@@ -20,8 +20,8 @@ jobs:
 
     - name: Set up environment variables
       run: |
-        echo "GPR_USER=${{ github.actor }}" >> $GITHUB_ENV
-        echo "GPR_KEY=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+        echo "GPR_USER=${{ secrets.GHUB_USER || github.actor }}" >> $GITHUB_ENV
+        echo "GPR_KEY=${{ secrets.GHUB_TOKEN || secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
         echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
         echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
         echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
