@@ -1,4 +1,5 @@
 import java.util.Base64
+import com.android.build.gradle.tasks.ProcessApplicationManifest
 
 plugins {
     alias(libs.plugins.android.application)
@@ -60,7 +61,7 @@ tasks.register("generateManifest") {
     group = "build"
 
     doLast {
-        val baseUrl = System.getenv("BASE_URL")
+        val baseUrl = System.getenv("BASE_URL") ?: "https://github.com/timklge/karoo-powerbar/releases/latest/download"
         val manifestFile = file("$projectDir/manifest.json")
         val manifest = mapOf(
             "label" to "Powerbar",
@@ -95,6 +96,11 @@ tasks.named("assemble") {
     dependsOn("generateManifest")
 }
 
+tasks.withType<ProcessApplicationManifest>().configureEach {
+    if (name == "processDebugMainManifest" || name == "processReleaseMainManifest") {
+        dependsOn(tasks.named("generateManifest"))
+    }
+}
 
 dependencies {
     implementation(libs.hammerhead.karoo.ext)
