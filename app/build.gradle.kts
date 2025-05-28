@@ -84,11 +84,13 @@ tasks.register("generateManifest") {
         manifestFile.writeText(gson)
         println("Generated manifest.json with version ${android.defaultConfig.versionName} (${android.defaultConfig.versionCode})")
 
-        val androidManifestFile = file("$projectDir/src/main/AndroidManifest.xml")
-        var androidManifestContent = androidManifestFile.readText()
-        androidManifestContent = androidManifestContent.replace("\$BASE_URL\$", baseUrl)
-        androidManifestFile.writeText(androidManifestContent)
-        println("Replaced \$BASE_URL$ in AndroidManifest.xml")
+        if (System.getenv()["BASE_URL"] != null){
+            val androidManifestFile = file("$projectDir/src/main/AndroidManifest.xml")
+            var androidManifestContent = androidManifestFile.readText()
+            androidManifestContent = androidManifestContent.replace("\$BASE_URL\$", baseUrl)
+            androidManifestFile.writeText(androidManifestContent)
+            println("Replaced \$BASE_URL$ in AndroidManifest.xml")
+        }
     }
 }
 

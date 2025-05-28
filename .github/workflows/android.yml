@@ -59,6 +59,7 @@ jobs:
           powerbar2.png
         name: ${{ github.ref_name }}
         prerelease: false
+        draft: false
         generate_release_notes: true
         make_latest: true
       env:
