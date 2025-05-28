@@ -70,7 +70,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that adds colored power or heart rate progress bars to the edges of the screen, similar to the LEDs on Wahoo computers",
-            "releaseNotes" to "* Replace dropdown popup with fullscreen dialog",
+            "releaseNotes" to "* Add route progress data source\n* Add workout target range indicator\n* Replace dropdown popup with fullscreen dialog",
             "screenshotUrls" to listOf(
                 "https://github.com/timklge/karoo-powerbar/releases/latest/download/powerbar_min.gif",
                 "https://github.com/timklge/karoo-powerbar/releases/latest/download/powerbar0.png",
