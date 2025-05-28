@@ -44,12 +44,6 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build
 
-    - name: Archive APK
-      uses: actions/upload-artifact@v3
-      with:
-        name: app-release.apk
-        path: app/build/outputs/apk/release/app-release.apk
-
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@v2
@@ -64,6 +58,7 @@ jobs:
           powerbar2.png
         name: ${{ github.ref_name }}
         prerelease: false
-        generateReleaseNotes: true
+        generate_release_notes: true
+        make_latest: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
