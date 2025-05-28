@@ -65,17 +65,17 @@ tasks.register("generateManifest") {
         val manifest = mapOf(
             "label" to "Powerbar",
             "packageName" to "de.timklge.karoopowerbar",
-            "iconUrl" to "$baseUrl/releases/latest/download/karoo-powerbar.png",
-            "latestApkUrl" to "$baseUrl/releases/latest/download/app-release.apk",
+            "iconUrl" to "$baseUrl/karoo-powerbar.png",
+            "latestApkUrl" to "$baseUrl/app-release.apk",
             "latestVersion" to android.defaultConfig.versionName,
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that adds colored power or heart rate progress bars to the edges of the screen, similar to the LEDs on Wahoo computers",
             "releaseNotes" to "* Add route progress data source\n* Add workout target range indicator\n* Replace dropdown popup with fullscreen dialog",
             "screenshotUrls" to listOf(
-                "$baseUrl/releases/latest/download/powerbar_min.gif",
-                "$baseUrl/releases/latest/download/powerbar0.png",
-                "$baseUrl/releases/latest/download/powerbar2.png",
+                "$baseUrl/powerbar_min.gif",
+                "$baseUrl/powerbar0.png",
+                "$baseUrl/powerbar2.png",
             )
         )
 
