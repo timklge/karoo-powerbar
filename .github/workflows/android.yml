@@ -27,7 +27,7 @@ jobs:
         echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
         echo "KEYSTORE_BASE64=${{ secrets.KEYSTORE_BASE64 }}" >> $GITHUB_ENV
         echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
-        echo "BASE_URL=${{ secrets.BASE_URL || '"https://github.com/timklge/karoo-powerbar/releases/latest/download"' }}" >> $GITHUB_ENV
+        echo "BASE_URL=${{ secrets.BASE_URL || 'https://github.com/timklge/karoo-powerbar/releases/latest/download' }}" >> $GITHUB_ENV
 
     - uses: actions/checkout@v4
     - name: set up JDK 17
