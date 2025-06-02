@@ -2,7 +2,6 @@ package de.timklge.karoopowerbar
 
 import android.content.Context
 import android.util.Log
-import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import de.timklge.karoopowerbar.screens.SelectedSource
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +22,8 @@ data class PowerbarSettings(
     val useZoneColors: Boolean = true,
     val barBackground: Boolean = false,
     val barSize: CustomProgressBarSize = CustomProgressBarSize.MEDIUM,
+    val barFontSize: CustomProgressBarFontSize = CustomProgressBarFontSize.fromSize(barSize),
+    val barBarSize: CustomProgressBarBarSize = CustomProgressBarBarSize.fromSize(barSize),
 
     val minCadence: Int = defaultMinCadence, val maxCadence: Int = defaultMaxCadence,
     val minSpeed: Float = defaultMinSpeedMs, val maxSpeed: Float = defaultMaxSpeedMs, // 50 km/h in m/s

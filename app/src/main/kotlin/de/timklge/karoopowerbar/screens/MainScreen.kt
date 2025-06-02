@@ -57,6 +57,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat.startActivity
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import de.timklge.karoopowerbar.CustomProgressBarBarSize
+import de.timklge.karoopowerbar.CustomProgressBarFontSize
 import de.timklge.karoopowerbar.CustomProgressBarSize
 import de.timklge.karoopowerbar.KarooPowerbarExtension
 import de.timklge.karoopowerbar.PowerbarSettings
@@ -144,7 +146,8 @@ fun MainScreen(onFinish: () -> Unit) {
     var onlyShowWhileRiding by remember { mutableStateOf(false) }
     var colorBasedOnZones by remember { mutableStateOf(false) }
     var showLabelOnBars by remember { mutableStateOf(true) }
-    var barSize by remember { mutableStateOf(CustomProgressBarSize.MEDIUM) }
+    var barBarSize by remember { mutableStateOf(CustomProgressBarBarSize.MEDIUM) }
+    var barFontSize by remember { mutableStateOf(CustomProgressBarFontSize.MEDIUM) }
     var barBackground by remember { mutableStateOf(false) }
 
     var minCadence by remember { mutableStateOf("0") }
@@ -184,7 +187,8 @@ fun MainScreen(onFinish: () -> Unit) {
             maxPower = customMaxPower.toIntOrNull(),
             minHr = customMinHr.toIntOrNull(),
             maxHr = customMaxHr.toIntOrNull(),
-            barSize = barSize,
+            barBarSize = barBarSize,
+            barFontSize = barFontSize,
             useCustomPowerRange = useCustomPowerRange,
             useCustomHrRange = useCustomHrRange,
         )
@@ -226,7 +230,8 @@ fun MainScreen(onFinish: () -> Unit) {
                 onlyShowWhileRiding = settings.onlyShowWhileRiding
                 showLabelOnBars = settings.showLabelOnBars
                 colorBasedOnZones = settings.useZoneColors
-                barSize = settings.barSize
+                barBarSize = settings.barBarSize
+                barFontSize = settings.barFontSize
                 barBackground = settings.barBackground
                 minCadence = settings.minCadence.toString()
                 maxCadence = settings.maxCadence.toString()
@@ -309,12 +314,23 @@ fun MainScreen(onFinish: () -> Unit) {
                 }
 
                 apply {
-                    val dropdownOptions = CustomProgressBarSize.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
-                    val dropdownInitialSelection by remember(barSize) {
-                        mutableStateOf(dropdownOptions.find { option -> option.id == barSize.id }!!)
+                    val dropdownOptions = CustomProgressBarBarSize.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
+                    val dropdownInitialSelection by remember(barBarSize) {
+                        mutableStateOf(dropdownOptions.find { option -> option.id == barBarSize.id }!!)
                     }
                     Dropdown(label = "Bar Size", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
-                        barSize = CustomProgressBarSize.entries.find { unit -> unit.id == selectedOption.id }!!
+                        barBarSize = CustomProgressBarBarSize.entries.find { unit -> unit.id == selectedOption.id }!!
+                        coroutineScope.launch { updateSettings() }
+                    }
+                }
+
+                apply {
+                    val dropdownOptions = CustomProgressBarFontSize.entries.toList().map { unit -> DropdownOption(unit.id, unit.label) }
+                    val dropdownInitialSelection by remember(barFontSize) {
+                        mutableStateOf(dropdownOptions.find { option -> option.id == barFontSize.id }!!)
+                    }
+                    Dropdown(label = "Text Size", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
+                        barFontSize = CustomProgressBarFontSize.entries.find { unit -> unit.id == selectedOption.id }!!
                         coroutineScope.launch { updateSettings() }
                     }
                 }
