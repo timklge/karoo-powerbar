@@ -66,8 +66,6 @@ import de.timklge.karoopowerbar.settingsKey
 import de.timklge.karoopowerbar.streamSettings
 import de.timklge.karoopowerbar.streamUserProfile
 import io.hammerhead.karooext.KarooSystemService
-import io.hammerhead.karooext.models.HardwareType
-import io.hammerhead.karooext.models.PlayBeepPattern
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
@@ -147,6 +145,7 @@ fun MainScreen(onFinish: () -> Unit) {
     var colorBasedOnZones by remember { mutableStateOf(false) }
     var showLabelOnBars by remember { mutableStateOf(true) }
     var barSize by remember { mutableStateOf(CustomProgressBarSize.MEDIUM) }
+    var barBackground by remember { mutableStateOf(false) }
 
     var minCadence by remember { mutableStateOf("0") }
     var maxCadence by remember { mutableStateOf("0") }
@@ -176,6 +175,7 @@ fun MainScreen(onFinish: () -> Unit) {
         val newSettings = PowerbarSettings(
             source = bottomSelectedSource, topBarSource = topSelectedSource,
             onlyShowWhileRiding = onlyShowWhileRiding, showLabelOnBars = showLabelOnBars,
+            barBackground = barBackground,
             useZoneColors = colorBasedOnZones,
             minCadence = minCadence.toIntOrNull() ?: PowerbarSettings.defaultMinCadence,
             maxCadence = maxCadence.toIntOrNull() ?: PowerbarSettings.defaultMaxCadence,
@@ -227,6 +227,7 @@ fun MainScreen(onFinish: () -> Unit) {
                 showLabelOnBars = settings.showLabelOnBars
                 colorBasedOnZones = settings.useZoneColors
                 barSize = settings.barSize
+                barBackground = settings.barBackground
                 minCadence = settings.minCadence.toString()
                 maxCadence = settings.maxCadence.toString()
                 isImperial = profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
@@ -468,6 +469,15 @@ fun MainScreen(onFinish: () -> Unit) {
                     })
                     Spacer(modifier = Modifier.width(10.dp))
                     Text("Show value on bars")
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = barBackground, onCheckedChange = {
+                        barBackground = it
+                        coroutineScope.launch { updateSettings() }
+                    })
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("Opaque background")
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {

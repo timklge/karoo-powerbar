@@ -21,6 +21,7 @@ data class PowerbarSettings(
     val onlyShowWhileRiding: Boolean = true,
     val showLabelOnBars: Boolean = true,
     val useZoneColors: Boolean = true,
+    val barBackground: Boolean = false,
     val barSize: CustomProgressBarSize = CustomProgressBarSize.MEDIUM,
 
     val minCadence: Int = defaultMinCadence, val maxCadence: Int = defaultMaxCadence,
