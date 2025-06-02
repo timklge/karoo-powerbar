@@ -280,25 +280,6 @@ fun MainScreen(onFinish: () -> Unit) {
                     .fillMaxWidth()
                     .height(60.dp),
                     onClick = {
-                        bottomBarDialogVisible = true
-                    }) {
-                    Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text("Bottom Bar: ${bottomSelectedSource.label}", modifier = Modifier.weight(1.0f))
-                }
-
-                if (bottomBarDialogVisible){
-                    BarSelectDialog(bottomSelectedSource, onHide = { bottomBarDialogVisible = false }, onSelect = { selected ->
-                        bottomSelectedSource = selected
-                        coroutineScope.launch { updateSettings() }
-                        bottomBarDialogVisible = false
-                    })
-                }
-
-                FilledTonalButton(modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp),
-                    onClick = {
                         topBarDialogVisible = true
                     }) {
                     Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
@@ -311,6 +292,25 @@ fun MainScreen(onFinish: () -> Unit) {
                         topSelectedSource = selected
                         coroutineScope.launch { updateSettings() }
                         topBarDialogVisible = false
+                    })
+                }
+
+                FilledTonalButton(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+                    onClick = {
+                        bottomBarDialogVisible = true
+                    }) {
+                    Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text("Bottom Bar: ${bottomSelectedSource.label}", modifier = Modifier.weight(1.0f))
+                }
+
+                if (bottomBarDialogVisible){
+                    BarSelectDialog(bottomSelectedSource, onHide = { bottomBarDialogVisible = false }, onSelect = { selected ->
+                        bottomSelectedSource = selected
+                        coroutineScope.launch { updateSettings() }
+                        bottomBarDialogVisible = false
                     })
                 }
 
