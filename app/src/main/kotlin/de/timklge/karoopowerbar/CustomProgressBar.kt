@@ -11,14 +11,6 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
-import kotlinx.serialization.Serializable
-
-@Serializable
-enum class CustomProgressBarSize(val id: String, val label: String, val fontSize: Float, val barHeight: Float) {
-    SMALL("small", "Small", 35f, 10f),
-    MEDIUM("medium", "Medium", 40f, 15f),
-    LARGE("large", "Large", 60f, 25f),
-}
 
 class CustomProgressBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -30,10 +22,17 @@ class CustomProgressBar @JvmOverloads constructor(
     var barBackground: Boolean = false
     @ColorInt var progressColor: Int = 0xFF2b86e6.toInt()
 
-    var size = CustomProgressBarSize.MEDIUM
+    var fontSize = CustomProgressBarFontSize.MEDIUM
         set(value) {
             field = value
             textPaint.textSize = value.fontSize
+            invalidate() // Redraw to apply new font size
+        }
+
+    var barSize = CustomProgressBarBarSize.MEDIUM
+        set(value) {
+            field = value
+            invalidate() // Redraw to apply new bar size
         }
 
     private val linePaint = Paint().apply {
@@ -81,13 +80,15 @@ class CustomProgressBar @JvmOverloads constructor(
     private val textPaint = Paint().apply {
         color = Color.WHITE
         strokeWidth = 3f
-        textSize = size.fontSize
+        textSize = fontSize.fontSize
         typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD);
         textAlign = Paint.Align.CENTER
     }
 
     override fun onDrawForeground(canvas: Canvas) {
         super.onDrawForeground(canvas)
+
+        val labelVerticalPadding = 0f // Added for consistent label padding
 
         linePaint.color = progressColor
         lineStrokePaint.color = progressColor
@@ -100,75 +101,88 @@ class CustomProgressBar @JvmOverloads constructor(
                     1f,
                     15f,
                     ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(0.0, 1.0)).toFloat(),
-                    15f + size.barHeight
+                    15f + barSize.barHeight // barSize.barHeight will be 0f if NONE
                 )
 
-                if (barBackground){
-                    canvas.drawRect(0f, 15f, canvas.width.toFloat(), 15f + size.barHeight, backgroundPaint)
+                // Draw bar components only if barSize is not NONE
+                if (barSize != CustomProgressBarBarSize.NONE) {
+                    if (barBackground){
+                        canvas.drawRect(0f, 15f, canvas.width.toFloat(), 15f + barSize.barHeight, backgroundPaint)
+                    }
+
+                    if (progress != null) {
+                        canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
+                        canvas.drawRoundRect(rect, 2f, 2f, linePaint)
+                        canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
+                    }
                 }
 
+                // Draw label (if progress is not null and showLabel is true)
                 if (progress != null) {
-                    canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
-                    canvas.drawRoundRect(rect, 2f, 2f, linePaint)
-
-                    canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
-
                     if (showLabel){
                         val textBounds = textPaint.measureText(label)
                         val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
-                        val yOffset = when(size){
-                            CustomProgressBarSize.SMALL -> (size.fontSize - size.barHeight) / 2 + 2f
-                            CustomProgressBarSize.MEDIUM, CustomProgressBarSize.LARGE -> (size.fontSize - size.barHeight) / 2
-                        }
                         val x = (rect.right - xOffset).coerceIn(0f..canvas.width-xOffset*2f)
-                        val y = rect.top - yOffset
                         val r = x + xOffset * 2
-                        val b = rect.bottom + yOffset
 
-                        canvas.drawRoundRect(x, y, r, b, 2f, 2f, textBackgroundPaint)
-                        canvas.drawRoundRect(x, y, r, b, 2f, 2f, blurPaint)
-                        canvas.drawRoundRect(x, y, r, b, 2f, 2f, lineStrokePaint)
+                        val fm = textPaint.fontMetrics
+                        // barCenterY calculation uses barSize.barHeight, which is 0f for NONE,
+                        // correctly centering the label on the 15f line.
+                        val barCenterY = rect.top + barSize.barHeight / 2f
+                        val centeredTextBaselineY = barCenterY - (fm.ascent + fm.descent) / 2f
+                        val calculatedTextBoxTop = centeredTextBaselineY + fm.ascent - labelVerticalPadding
+                        val finalTextBoxTop = calculatedTextBoxTop.coerceAtLeast(0f)
+                        val finalTextBaselineY = finalTextBoxTop - fm.ascent + labelVerticalPadding
+                        val finalTextBoxBottom = finalTextBaselineY + fm.descent + labelVerticalPadding
 
-                        canvas.drawText(label, x + xOffset, rect.top + size.barHeight + 6, textPaint)
+                        canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, textBackgroundPaint)
+                        canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, blurPaint)
+                        canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, lineStrokePaint)
+                        canvas.drawText(label, x + xOffset, finalTextBaselineY, textPaint)
                     }
                 }
             }
             PowerbarLocation.BOTTOM -> {
                 val rect = RectF(
                     1f,
-                    canvas.height.toFloat() - 1f - size.barHeight,
+                    canvas.height.toFloat() - 1f - barSize.barHeight, // barSize.barHeight will be 0f if NONE
                     ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(0.0, 1.0)).toFloat(),
                     canvas.height.toFloat()
                 )
 
-                if (barBackground){
-                    canvas.drawRect(0f, canvas.height.toFloat() - size.barHeight, canvas.width.toFloat(), canvas.height.toFloat(), backgroundPaint)
+                // Draw bar components only if barSize is not NONE
+                if (barSize != CustomProgressBarBarSize.NONE) {
+                    if (barBackground){
+                        // Use barSize.barHeight for background top calculation
+                        canvas.drawRect(0f, canvas.height.toFloat() - barSize.barHeight, canvas.width.toFloat(), canvas.height.toFloat(), backgroundPaint)
+                    }
+
+                    if (progress != null) {
+                        canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
+                        canvas.drawRoundRect(rect, 2f, 2f, linePaint)
+                        canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
+                    }
                 }
 
+                // Draw label (if progress is not null and showLabel is true)
                 if (progress != null) {
-                    canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
-                    canvas.drawRoundRect(rect, 2f, 2f, linePaint)
-
-                    canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
-
                     if (showLabel){
                         val textBounds = textPaint.measureText(label)
                         val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
-                        val yOffset = when(size){
-                            CustomProgressBarSize.SMALL -> size.fontSize / 2 + 2f
-                            CustomProgressBarSize.MEDIUM -> size.fontSize / 2
-                            CustomProgressBarSize.LARGE -> size.fontSize / 2 - 5f
-                        }
                         val x = (rect.right - xOffset).coerceIn(0f..canvas.width-xOffset*2f)
-                        val y = (rect.top - yOffset)
                         val r = x + xOffset * 2
-                        val b = rect.bottom + 5
 
-                        canvas.drawRoundRect(x, y, r, b, 2f, 2f, textBackgroundPaint)
-                        canvas.drawRoundRect(x, y, r, b, 2f, 2f, blurPaint)
-                        canvas.drawRoundRect(x, y, r, b, 2f, 2f, lineStrokePaint)
+                        // textDrawBaselineY calculation uses rect.top and barSize.barHeight.
+                        // If NONE, barSize.barHeight is 0f. rect.top becomes canvas.height - 1f.
+                        // So, baseline is (canvas.height - 1f) + 0f - 1f = canvas.height - 2f.
+                        val textDrawBaselineY = rect.top + barSize.barHeight - 1f
+                        val yBox = textDrawBaselineY + textPaint.ascent() - labelVerticalPadding
+                        val bBox = textDrawBaselineY + textPaint.descent() + labelVerticalPadding
 
-                        canvas.drawText(label, x + xOffset, rect.top + size.barHeight - 1, textPaint)
+                        canvas.drawRoundRect(x, yBox, r, bBox, 2f, 2f, textBackgroundPaint)
+                        canvas.drawRoundRect(x, yBox, r, bBox, 2f, 2f, blurPaint)
+                        canvas.drawRoundRect(x, yBox, r, bBox, 2f, 2f, lineStrokePaint)
+                        canvas.drawText(label, x + xOffset, textDrawBaselineY, textPaint)
                     }
                 }
             }

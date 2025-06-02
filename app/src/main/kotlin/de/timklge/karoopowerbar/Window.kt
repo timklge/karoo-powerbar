@@ -47,7 +47,8 @@ class Window(
     val powerbarLocation: PowerbarLocation = PowerbarLocation.BOTTOM,
     val showLabel: Boolean,
     val barBackground: Boolean,
-    val powerbarSize: CustomProgressBarSize
+    val powerbarBarSize: CustomProgressBarBarSize,
+    val powerbarFontSize: CustomProgressBarFontSize,
 ) {
     private val rootView: View
     private var layoutParams: WindowManager.LayoutParams? = null
@@ -124,7 +125,8 @@ class Window(
             powerbar.location = powerbarLocation
             powerbar.showLabel = showLabel
             powerbar.barBackground = barBackground
-            powerbar.size = powerbarSize
+            powerbar.fontSize = powerbarFontSize
+            powerbar.barSize = powerbarBarSize
             powerbar.invalidate()
 
             Log.i(TAG, "Streaming $selectedSource")
