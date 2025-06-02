@@ -88,8 +88,6 @@ class CustomProgressBar @JvmOverloads constructor(
     override fun onDrawForeground(canvas: Canvas) {
         super.onDrawForeground(canvas)
 
-        val labelVerticalPadding = 0f // Added for consistent label padding
-
         linePaint.color = progressColor
         lineStrokePaint.color = progressColor
         blurPaint.color = progressColor
@@ -130,10 +128,10 @@ class CustomProgressBar @JvmOverloads constructor(
                         // correctly centering the label on the 15f line.
                         val barCenterY = rect.top + barSize.barHeight / 2f
                         val centeredTextBaselineY = barCenterY - (fm.ascent + fm.descent) / 2f
-                        val calculatedTextBoxTop = centeredTextBaselineY + fm.ascent - labelVerticalPadding
+                        val calculatedTextBoxTop = centeredTextBaselineY + fm.ascent
                         val finalTextBoxTop = calculatedTextBoxTop.coerceAtLeast(0f)
-                        val finalTextBaselineY = finalTextBoxTop - fm.ascent + labelVerticalPadding
-                        val finalTextBoxBottom = finalTextBaselineY + fm.descent + labelVerticalPadding
+                        val finalTextBaselineY = finalTextBoxTop - fm.ascent
+                        val finalTextBoxBottom = finalTextBaselineY + fm.descent
 
                         canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, textBackgroundPaint)
                         canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, blurPaint)
@@ -176,8 +174,8 @@ class CustomProgressBar @JvmOverloads constructor(
                         // If NONE, barSize.barHeight is 0f. rect.top becomes canvas.height - 1f.
                         // So, baseline is (canvas.height - 1f) + 0f - 1f = canvas.height - 2f.
                         val textDrawBaselineY = rect.top + barSize.barHeight - 1f
-                        val yBox = textDrawBaselineY + textPaint.ascent() - labelVerticalPadding
-                        val bBox = textDrawBaselineY + textPaint.descent() + labelVerticalPadding
+                        val yBox = textDrawBaselineY + textPaint.ascent()
+                        val bBox = textDrawBaselineY + textPaint.descent()
 
                         canvas.drawRoundRect(x, yBox, r, bBox, 2f, 2f, textBackgroundPaint)
                         canvas.drawRoundRect(x, yBox, r, bBox, 2f, 2f, blurPaint)
