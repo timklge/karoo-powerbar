@@ -46,6 +46,7 @@ class Window(
     private val context: Context,
     val powerbarLocation: PowerbarLocation = PowerbarLocation.BOTTOM,
     val showLabel: Boolean,
+    val barBackground: Boolean,
     val powerbarSize: CustomProgressBarSize
 ) {
     private val rootView: View
@@ -122,6 +123,7 @@ class Window(
             powerbar.progress = null
             powerbar.location = powerbarLocation
             powerbar.showLabel = showLabel
+            powerbar.barBackground = barBackground
             powerbar.size = powerbarSize
             powerbar.invalidate()
 
