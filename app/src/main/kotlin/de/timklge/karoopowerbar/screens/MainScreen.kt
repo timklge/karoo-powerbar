@@ -494,7 +494,7 @@ fun MainScreen(onFinish: () -> Unit) {
                         coroutineScope.launch { updateSettings() }
                     })
                     Spacer(modifier = Modifier.width(10.dp))
-                    Text("Opaque background")
+                    Text("Solid background")
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
