@@ -87,7 +87,8 @@ enum class SelectedSource(val id: String, val label: String) {
     SPEED("speed", "Speed"),
     SPEED_3S("speed_3s", "Speed (3 sec avg"),
     CADENCE("cadence", "Cadence"),
-    CADENCE_3S("cadence_3s", "Cadence (3 sec avg)");
+    CADENCE_3S("cadence_3s", "Cadence (3 sec avg)"),
+    ROUTE_PROGRESS("route_progress", "Route Progress");
 
     fun isPower() = this == POWER || this == POWER_3S || this == POWER_10S
 }

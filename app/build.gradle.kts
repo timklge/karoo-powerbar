@@ -1,4 +1,5 @@
 import java.util.Base64
+import com.android.build.gradle.tasks.ProcessApplicationManifest
 
 plugins {
     alias(libs.plugins.android.application)
@@ -60,27 +61,36 @@ tasks.register("generateManifest") {
     group = "build"
 
     doLast {
+        val baseUrl = System.getenv("BASE_URL") ?: "https://github.com/timklge/karoo-powerbar/releases/latest/download"
         val manifestFile = file("$projectDir/manifest.json")
         val manifest = mapOf(
             "label" to "Powerbar",
             "packageName" to "de.timklge.karoopowerbar",
-            "iconUrl" to "https://github.com/timklge/karoo-powerbar/releases/latest/download/karoo-powerbar.png",
-            "latestApkUrl" to "https://github.com/timklge/karoo-powerbar/releases/latest/download/app-release.apk",
+            "iconUrl" to "$baseUrl/karoo-powerbar.png",
+            "latestApkUrl" to "$baseUrl/app-release.apk",
             "latestVersion" to android.defaultConfig.versionName,
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that adds colored power or heart rate progress bars to the edges of the screen, similar to the LEDs on Wahoo computers",
-            "releaseNotes" to "* Replace dropdown popup with fullscreen dialog",
+            "releaseNotes" to "* Add route progress data source\n* Add workout target range indicator\n* Replace dropdown popup with fullscreen dialog",
             "screenshotUrls" to listOf(
-                "https://github.com/timklge/karoo-powerbar/releases/latest/download/powerbar_min.gif",
-                "https://github.com/timklge/karoo-powerbar/releases/latest/download/powerbar0.png",
-                "https://github.com/timklge/karoo-powerbar/releases/latest/download/powerbar2.png",
+                "$baseUrl/powerbar_min.gif",
+                "$baseUrl/powerbar0.png",
+                "$baseUrl/powerbar2.png",
             )
         )
 
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
         manifestFile.writeText(gson)
         println("Generated manifest.json with version ${android.defaultConfig.versionName} (${android.defaultConfig.versionCode})")
+
+        if (System.getenv()["BASE_URL"] != null){
+            val androidManifestFile = file("$projectDir/src/main/AndroidManifest.xml")
+            var androidManifestContent = androidManifestFile.readText()
+            androidManifestContent = androidManifestContent.replace("\$BASE_URL\$", baseUrl)
+            androidManifestFile.writeText(androidManifestContent)
+            println("Replaced \$BASE_URL$ in AndroidManifest.xml")
+        }
     }
 }
 
@@ -88,6 +98,11 @@ tasks.named("assemble") {
     dependsOn("generateManifest")
 }
 
+tasks.withType<ProcessApplicationManifest>().configureEach {
+    if (name == "processDebugMainManifest" || name == "processReleaseMainManifest") {
+        dependsOn(tasks.named("generateManifest"))
+    }
+}
 
 dependencies {
     implementation(libs.hammerhead.karoo.ext)
@@ -102,4 +117,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.cardview)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.mapbox.sdk.turf)
 }
+

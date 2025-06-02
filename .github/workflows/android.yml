@@ -27,6 +27,7 @@ jobs:
         echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
         echo "KEYSTORE_BASE64=${{ secrets.KEYSTORE_BASE64 }}" >> $GITHUB_ENV
         echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
+        echo "BASE_URL=${{ secrets.BASE_URL || 'https://github.com/timklge/karoo-powerbar/releases/latest/download' }}" >> $GITHUB_ENV
 
     - uses: actions/checkout@v4
     - name: set up JDK 17
@@ -44,20 +45,22 @@ jobs:
     - name: Build with Gradle
       run: ./gradlew build
 
-    - name: Archive APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-release.apk
-        path: app/build/outputs/apk/release/app-release.apk
-
     - name: Create Release
       id: create_release
-      uses: ncipollo/release-action@v1
+      uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
+        files: |
+          app/build/outputs/apk/release/app-release.apk
+          app/manifest.json
+          app/karoo-powerbar.png
+          powerbar_min.gif
+          powerbar0.png
+          powerbar2.png
         name: ${{ github.ref_name }}
         prerelease: false
-        generateReleaseNotes: true
-        artifacts: app/build/outputs/apk/release/app-release.apk, app/manifest.json, app/karoo-powerbar.png, powerbar_min.gif, powerbar0.png, powerbar2.png
+        draft: false
+        generate_release_notes: true
+        make_latest: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -42,7 +42,7 @@
         <!-- Provide Karoo System with information about delivery of your app -->
         <meta-data
             android:name="io.hammerhead.karooext.MANIFEST_URL"
-            android:value="https://github.com/timklge/karoo-powerbar/releases/latest/download/manifest.json" />
+            android:value="$BASE_URL$/manifest.json" />
     </application>
 
 

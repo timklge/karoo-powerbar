@@ -14,6 +14,7 @@ lifecycleRuntimeKtx = "2.8.7"
 navigationRuntimeKtx = "2.8.4"
 navigationCompose = "2.8.4"
 cardview = "1.0.0"
+mapboxSdkTurf = "7.3.1"
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -24,7 +25,7 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 color = { module = "com.maxkeppeler.sheets-compose-dialogs:color", version.ref = "color" }
-hammerhead-karoo-ext = { group = "io.hammerhead", name = "karoo-ext", version = "1.1.2" }
+hammerhead-karoo-ext = { group = "io.hammerhead", name = "karoo-ext", version = "1.1.5" }
 
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
 
@@ -43,6 +44,7 @@ androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navig
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 androidx-cardview = { group = "androidx.cardview", name = "cardview", version.ref = "cardview" }
+mapbox-sdk-turf = { module = "com.mapbox.mapboxsdk:mapbox-sdk-turf", version.ref = "mapboxSdkTurf" }
 
 [bundles]
 androidx-lifeycle = ["androidx-lifecycle-runtime-compose", "androidx-lifecycle-viewmodel-compose"]

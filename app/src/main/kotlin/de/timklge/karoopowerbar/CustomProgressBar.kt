@@ -18,6 +18,9 @@ class CustomProgressBar @JvmOverloads constructor(
     var progress: Double? = 0.5
     var location: PowerbarLocation = PowerbarLocation.BOTTOM
     var label: String = ""
+    var minTarget: Double? = null
+    var maxTarget: Double? = null
+    var target: Double? = null
     var showLabel: Boolean = true
     var barBackground: Boolean = false
     @ColorInt var progressColor: Int = 0xFF2b86e6.toInt()
@@ -32,8 +35,34 @@ class CustomProgressBar @JvmOverloads constructor(
     var barSize = CustomProgressBarBarSize.MEDIUM
         set(value) {
             field = value
+            targetZoneStrokePaint.strokeWidth = when(value){
+                CustomProgressBarBarSize.NONE, CustomProgressBarBarSize.SMALL -> 3f
+                CustomProgressBarBarSize.MEDIUM -> 6f
+                CustomProgressBarBarSize.LARGE -> 8f
+            }
+            targetIndicatorPaint.strokeWidth = when(value){
+                CustomProgressBarBarSize.NONE, CustomProgressBarBarSize.SMALL -> 6f
+                CustomProgressBarBarSize.MEDIUM -> 8f
+                CustomProgressBarBarSize.LARGE -> 10f
+            }
             invalidate() // Redraw to apply new bar size
         }
+
+    private val targetColor = 0xFF9933FF.toInt()
+
+    private val targetZoneFillPaint = Paint().apply {
+        isAntiAlias = true
+        style = Paint.Style.FILL
+        color = targetColor
+        alpha = 100 // Semi-transparent fill
+    }
+
+    private val targetZoneStrokePaint = Paint().apply {
+        isAntiAlias = true
+        strokeWidth = 6f
+        style = Paint.Style.STROKE
+        color = targetColor
+    }
 
     private val linePaint = Paint().apply {
         isAntiAlias = true
@@ -51,7 +80,7 @@ class CustomProgressBar @JvmOverloads constructor(
 
     private val blurPaint = Paint().apply {
         isAntiAlias = true
-        strokeWidth = 4f
+        strokeWidth = 6f
         style = Paint.Style.STROKE
         color = progressColor
         maskFilter = BlurMaskFilter(3f, BlurMaskFilter.Blur.NORMAL)
@@ -59,7 +88,7 @@ class CustomProgressBar @JvmOverloads constructor(
 
     private val blurPaintHighlight = Paint().apply {
         isAntiAlias = true
-        strokeWidth = 8f
+        strokeWidth = 10f
         style = Paint.Style.FILL_AND_STROKE
         color = ColorUtils.blendARGB(progressColor, 0xFFFFFF, 0.5f)
         maskFilter = BlurMaskFilter(6f, BlurMaskFilter.Blur.NORMAL)
@@ -81,19 +110,29 @@ class CustomProgressBar @JvmOverloads constructor(
         color = Color.WHITE
         strokeWidth = 3f
         textSize = fontSize.fontSize
-        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD);
+        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
+    }
+
+    private val targetIndicatorPaint = Paint().apply {
+        isAntiAlias = true
+        strokeWidth = 8f
+        style = Paint.Style.STROKE
     }
 
     override fun onDrawForeground(canvas: Canvas) {
         super.onDrawForeground(canvas)
+
+        // Determine if the current progress is within the target range
+        val isTargetMet =
+            progress != null && minTarget != null && maxTarget != null && progress!! >= minTarget!! && progress!! <= maxTarget!!
 
         linePaint.color = progressColor
         lineStrokePaint.color = progressColor
         blurPaint.color = progressColor
         blurPaintHighlight.color = ColorUtils.blendARGB(progressColor, 0xFFFFFF, 0.5f)
 
-        when(location){
+        when (location) {
             PowerbarLocation.TOP -> {
                 val rect = RectF(
                     1f,
@@ -108,16 +147,60 @@ class CustomProgressBar @JvmOverloads constructor(
                         canvas.drawRect(0f, 15f, canvas.width.toFloat(), 15f + barSize.barHeight, backgroundPaint)
                     }
 
+                    // Draw target zone fill behind the progress bar
+                    if (minTarget != null && maxTarget != null) {
+                        val minTargetX = (canvas.width * minTarget!!).toFloat()
+                        val maxTargetX = (canvas.width * maxTarget!!).toFloat()
+                        canvas.drawRoundRect(
+                            minTargetX,
+                            15f,
+                            maxTargetX,
+                            15f + barSize.barHeight,
+                            2f,
+                            2f,
+                            targetZoneFillPaint
+                        )
+                    }
+
                     if (progress != null) {
                         canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
                         canvas.drawRoundRect(rect, 2f, 2f, linePaint)
                         canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
                     }
                 }
-
                 // Draw label (if progress is not null and showLabel is true)
                 if (progress != null) {
+                    // Draw target zone stroke after progress bar, before label
+                    if (minTarget != null && maxTarget != null) {
+                        val minTargetX = (canvas.width * minTarget!!).toFloat()
+                        val maxTargetX = (canvas.width * maxTarget!!).toFloat()
+                        // Draw stroked rounded rectangle for the target zone
+                        canvas.drawRoundRect(
+                            minTargetX,
+                            15f,
+                            maxTargetX,
+                            15f + barSize.barHeight,
+                            2f,
+                            2f,
+                            targetZoneStrokePaint
+                        )
+                    }
+
+                    // Draw vertical target indicator line if target is present
+                    if (target != null) {
+                        val targetX = (canvas.width * target!!).toFloat()
+                        targetIndicatorPaint.color = if (isTargetMet) Color.GREEN else Color.RED
+                        canvas.drawLine(targetX, 15f, targetX, 15f + barSize.barHeight, targetIndicatorPaint)
+                    }
+
                     if (showLabel){
+                        lineStrokePaint.color = if (target != null){
+                            if (isTargetMet) Color.GREEN else Color.RED
+                        } else progressColor
+
+                        blurPaint.color = lineStrokePaint.color
+                        blurPaintHighlight.color = ColorUtils.blendARGB(lineStrokePaint.color, 0xFFFFFF, 0.5f)
+
                         val textBounds = textPaint.measureText(label)
                         val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
                         val x = (rect.right - xOffset).coerceIn(0f..canvas.width-xOffset*2f)
@@ -137,9 +220,10 @@ class CustomProgressBar @JvmOverloads constructor(
                         canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, blurPaint)
                         canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, lineStrokePaint)
                         canvas.drawText(label, x + xOffset, finalTextBaselineY, textPaint)
+                        }
                     }
-                }
             }
+
             PowerbarLocation.BOTTOM -> {
                 val rect = RectF(
                     1f,
@@ -155,6 +239,21 @@ class CustomProgressBar @JvmOverloads constructor(
                         canvas.drawRect(0f, canvas.height.toFloat() - barSize.barHeight, canvas.width.toFloat(), canvas.height.toFloat(), backgroundPaint)
                     }
 
+                    // Draw target zone fill behind the progress bar
+                    if (minTarget != null && maxTarget != null) {
+                        val minTargetX = (canvas.width * minTarget!!).toFloat()
+                        val maxTargetX = (canvas.width * maxTarget!!).toFloat()
+                        canvas.drawRoundRect(
+                            minTargetX,
+                            canvas.height.toFloat() - barSize.barHeight,
+                            maxTargetX,
+                            canvas.height.toFloat(),
+                            2f,
+                            2f,
+                            targetZoneFillPaint
+                        )
+                    }
+
                     if (progress != null) {
                         canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
                         canvas.drawRoundRect(rect, 2f, 2f, linePaint)
@@ -164,7 +263,37 @@ class CustomProgressBar @JvmOverloads constructor(
 
                 // Draw label (if progress is not null and showLabel is true)
                 if (progress != null) {
+                    // Draw target zone stroke after progress bar, before label
+                    if (minTarget != null && maxTarget != null) {
+                        val minTargetX = (canvas.width * minTarget!!).toFloat()
+                        val maxTargetX = (canvas.width * maxTarget!!).toFloat()
+                        // Draw stroked rounded rectangle for the target zone
+                        canvas.drawRoundRect(
+                            minTargetX,
+                            canvas.height.toFloat() - barSize.barHeight,
+                            maxTargetX,
+                            canvas.height.toFloat(),
+                            2f,
+                            2f,
+                            targetZoneStrokePaint
+                        )
+                    }
+
+                    // Draw vertical target indicator line if target is present
+                    if (target != null) {
+                        val targetX = (canvas.width * target!!).toFloat()
+                        targetIndicatorPaint.color = if (isTargetMet) Color.GREEN else Color.RED
+                        canvas.drawLine(targetX, canvas.height.toFloat() - barSize.barHeight, targetX, canvas.height.toFloat(), targetIndicatorPaint)
+                    }
+
                     if (showLabel){
+                        lineStrokePaint.color = if (target != null){
+                            if (isTargetMet) Color.GREEN else Color.RED
+                        } else progressColor
+
+                        blurPaint.color = lineStrokePaint.color
+                        blurPaintHighlight.color = ColorUtils.blendARGB(lineStrokePaint.color, 0xFFFFFF, 0.5f)
+
                         val textBounds = textPaint.measureText(label)
                         val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
                         val x = (rect.right - xOffset).coerceIn(0f..canvas.width-xOffset*2f)
