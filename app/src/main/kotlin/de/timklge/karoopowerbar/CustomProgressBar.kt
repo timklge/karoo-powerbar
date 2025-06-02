@@ -11,14 +11,6 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
-import kotlinx.serialization.Serializable
-
-@Serializable
-enum class CustomProgressBarSize(val id: String, val label: String, val fontSize: Float, val barHeight: Float) {
-    SMALL("small", "Small", 35f, 10f),
-    MEDIUM("medium", "Medium", 40f, 15f),
-    LARGE("large", "Large", 60f, 25f),
-}
 
 class CustomProgressBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -30,22 +22,30 @@ class CustomProgressBar @JvmOverloads constructor(
     var maxTarget: Double? = null
     var target: Double? = null
     var showLabel: Boolean = true
+    var barBackground: Boolean = false
     @ColorInt var progressColor: Int = 0xFF2b86e6.toInt()
 
-    var size = CustomProgressBarSize.MEDIUM
+    var fontSize = CustomProgressBarFontSize.MEDIUM
         set(value) {
             field = value
             textPaint.textSize = value.fontSize
+            invalidate() // Redraw to apply new font size
+        }
+
+    var barSize = CustomProgressBarBarSize.MEDIUM
+        set(value) {
+            field = value
             targetZoneStrokePaint.strokeWidth = when(value){
-                CustomProgressBarSize.SMALL -> 3f
-                CustomProgressBarSize.MEDIUM -> 6f
-                CustomProgressBarSize.LARGE -> 8f
+                CustomProgressBarBarSize.NONE, CustomProgressBarBarSize.SMALL -> 3f
+                CustomProgressBarBarSize.MEDIUM -> 6f
+                CustomProgressBarBarSize.LARGE -> 8f
             }
             targetIndicatorPaint.strokeWidth = when(value){
-                CustomProgressBarSize.SMALL -> 6f
-                CustomProgressBarSize.MEDIUM -> 8f
-                CustomProgressBarSize.LARGE -> 10f
+                CustomProgressBarBarSize.NONE, CustomProgressBarBarSize.SMALL -> 6f
+                CustomProgressBarBarSize.MEDIUM -> 8f
+                CustomProgressBarBarSize.LARGE -> 10f
             }
+            invalidate() // Redraw to apply new bar size
         }
 
     private val targetColor = 0xFF9933FF.toInt()
@@ -80,7 +80,7 @@ class CustomProgressBar @JvmOverloads constructor(
 
     private val blurPaint = Paint().apply {
         isAntiAlias = true
-        strokeWidth = 4f
+        strokeWidth = 6f
         style = Paint.Style.STROKE
         color = progressColor
         maskFilter = BlurMaskFilter(3f, BlurMaskFilter.Blur.NORMAL)
@@ -88,7 +88,7 @@ class CustomProgressBar @JvmOverloads constructor(
 
     private val blurPaintHighlight = Paint().apply {
         isAntiAlias = true
-        strokeWidth = 8f
+        strokeWidth = 10f
         style = Paint.Style.FILL_AND_STROKE
         color = ColorUtils.blendARGB(progressColor, 0xFFFFFF, 0.5f)
         maskFilter = BlurMaskFilter(6f, BlurMaskFilter.Blur.NORMAL)
@@ -109,7 +109,7 @@ class CustomProgressBar @JvmOverloads constructor(
     private val textPaint = Paint().apply {
         color = Color.WHITE
         strokeWidth = 3f
-        textSize = size.fontSize
+        textSize = fontSize.fontSize
         typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
         textAlign = Paint.Align.CENTER
     }
@@ -134,49 +134,42 @@ class CustomProgressBar @JvmOverloads constructor(
 
         when (location) {
             PowerbarLocation.TOP -> {
-                val barTop = 15f
-                val barBottom = barTop + size.barHeight
                 val rect = RectF(
                     1f,
-                    barTop,
-                    ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(
-                        0.0,
-                        1.0
-                    )).toFloat(),
-                    barBottom
+                    15f,
+                    ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(0.0, 1.0)).toFloat(),
+                    15f + barSize.barHeight // barSize.barHeight will be 0f if NONE
                 )
 
-                canvas.drawRect(0f, barTop, canvas.width.toFloat(), barBottom, backgroundPaint)
+                // Draw bar components only if barSize is not NONE
+                if (barSize != CustomProgressBarBarSize.NONE) {
+                    if (barBackground){
+                        canvas.drawRect(0f, 15f, canvas.width.toFloat(), 15f + barSize.barHeight, backgroundPaint)
+                    }
 
-                // Draw target zone fill behind the progress bar
-                if (minTarget != null && maxTarget != null) {
-                    val minTargetX = (canvas.width * minTarget!!).toFloat()
-                    val maxTargetX = (canvas.width * maxTarget!!).toFloat()
-                    canvas.drawRoundRect(
-                        minTargetX,
-                        barTop,
-                        maxTargetX,
-                        barBottom,
-                        2f,
-                        2f,
-                        targetZoneFillPaint
-                    )
+                    // Draw target zone fill behind the progress bar
+                    if (minTarget != null && maxTarget != null) {
+                        val minTargetX = (canvas.width * minTarget!!).toFloat()
+                        val maxTargetX = (canvas.width * maxTarget!!).toFloat()
+                        canvas.drawRoundRect(
+                            minTargetX,
+                            15f,
+                            maxTargetX,
+                            15f + barSize.barHeight,
+                            2f,
+                            2f,
+                            targetZoneFillPaint
+                        )
+                    }
+
+                    if (progress != null) {
+                        canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
+                        canvas.drawRoundRect(rect, 2f, 2f, linePaint)
+                        canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
+                    }
                 }
-
+                // Draw label (if progress is not null and showLabel is true)
                 if (progress != null) {
-                    canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
-                    canvas.drawRoundRect(rect, 2f, 2f, linePaint)
-
-                    canvas.drawRoundRect(
-                        rect.right - 4,
-                        rect.top,
-                        rect.right + 4,
-                        rect.bottom,
-                        2f,
-                        2f,
-                        blurPaintHighlight
-                    )
-
                     // Draw target zone stroke after progress bar, before label
                     if (minTarget != null && maxTarget != null) {
                         val minTargetX = (canvas.width * minTarget!!).toFloat()
@@ -184,9 +177,9 @@ class CustomProgressBar @JvmOverloads constructor(
                         // Draw stroked rounded rectangle for the target zone
                         canvas.drawRoundRect(
                             minTargetX,
-                            barTop,
+                            15f,
                             maxTargetX,
-                            barBottom,
+                            15f + barSize.barHeight,
                             2f,
                             2f,
                             targetZoneStrokePaint
@@ -197,131 +190,79 @@ class CustomProgressBar @JvmOverloads constructor(
                     if (target != null) {
                         val targetX = (canvas.width * target!!).toFloat()
                         targetIndicatorPaint.color = if (isTargetMet) Color.GREEN else Color.RED
-                        canvas.drawLine(targetX, barTop, targetX, barBottom, targetIndicatorPaint)
+                        canvas.drawLine(targetX, 15f, targetX, 15f + barSize.barHeight, targetIndicatorPaint)
                     }
 
-                    if (showLabel) {
-                        val textContent =
-                            label // Store original label, as textPaint.measureText can be slow
-                        val measuredTextWidth = textPaint.measureText(textContent)
-                        val labelBoxWidth = (measuredTextWidth + 20).coerceAtLeast(10f)
-                        val labelBoxHeight = size.fontSize + 10f // Consistent height with padding
-
-                        // Calculate horizontal position for the label box (centered around progress end, clamped)
-                        val labelBoxLeft = (rect.right - labelBoxWidth / 2f).coerceIn(
-                            0f,
-                            canvas.width - labelBoxWidth
-                        )
-
-                        var labelBoxTop: Float
-                        var labelBoxBottom: Float
-                        var textYPosition: Float
-
-                        if (target != null) { // If workout target is present, move label BELOW the bar
-                            val labelPadding = 5f // Padding between bar and label box
-                            labelBoxTop = barBottom + labelPadding
-                            labelBoxBottom = labelBoxTop + labelBoxHeight
-                            // Vertically center text in the new box
-                            val labelBoxCenterY = labelBoxTop + labelBoxHeight / 2f
-                            textYPosition =
-                                labelBoxCenterY - (textPaint.ascent() + textPaint.descent()) / 2f
-                        } else { // Original position for TOP
-                            val yOffsetOriginal = when (size) {
-                                CustomProgressBarSize.SMALL -> (size.fontSize - size.barHeight) / 2 + 2f
-                                CustomProgressBarSize.MEDIUM, CustomProgressBarSize.LARGE -> (size.fontSize - size.barHeight) / 2
-                            }
-                            labelBoxTop = barTop - yOffsetOriginal
-                            labelBoxBottom =
-                                barBottom + yOffsetOriginal // Original calculation was based on rect.bottom which is barBottom
-                            textYPosition = barBottom + 6f // Original text Y
-                        }
-
+                    if (showLabel){
                         lineStrokePaint.color = if (target != null){
                             if (isTargetMet) Color.GREEN else Color.RED
                         } else progressColor
 
-                        canvas.drawRoundRect(
-                            labelBoxLeft,
-                            labelBoxTop,
-                            labelBoxLeft + labelBoxWidth,
-                            labelBoxBottom,
-                            2f,
-                            2f,
-                            textBackgroundPaint
-                        )
-                        canvas.drawRoundRect(
-                            labelBoxLeft,
-                            labelBoxTop,
-                            labelBoxLeft + labelBoxWidth,
-                            labelBoxBottom,
-                            2f,
-                            2f,
-                            blurPaint
-                        )
-                        canvas.drawRoundRect(
-                            labelBoxLeft,
-                            labelBoxTop,
-                            labelBoxLeft + labelBoxWidth,
-                            labelBoxBottom,
-                            2f,
-                            2f,
-                            lineStrokePaint
-                        )
+                        blurPaint.color = lineStrokePaint.color
+                        blurPaintHighlight.color = ColorUtils.blendARGB(lineStrokePaint.color, 0xFFFFFF, 0.5f)
 
-                        canvas.drawText(
-                            textContent,
-                            labelBoxLeft + labelBoxWidth / 2f,
-                            textYPosition,
-                            textPaint
-                        )
+                        val textBounds = textPaint.measureText(label)
+                        val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
+                        val x = (rect.right - xOffset).coerceIn(0f..canvas.width-xOffset*2f)
+                        val r = x + xOffset * 2
+
+                        val fm = textPaint.fontMetrics
+                        // barCenterY calculation uses barSize.barHeight, which is 0f for NONE,
+                        // correctly centering the label on the 15f line.
+                        val barCenterY = rect.top + barSize.barHeight / 2f
+                        val centeredTextBaselineY = barCenterY - (fm.ascent + fm.descent) / 2f
+                        val calculatedTextBoxTop = centeredTextBaselineY + fm.ascent
+                        val finalTextBoxTop = calculatedTextBoxTop.coerceAtLeast(0f)
+                        val finalTextBaselineY = finalTextBoxTop - fm.ascent
+                        val finalTextBoxBottom = finalTextBaselineY + fm.descent
+
+                        canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, textBackgroundPaint)
+                        canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, blurPaint)
+                        canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, lineStrokePaint)
+                        canvas.drawText(label, x + xOffset, finalTextBaselineY, textPaint)
+                        }
                     }
-                }
             }
 
             PowerbarLocation.BOTTOM -> {
-                val barTop = canvas.height.toFloat() - 1f - size.barHeight
-                val barBottom = canvas.height.toFloat()
                 val rect = RectF(
                     1f,
-                    barTop,
-                    ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(
-                        0.0,
-                        1.0
-                    )).toFloat(),
-                    barBottom
+                    canvas.height.toFloat() - 1f - barSize.barHeight, // barSize.barHeight will be 0f if NONE
+                    ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(0.0, 1.0)).toFloat(),
+                    canvas.height.toFloat()
                 )
 
-                canvas.drawRect(0f, barTop, canvas.width.toFloat(), barBottom, backgroundPaint)
+                // Draw bar components only if barSize is not NONE
+                if (barSize != CustomProgressBarBarSize.NONE) {
+                    if (barBackground){
+                        // Use barSize.barHeight for background top calculation
+                        canvas.drawRect(0f, canvas.height.toFloat() - barSize.barHeight, canvas.width.toFloat(), canvas.height.toFloat(), backgroundPaint)
+                    }
 
-                // Draw target zone fill behind the progress bar
-                if (minTarget != null && maxTarget != null) {
-                    val minTargetX = (canvas.width * minTarget!!).toFloat()
-                    val maxTargetX = (canvas.width * maxTarget!!).toFloat()
-                    canvas.drawRoundRect(
-                        minTargetX,
-                        barTop,
-                        maxTargetX,
-                        barBottom,
-                        2f,
-                        2f,
-                        targetZoneFillPaint
-                    )
+                    // Draw target zone fill behind the progress bar
+                    if (minTarget != null && maxTarget != null) {
+                        val minTargetX = (canvas.width * minTarget!!).toFloat()
+                        val maxTargetX = (canvas.width * maxTarget!!).toFloat()
+                        canvas.drawRoundRect(
+                            minTargetX,
+                            canvas.height.toFloat() - barSize.barHeight,
+                            maxTargetX,
+                            canvas.height.toFloat(),
+                            2f,
+                            2f,
+                            targetZoneFillPaint
+                        )
+                    }
+
+                    if (progress != null) {
+                        canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
+                        canvas.drawRoundRect(rect, 2f, 2f, linePaint)
+                        canvas.drawRoundRect(rect.right-4, rect.top, rect.right+4, rect.bottom, 2f, 2f, blurPaintHighlight)
+                    }
                 }
 
+                // Draw label (if progress is not null and showLabel is true)
                 if (progress != null) {
-                    canvas.drawRoundRect(rect, 2f, 2f, blurPaint)
-                    canvas.drawRoundRect(rect, 2f, 2f, linePaint)
-
-                    canvas.drawRoundRect(
-                        rect.right - 4,
-                        rect.top,
-                        rect.right + 4,
-                        rect.bottom,
-                        2f,
-                        2f,
-                        blurPaintHighlight
-                    )
-
                     // Draw target zone stroke after progress bar, before label
                     if (minTarget != null && maxTarget != null) {
                         val minTargetX = (canvas.width * minTarget!!).toFloat()
@@ -329,9 +270,9 @@ class CustomProgressBar @JvmOverloads constructor(
                         // Draw stroked rounded rectangle for the target zone
                         canvas.drawRoundRect(
                             minTargetX,
-                            barTop,
+                            canvas.height.toFloat() - barSize.barHeight,
                             maxTargetX,
-                            barBottom,
+                            canvas.height.toFloat(),
                             2f,
                             2f,
                             targetZoneStrokePaint
@@ -342,83 +283,33 @@ class CustomProgressBar @JvmOverloads constructor(
                     if (target != null) {
                         val targetX = (canvas.width * target!!).toFloat()
                         targetIndicatorPaint.color = if (isTargetMet) Color.GREEN else Color.RED
-                        canvas.drawLine(targetX, barTop, targetX, barBottom, targetIndicatorPaint)
+                        canvas.drawLine(targetX, canvas.height.toFloat() - barSize.barHeight, targetX, canvas.height.toFloat(), targetIndicatorPaint)
                     }
 
-                    if (showLabel) {
-                        val textContent = label // Store original label
-                        val measuredTextWidth = textPaint.measureText(textContent)
-                        val labelBoxWidth = (measuredTextWidth + 20).coerceAtLeast(10f)
-                        val labelBoxHeight = size.fontSize + 10f // Consistent height with padding
-
-                        // Calculate horizontal position for the label box (centered around progress end, clamped)
-                        val labelBoxLeft = (rect.right - labelBoxWidth / 2f).coerceIn(
-                            0f,
-                            canvas.width - labelBoxWidth
-                        )
-
-                        var labelBoxTop: Float
-                        var labelBoxBottom: Float
-                        var textYPosition: Float
-
-                        if (target != null) { // If workout target is present, move label ABOVE the bar
-                            val labelPadding = 5f // Padding between bar and label box
-                            labelBoxBottom = barTop - labelPadding
-                            labelBoxTop = labelBoxBottom - labelBoxHeight
-                            // Vertically center text in the new box
-                            val labelBoxCenterY = labelBoxTop + labelBoxHeight / 2f
-                            textYPosition =
-                                labelBoxCenterY - (textPaint.ascent() + textPaint.descent()) / 2f
-                        } else { // Original position for BOTTOM
-                            val yOffsetOriginal = when (size) {
-                                CustomProgressBarSize.SMALL -> size.fontSize / 2 + 2f
-                                CustomProgressBarSize.MEDIUM -> size.fontSize / 2
-                                CustomProgressBarSize.LARGE -> size.fontSize / 2 - 5f
-                            }
-                            labelBoxTop = barTop - yOffsetOriginal
-                            labelBoxBottom = barBottom + 5f // Original 'b' calculation
-                            textYPosition =
-                                barBottom - 1f // Original text Y (rect.top + size.barHeight -1)
-                        }
-
+                    if (showLabel){
                         lineStrokePaint.color = if (target != null){
                             if (isTargetMet) Color.GREEN else Color.RED
                         } else progressColor
 
-                        canvas.drawRoundRect(
-                            labelBoxLeft,
-                            labelBoxTop,
-                            labelBoxLeft + labelBoxWidth,
-                            labelBoxBottom,
-                            2f,
-                            2f,
-                            textBackgroundPaint
-                        )
-                        canvas.drawRoundRect(
-                            labelBoxLeft,
-                            labelBoxTop,
-                            labelBoxLeft + labelBoxWidth,
-                            labelBoxBottom,
-                            2f,
-                            2f,
-                            blurPaint
-                        )
-                        canvas.drawRoundRect(
-                            labelBoxLeft,
-                            labelBoxTop,
-                            labelBoxLeft + labelBoxWidth,
-                            labelBoxBottom,
-                            2f,
-                            2f,
-                            lineStrokePaint
-                        )
+                        blurPaint.color = lineStrokePaint.color
+                        blurPaintHighlight.color = ColorUtils.blendARGB(lineStrokePaint.color, 0xFFFFFF, 0.5f)
 
-                        canvas.drawText(
-                            textContent,
-                            labelBoxLeft + labelBoxWidth / 2f,
-                            textYPosition,
-                            textPaint
-                        )
+                        val textBounds = textPaint.measureText(label)
+                        val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
+                        val x = (rect.right - xOffset).coerceIn(0f..canvas.width-xOffset*2f)
+                        val r = x + xOffset * 2
+
+                        // textDrawBaselineY calculation uses rect.top and barSize.barHeight.
+                        // If NONE, barSize.barHeight is 0f. rect.top becomes canvas.height - 1f.
+                        // So, baseline is (canvas.height - 1f) + 0f - 1f = canvas.height - 2f.
+                        val textDrawBaselineY = rect.top + barSize.barHeight - 1f
+                        val yBox = textDrawBaselineY + textPaint.ascent()
+                        val bBox = textDrawBaselineY + textPaint.descent()
+
+                        canvas.drawRoundRect(x, yBox, r, bBox, 2f, 2f, textBackgroundPaint)
+                        canvas.drawRoundRect(x, yBox, r, bBox, 2f, 2f, blurPaint)
+                        canvas.drawRoundRect(x, yBox, r, bBox, 2f, 2f, lineStrokePaint)
+                        canvas.drawText(label, x + xOffset, textDrawBaselineY, textPaint)
                     }
                 }
             }

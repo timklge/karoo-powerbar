@@ -53,7 +53,7 @@ class ForegroundService : Service() {
                     windows.clear()
 
                     if (settings.source != SelectedSource.NONE && showBars) {
-                        Window(this@ForegroundService, PowerbarLocation.BOTTOM, settings.showLabelOnBars, settings.barSize).apply {
+                        Window(this@ForegroundService, PowerbarLocation.BOTTOM, settings.showLabelOnBars, settings.barBackground, settings.barBarSize, settings.barFontSize).apply {
                             selectedSource = settings.source
                             windows.add(this)
                             open()
@@ -61,7 +61,7 @@ class ForegroundService : Service() {
                     }
 
                     if (settings.topBarSource != SelectedSource.NONE && showBars){
-                        Window(this@ForegroundService, PowerbarLocation.TOP, settings.showLabelOnBars, settings.barSize).apply {
+                        Window(this@ForegroundService, PowerbarLocation.TOP, settings.showLabelOnBars, settings.barBackground, settings.barBarSize, settings.barFontSize).apply {
                             selectedSource = settings.topBarSource
                             open()
                             windows.add(this)

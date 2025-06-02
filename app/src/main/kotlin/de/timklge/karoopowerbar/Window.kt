@@ -54,7 +54,9 @@ class Window(
     private val context: Context,
     val powerbarLocation: PowerbarLocation = PowerbarLocation.BOTTOM,
     val showLabel: Boolean,
-    val powerbarSize: CustomProgressBarSize
+    val barBackground: Boolean,
+    val powerbarBarSize: CustomProgressBarBarSize,
+    val powerbarFontSize: CustomProgressBarFontSize,
 ) {
     companion object {
         val FIELD_TARGET_VALUE_ID = "FIELD_WORKOUT_TARGET_VALUE_ID";
@@ -134,7 +136,9 @@ class Window(
             powerbar.progress = null
             powerbar.location = powerbarLocation
             powerbar.showLabel = showLabel
-            powerbar.size = powerbarSize
+            powerbar.barBackground = barBackground
+            powerbar.fontSize = powerbarFontSize
+            powerbar.barSize = powerbarBarSize
             powerbar.invalidate()
 
             Log.i(TAG, "Streaming $selectedSource")
