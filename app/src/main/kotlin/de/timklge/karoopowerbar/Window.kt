@@ -34,7 +34,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -152,7 +151,8 @@ class Window(
                 SelectedSource.SPEED_3S -> streamSpeed(true)
                 SelectedSource.CADENCE -> streamCadence(false)
                 SelectedSource.CADENCE_3S -> streamCadence(true)
-                SelectedSource.ROUTE_PROGRESS -> streamRouteProgress()
+                SelectedSource.ROUTE_PROGRESS -> streamRouteProgress(::getRouteProgress)
+                SelectedSource.REMAINING_ROUTE -> streamRouteProgress(::getRemainingRouteProgress)
                 else -> {}
             }
         }
@@ -168,19 +168,50 @@ class Window(
         }
     }
 
-    private suspend fun streamRouteProgress() {
+    data class BarProgress(
+        val progress: Double?,
+        val label: String,
+    )
+
+    private fun getRouteProgress(userProfile: UserProfile, riddenDistance: Double?, routeEndAt: Double?, distanceToDestination: Double?): BarProgress {
+        val routeProgress = if (routeEndAt != null && riddenDistance != null) remap(riddenDistance, 0.0, routeEndAt, 0.0, 1.0) else null
+        val routeProgressInUserUnit = when (userProfile.preferredUnit.distance) {
+            UserProfile.PreferredUnit.UnitType.IMPERIAL -> riddenDistance?.times(0.000621371)?.roundToInt() // Miles
+            else -> riddenDistance?.times(0.001)?.roundToInt() // Kilometers
+        }
+
+        return BarProgress(routeProgress, "$routeProgressInUserUnit")
+    }
+
+    private fun getRemainingRouteProgress(userProfile: UserProfile, riddenDistance: Double?, routeEndAt: Double?, distanceToDestination: Double?): BarProgress {
+        val routeProgress = if (routeEndAt != null && riddenDistance != null) remap(riddenDistance, 0.0, routeEndAt, 0.0, 1.0) else null
+        val distanceToDestinationInUserUnit = when (userProfile.preferredUnit.distance) {
+            UserProfile.PreferredUnit.UnitType.IMPERIAL -> distanceToDestination?.times(0.000621371)?.roundToInt() // Miles
+            else -> distanceToDestination?.times(0.001)?.roundToInt() // Kilometers
+        }
+
+        return BarProgress(routeProgress, "$distanceToDestinationInUserUnit")
+    }
+
+    private suspend fun streamRouteProgress(routeProgressProvider: (UserProfile, Double?, Double?, Double?) -> BarProgress) {
         data class StreamData(
             val userProfile: UserProfile,
             val distanceToDestination: Double?,
-            val navigationState: OnNavigationState
+            val navigationState: OnNavigationState,
+            val riddenDistance: Double?
         )
 
         var lastKnownRoutePolyline: String? = null
         var lastKnownRouteLength: Double? = null
 
-        combine(karooSystem.streamUserProfile(), karooSystem.streamDataFlow(DataType.Type.DISTANCE_TO_DESTINATION), karooSystem.streamNavigationState()) { userProfile, distanceToDestination, navigationState ->
-            StreamData(userProfile, (distanceToDestination as? StreamState.Streaming)?.dataPoint?.values[DataType.Field.DISTANCE_TO_DESTINATION], navigationState)
-        }.distinctUntilChanged().throttle(5_000).collect { (userProfile, distanceToDestination, navigationState) ->
+        combine(karooSystem.streamUserProfile(), karooSystem.streamDataFlow(DataType.Type.DISTANCE_TO_DESTINATION), karooSystem.streamNavigationState(), karooSystem.streamDataFlow(DataType.Type.DISTANCE)) { userProfile, distanceToDestination, navigationState, riddenDistance ->
+            StreamData(
+                userProfile,
+                (distanceToDestination as? StreamState.Streaming)?.dataPoint?.values?.get(DataType.Field.DISTANCE_TO_DESTINATION),
+                navigationState,
+                (riddenDistance as? StreamState.Streaming)?.dataPoint?.values?.get(DataType.Field.DISTANCE)
+            )
+        }.distinctUntilChanged().throttle(5_000).collect { (userProfile, distanceToDestination, navigationState, riddenDistance) ->
             val state = navigationState.state
             val routePolyline = when (state) {
                 is OnNavigationState.NavigationState.NavigatingRoute -> state.routePolyline
@@ -202,17 +233,12 @@ class Window(
                 }
             }
 
-            val routeLength = lastKnownRouteLength
-            val routeProgressMeters = routeLength?.let { routeLength - (distanceToDestination ?: 0.0) }?.coerceAtLeast(0.0)
-            val routeProgress = if (routeLength != null && routeProgressMeters != null) remap(routeProgressMeters, 0.0, routeLength, 0.0, 1.0) else null
-            val routeProgressInUserUnit = when (userProfile.preferredUnit.distance) {
-                UserProfile.PreferredUnit.UnitType.IMPERIAL -> routeProgressMeters?.times(0.000621371)?.roundToInt() // Miles
-                else -> routeProgressMeters?.times(0.001)?.roundToInt() // Kilometers
-            }
+            val routeEndAt = lastKnownRouteLength?.plus((distanceToDestination ?: 0.0))
+            val barProgress = routeProgressProvider(userProfile, riddenDistance, routeEndAt, distanceToDestination)
 
             powerbar.progressColor = context.getColor(R.color.zone0)
-            powerbar.progress = routeProgress
-            powerbar.label = "$routeProgressInUserUnit"
+            powerbar.progress = barProgress.progress
+            powerbar.label = barProgress.label
             powerbar.invalidate()
         }
     }
@@ -284,9 +310,9 @@ class Window(
                 val maxCadence = streamData.settings?.maxCadence ?: PowerbarSettings.defaultMaxCadence
                 val progress = remap(value.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0) ?: 0.0
 
-                powerbar.minTarget = remap(streamData.cadenceTarget?.values[FIELD_TARGET_MIN_ID]?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
-                powerbar.maxTarget = remap(streamData.cadenceTarget?.values[FIELD_TARGET_MAX_ID]?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
-                powerbar.target = remap(streamData.cadenceTarget?.values[FIELD_TARGET_VALUE_ID]?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
+                powerbar.minTarget = remap(streamData.cadenceTarget?.values?.get(FIELD_TARGET_MIN_ID)?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
+                powerbar.maxTarget = remap(streamData.cadenceTarget?.values?.get(FIELD_TARGET_MAX_ID)?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
+                powerbar.target = remap(streamData.cadenceTarget?.values?.get(FIELD_TARGET_VALUE_ID)?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
 
                 @ColorRes val zoneColorRes = Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
 
@@ -334,9 +360,9 @@ class Window(
                 val maxHr = customMaxHr ?: streamData.userProfile.maxHr
                 val progress = remap(value.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
 
-                powerbar.minTarget = remap(streamData.heartrateTarget?.values[FIELD_TARGET_MIN_ID]?.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
-                powerbar.maxTarget = remap(streamData.heartrateTarget?.values[FIELD_TARGET_MAX_ID]?.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
-                powerbar.target = remap(streamData.heartrateTarget?.values[FIELD_TARGET_VALUE_ID]?.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
+                powerbar.minTarget = remap(streamData.heartrateTarget?.values?.get(FIELD_TARGET_MIN_ID), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
+                powerbar.maxTarget = remap(streamData.heartrateTarget?.values?.get(FIELD_TARGET_MAX_ID), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
+                powerbar.target = remap(streamData.heartrateTarget?.values?.get(FIELD_TARGET_VALUE_ID), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
 
                 powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
                     context.getColor(getZone(streamData.userProfile.heartRateZones, value)?.colorResource ?: R.color.zone7)
@@ -389,9 +415,9 @@ class Window(
                 val maxPower = customMaxPower ?: (streamData.userProfile.powerZones.last().min + 30)
                 val progress = remap(value.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
 
-                powerbar.minTarget = remap(streamData.powerTarget?.values[FIELD_TARGET_MIN_ID]?.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
-                powerbar.maxTarget = remap(streamData.powerTarget?.values[FIELD_TARGET_MAX_ID]?.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
-                powerbar.target = remap(streamData.powerTarget?.values[FIELD_TARGET_VALUE_ID]?.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
+                powerbar.minTarget = remap(streamData.powerTarget?.values?.get(FIELD_TARGET_MIN_ID), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
+                powerbar.maxTarget = remap(streamData.powerTarget?.values?.get(FIELD_TARGET_MAX_ID), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
+                powerbar.target = remap(streamData.powerTarget?.values?.get(FIELD_TARGET_VALUE_ID), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
 
                 powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
                     context.getColor(getZone(streamData.userProfile.powerZones, value)?.colorResource ?: R.color.zone7)

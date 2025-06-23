@@ -59,7 +59,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import de.timklge.karoopowerbar.CustomProgressBarBarSize
 import de.timklge.karoopowerbar.CustomProgressBarFontSize
-import de.timklge.karoopowerbar.CustomProgressBarSize
 import de.timklge.karoopowerbar.KarooPowerbarExtension
 import de.timklge.karoopowerbar.PowerbarSettings
 import de.timklge.karoopowerbar.R
@@ -88,7 +87,8 @@ enum class SelectedSource(val id: String, val label: String) {
     SPEED_3S("speed_3s", "Speed (3 sec avg"),
     CADENCE("cadence", "Cadence"),
     CADENCE_3S("cadence_3s", "Cadence (3 sec avg)"),
-    ROUTE_PROGRESS("route_progress", "Route Progress");
+    ROUTE_PROGRESS("route_progress", "Route Progress"),
+    REMAINING_ROUTE("route_progress_remaining", "Route Remaining");
 
     fun isPower() = this == POWER || this == POWER_3S || this == POWER_10S
 }
