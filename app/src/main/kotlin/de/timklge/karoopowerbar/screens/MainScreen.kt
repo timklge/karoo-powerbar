@@ -87,6 +87,7 @@ enum class SelectedSource(val id: String, val label: String) {
     SPEED_3S("speed_3s", "Speed (3 sec avg"),
     CADENCE("cadence", "Cadence"),
     CADENCE_3S("cadence_3s", "Cadence (3 sec avg)"),
+    GRADE("grade", "Grade"),
     ROUTE_PROGRESS("route_progress", "Route Progress"),
     REMAINING_ROUTE("route_progress_remaining", "Route Remaining");
 
@@ -160,6 +161,8 @@ fun MainScreen(onFinish: () -> Unit) {
     var customMaxPower by remember { mutableStateOf("") }
     var customMinHr by remember { mutableStateOf("") }
     var customMaxHr by remember { mutableStateOf("") }
+    var minGrade by remember { mutableStateOf("0") }
+    var maxGrade by remember { mutableStateOf("0") }
     var useCustomPowerRange by remember { mutableStateOf(false) }
     var useCustomHrRange by remember { mutableStateOf(false) }
 
@@ -188,6 +191,8 @@ fun MainScreen(onFinish: () -> Unit) {
             maxPower = customMaxPower.toIntOrNull(),
             minHr = customMinHr.toIntOrNull(),
             maxHr = customMaxHr.toIntOrNull(),
+            minGradient = minGrade.toIntOrNull() ?: PowerbarSettings.defaultMinGradient,
+            maxGradient = maxGrade.toIntOrNull() ?: PowerbarSettings.defaultMaxGradient,
             barBarSize = barBarSize,
             barFontSize = barFontSize,
             useCustomPowerRange = useCustomPowerRange,
@@ -243,6 +248,8 @@ fun MainScreen(onFinish: () -> Unit) {
                 customMaxPower = settings.maxPower?.toString() ?: ""
                 customMinHr = settings.minHr?.toString() ?: ""
                 customMaxHr = settings.maxHr?.toString() ?: ""
+                minGrade = settings.minGradient?.toString() ?: ""
+                maxGrade = settings.maxGradient?.toString() ?: ""
                 useCustomPowerRange = settings.useCustomPowerRange
                 useCustomHrRange = settings.useCustomHrRange
         }
@@ -344,7 +351,7 @@ fun MainScreen(onFinish: () -> Unit) {
                             .weight(1f)
                             .absolutePadding(right = 2.dp)
                             .onFocusEvent(::updateFocus),
-                            onValueChange = { minSpeed = it },
+                            onValueChange = { minSpeed = it.filter { c -> c.isDigit() } },
                             label = { Text("Min Speed") },
                             suffix = { Text(if (isImperial) "mph" else "kph") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -355,7 +362,7 @@ fun MainScreen(onFinish: () -> Unit) {
                             .weight(1f)
                             .absolutePadding(left = 2.dp)
                             .onFocusEvent(::updateFocus),
-                            onValueChange = { maxSpeed = it },
+                            onValueChange = { maxSpeed = it.filter { c -> c.isDigit() } },
                             label = { Text("Max Speed") },
                             suffix = { Text(if (isImperial) "mph" else "kph") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -380,7 +387,7 @@ fun MainScreen(onFinish: () -> Unit) {
                                 .weight(1f)
                                 .absolutePadding(right = 2.dp)
                                 .onFocusEvent(::updateFocus),
-                                onValueChange = { customMinPower = it },
+                                onValueChange = { customMinPower = it.filter { c -> c.isDigit() } },
                                 label = { Text("Min Power", fontSize = 12.sp) },
                                 suffix = { Text("W") },
                                 placeholder = { Text("$profileMinPower") },
@@ -392,7 +399,7 @@ fun MainScreen(onFinish: () -> Unit) {
                                 .weight(1f)
                                 .absolutePadding(left = 2.dp)
                                 .onFocusEvent(::updateFocus),
-                                onValueChange = { customMaxPower = it },
+                                onValueChange = { customMaxPower = it.filter { c -> c.isDigit() } },
                                 label = { Text("Max Power", fontSize = 12.sp) },
                                 suffix = { Text("W") },
                                 placeholder = { Text("$profileMaxPower") },
@@ -419,7 +426,7 @@ fun MainScreen(onFinish: () -> Unit) {
                                 .weight(1f)
                                 .absolutePadding(right = 2.dp)
                                 .onFocusEvent(::updateFocus),
-                                onValueChange = { customMinHr = it },
+                                onValueChange = { customMinHr = it.filter { c -> c.isDigit() } },
                                 label = { Text("Min Hr") },
                                 suffix = { Text("bpm") },
                                 placeholder = { if(profileRestHr > 0) Text("$profileRestHr") else Unit },
@@ -431,7 +438,7 @@ fun MainScreen(onFinish: () -> Unit) {
                                 .weight(1f)
                                 .absolutePadding(left = 2.dp)
                                 .onFocusEvent(::updateFocus),
-                                onValueChange = { customMaxHr = it },
+                                onValueChange = { customMaxHr = it.filter { c -> c.isDigit() } },
                                 label = { Text("Max Hr") },
                                 suffix = { Text("bpm") },
                                 placeholder = { if(profileMaxHr > 0) Text("$profileMaxHr") else Unit },
@@ -450,7 +457,7 @@ fun MainScreen(onFinish: () -> Unit) {
                             .weight(1f)
                             .absolutePadding(right = 2.dp)
                             .onFocusEvent(::updateFocus),
-                            onValueChange = { minCadence = it },
+                            onValueChange = { minCadence = it.filter { c -> c.isDigit() } },
                             label = { Text("Min Cadence") },
                             suffix = { Text("rpm") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -461,9 +468,35 @@ fun MainScreen(onFinish: () -> Unit) {
                             .weight(1f)
                             .absolutePadding(left = 2.dp)
                             .onFocusEvent(::updateFocus),
-                            onValueChange = { maxCadence = it },
+                            onValueChange = { maxCadence = it.filter { c -> c.isDigit() } },
                             label = { Text("Min Cadence") },
                             suffix = { Text("rpm") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
+                }
+
+                if (topSelectedSource == SelectedSource.GRADE || bottomSelectedSource == SelectedSource.GRADE){
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(value = minGrade, modifier = Modifier
+                            .weight(1f)
+                            .absolutePadding(right = 2.dp)
+                            .onFocusEvent(::updateFocus),
+                            onValueChange = { minGrade = it.filterIndexed { index, c -> c.isDigit() || (c == '-' && index == 0) } },
+                            label = { Text("Min Grade") },
+                            suffix = { Text("%") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+
+                        OutlinedTextField(value = maxGrade, modifier = Modifier
+                            .weight(1f)
+                            .absolutePadding(left = 2.dp)
+                            .onFocusEvent(::updateFocus),
+                            onValueChange = { maxGrade = it.filterIndexed { index, c -> c.isDigit() || (c == '-' && index == 0) } },
+                            label = { Text("Max Grade") },
+                            suffix = { Text("%") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )
