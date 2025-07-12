@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Locale
 import kotlin.math.roundToInt
 
 fun remap(value: Double?, fromMin: Double, fromMax: Double, toMin: Double, toMax: Double): Double? {
@@ -153,7 +154,8 @@ class Window(
                 SelectedSource.CADENCE_3S -> streamCadence(true)
                 SelectedSource.ROUTE_PROGRESS -> streamRouteProgress(::getRouteProgress)
                 SelectedSource.REMAINING_ROUTE -> streamRouteProgress(::getRemainingRouteProgress)
-                else -> {}
+                SelectedSource.GRADE -> streamGrade()
+                SelectedSource.NONE -> {}
             }
         }
 
@@ -286,6 +288,57 @@ class Window(
                 }
                 powerbar.invalidate()
             }
+    }
+
+    private suspend fun streamGrade() {
+        @ColorRes
+        fun getInclineIndicatorColor(percent: Float): Int? {
+            return when(percent) {
+                in -Float.MAX_VALUE..<-7.5f -> R.color.eleDarkBlue // Dark blue
+                in -7.5f..<-4.6f -> R.color.eleLightBlue // Light blue
+                in -4.6f..<-2f -> R.color.eleWhite // White
+                in 2f..<4.6f -> R.color.eleDarkGreen // Dark green
+                in 4.6f..<7.5f -> R.color.eleLightGreen // Light green
+                in 7.5f..<12.5f -> R.color.eleYellow // Yellow
+                in 12.5f..<15.5f -> R.color.eleLightOrange // Light Orange
+                in 15.5f..<19.5f -> R.color.eleDarkOrange // Dark Orange
+                in 19.5f..<23.5f -> R.color.eleRed // Red
+                in 23.5f..Float.MAX_VALUE -> R.color.elePurple // Purple
+                else -> null
+            }
+        }
+
+        val gradeFlow = karooSystem.streamDataFlow(DataType.Type.ELEVATION_GRADE)
+            .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
+            .distinctUntilChanged()
+
+        data class StreamData(val userProfile: UserProfile, val value: Double?, val settings: PowerbarSettings? = null)
+
+        val settingsFlow = context.streamSettings()
+
+        combine(karooSystem.streamUserProfile(), gradeFlow, settingsFlow) { userProfile, grade, settings ->
+            StreamData(userProfile, grade, settings)
+        }.distinctUntilChanged().throttle(1_000).collect { streamData ->
+            val value = streamData.value
+
+            if (value != null) {
+                val minGradient = streamData.settings?.minGradient ?: PowerbarSettings.defaultMinGradient
+                val maxGradient = streamData.settings?.maxGradient ?: PowerbarSettings.defaultMaxGradient
+
+                powerbar.progressColor = getInclineIndicatorColor(value.toFloat()) ?: context.getColor(R.color.zone0)
+                powerbar.progress = remap(value.toDouble(), minGradient.toDouble(), maxGradient.toDouble(), 0.0, 1.0)
+                powerbar.label = "${String.format(Locale.getDefault(), "%.1f", value)}%"
+
+                Log.d(TAG, "Grade: $value")
+            } else {
+                powerbar.progressColor = context.getColor(R.color.zone0)
+                powerbar.progress = null
+                powerbar.label = "?"
+
+                Log.d(TAG, "Grade: Unavailable")
+            }
+            powerbar.invalidate()
+        }
     }
 
     private suspend fun streamCadence(smoothed: Boolean) {

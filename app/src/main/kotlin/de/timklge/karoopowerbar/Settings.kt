@@ -29,7 +29,11 @@ data class PowerbarSettings(
     val minSpeed: Float = defaultMinSpeedMs, val maxSpeed: Float = defaultMaxSpeedMs, // 50 km/h in m/s
     val minPower: Int? = null, val maxPower: Int? = null,
     val minHr: Int? = null, val maxHr: Int? = null,
-    val useCustomHrRange: Boolean = false, val useCustomPowerRange: Boolean = false
+    val minGradient: Int? = defaultMinGradient, val maxGradient: Int? = defaultMaxGradient,
+
+    val useCustomGradientRange: Boolean = false,
+    val useCustomHrRange: Boolean = false,
+    val useCustomPowerRange: Boolean = false
 ){
     companion object {
         val defaultSettings = Json.encodeToString(PowerbarSettings())
@@ -37,6 +41,8 @@ data class PowerbarSettings(
         const val defaultMaxSpeedMs = 13.89f
         const val defaultMinCadence = 50
         const val defaultMaxCadence = 120
+        const val defaultMinGradient = 0
+        const val defaultMaxGradient = 20
     }
 }
 

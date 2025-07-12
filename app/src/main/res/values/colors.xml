@@ -12,4 +12,16 @@
     <color name="zone6">#FE581F</color>
     <color name="zone7">#D60404</color>
     <color name="zone8">#B700A2</color>
+
+    <color name="eleDarkGreen">#079d78</color>
+    <color name="eleLightGreen">#58c597</color>
+    <color name="eleYellow">#e7e021</color>
+    <color name="eleLightOrange">#e59174</color>
+    <color name="eleDarkOrange">#e7693a</color>
+    <color name="eleRed">#c82425</color>
+    <color name="eleLightRed">#f05a28</color>
+    <color name="elePurple">#b222a3</color>
+    <color name="eleWhite">#ffffff</color>
+    <color name="eleLightBlue">#4fc3f7</color>
+    <color name="eleDarkBlue">#2D58AF</color>
 </resources>
