@@ -22,6 +22,7 @@
     <color name="eleLightRed">#f05a28</color>
     <color name="elePurple">#b222a3</color>
     <color name="eleWhite">#ffffff</color>
+    <color name="eleGray">#9e9e9e</color>
     <color name="eleLightBlue">#4fc3f7</color>
     <color name="eleDarkBlue">#2D58AF</color>
 </resources>

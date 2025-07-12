@@ -84,7 +84,7 @@ enum class SelectedSource(val id: String, val label: String) {
     POWER_3S("power_3s", "Power (3 sec avg)"),
     POWER_10S("power_10s", "Power (10 sec avg)"),
     SPEED("speed", "Speed"),
-    SPEED_3S("speed_3s", "Speed (3 sec avg"),
+    SPEED_3S("speed_3s", "Speed (3 sec avg)"),
     CADENCE("cadence", "Cadence"),
     CADENCE_3S("cadence_3s", "Cadence (3 sec avg)"),
     GRADE("grade", "Grade"),
@@ -139,8 +139,21 @@ fun MainScreen(onFinish: () -> Unit) {
     var bottomSelectedSource by remember { mutableStateOf(SelectedSource.POWER) }
     var topSelectedSource by remember { mutableStateOf(SelectedSource.NONE) }
 
+    var splitTopBar by remember { mutableStateOf(false) }
+    var splitBottomBar by remember { mutableStateOf(false) }
+
+    var topSelectedSourceLeft by remember { mutableStateOf(SelectedSource.NONE) }
+    var topSelectedSourceRight by remember { mutableStateOf(SelectedSource.NONE) }
+    var bottomSelectedSourceLeft by remember { mutableStateOf(SelectedSource.NONE) }
+    var bottomSelectedSourceRight by remember { mutableStateOf(SelectedSource.NONE) }
+
     var bottomBarDialogVisible by remember { mutableStateOf(false) }
     var topBarDialogVisible by remember { mutableStateOf(false) }
+
+    var topBarLeftDialogVisible by remember { mutableStateOf(false) }
+    var topBarRightDialogVisible by remember { mutableStateOf(false) }
+    var bottomBarLeftDialogVisible by remember { mutableStateOf(false) }
+    var bottomBarRightDialogVisible by remember { mutableStateOf(false) }
 
     var showAlerts by remember { mutableStateOf(false) }
     var givenPermissions by remember { mutableStateOf(false) }
@@ -180,7 +193,13 @@ fun MainScreen(onFinish: () -> Unit) {
         val maxSpeedSetting = (maxSpeed.toIntOrNull()?.toFloat()?.div((if(isImperial) 2.23694f else 3.6f))) ?: PowerbarSettings.defaultMaxSpeedMs
 
         val newSettings = PowerbarSettings(
-            source = bottomSelectedSource, topBarSource = topSelectedSource,
+            bottomBarSource = bottomSelectedSource, topBarSource = topSelectedSource,
+            splitTopBar = splitTopBar,
+            splitBottomBar = splitBottomBar,
+            topBarLeftSource = topSelectedSourceLeft,
+            topBarRightSource = topSelectedSourceRight,
+            bottomBarLeftSource = bottomSelectedSourceLeft,
+            bottomBarRightSource = bottomSelectedSourceRight,
             onlyShowWhileRiding = onlyShowWhileRiding, showLabelOnBars = showLabelOnBars,
             barBackground = barBackground,
             useZoneColors = colorBasedOnZones,
@@ -231,8 +250,14 @@ fun MainScreen(onFinish: () -> Unit) {
             .combine(karooSystem.streamUserProfile()) { settings, profile -> settings to profile }
             .distinctUntilChanged()
             .collect { (settings, profile) ->
-                bottomSelectedSource = settings.source
+                bottomSelectedSource = settings.bottomBarSource
                 topSelectedSource = settings.topBarSource
+                splitTopBar = settings.splitTopBar
+                splitBottomBar = settings.splitBottomBar
+                topSelectedSourceLeft = settings.topBarLeftSource
+                topSelectedSourceRight = settings.topBarRightSource
+                bottomSelectedSourceLeft = settings.bottomBarLeftSource
+                bottomSelectedSourceRight = settings.bottomBarRightSource
                 onlyShowWhileRiding = settings.onlyShowWhileRiding
                 showLabelOnBars = settings.showLabelOnBars
                 colorBasedOnZones = settings.useZoneColors
@@ -283,15 +308,66 @@ fun MainScreen(onFinish: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
-                FilledTonalButton(modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp),
-                    onClick = {
-                        topBarDialogVisible = true
-                    }) {
-                    Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text("Top Bar: ${topSelectedSource.label}", modifier = Modifier.weight(1.0f))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 10.dp)) {
+                    Text("Top Bar", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text("Split")
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Switch(checked = splitTopBar, onCheckedChange = {
+                        splitTopBar = it
+                        coroutineScope.launch { updateSettings() }
+                    })
+                }
+
+                if (splitTopBar) {
+                    FilledTonalButton(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                        onClick = {
+                            topBarLeftDialogVisible = true
+                        }) {
+                        Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text("Top Bar (Left): ${topSelectedSourceLeft.label}", modifier = Modifier.weight(1.0f))
+                    }
+
+                    if (topBarLeftDialogVisible){
+                        BarSelectDialog(topSelectedSourceLeft, onHide = { topBarLeftDialogVisible = false }, onSelect = { selected ->
+                            topSelectedSourceLeft = selected
+                            coroutineScope.launch { updateSettings() }
+                            topBarLeftDialogVisible = false
+                        })
+                    }
+
+                    FilledTonalButton(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                        onClick = {
+                            topBarRightDialogVisible = true
+                        }) {
+                        Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text("Top Bar (Right): ${topSelectedSourceRight.label}", modifier = Modifier.weight(1.0f))
+                    }
+
+                    if (topBarRightDialogVisible){
+                        BarSelectDialog(topSelectedSourceRight, onHide = { topBarRightDialogVisible = false }, onSelect = { selected ->
+                            topSelectedSourceRight = selected
+                            coroutineScope.launch { updateSettings() }
+                            topBarRightDialogVisible = false
+                        })
+                    }
+                } else {
+                    FilledTonalButton(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                        onClick = {
+                            topBarDialogVisible = true
+                        }) {
+                        Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text("Top Bar: ${topSelectedSource.label}", modifier = Modifier.weight(1.0f))
+                    }
                 }
 
                 if (topBarDialogVisible){
@@ -302,15 +378,66 @@ fun MainScreen(onFinish: () -> Unit) {
                     })
                 }
 
-                FilledTonalButton(modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp),
-                    onClick = {
-                        bottomBarDialogVisible = true
-                    }) {
-                    Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text("Bottom Bar: ${bottomSelectedSource.label}", modifier = Modifier.weight(1.0f))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 10.dp)) {
+                    Text("Bottom Bar", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text("Split")
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Switch(checked = splitBottomBar, onCheckedChange = {
+                        splitBottomBar = it
+                        coroutineScope.launch { updateSettings() }
+                    })
+                }
+
+                if (splitBottomBar) {
+                    FilledTonalButton(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                        onClick = {
+                            bottomBarLeftDialogVisible = true
+                        }) {
+                        Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text("Bottom Bar (Left): ${bottomSelectedSourceLeft.label}", modifier = Modifier.weight(1.0f))
+                    }
+
+                    if (bottomBarLeftDialogVisible){
+                        BarSelectDialog(bottomSelectedSourceLeft, onHide = { bottomBarLeftDialogVisible = false }, onSelect = { selected ->
+                            bottomSelectedSourceLeft = selected
+                            coroutineScope.launch { updateSettings() }
+                            bottomBarLeftDialogVisible = false
+                        })
+                    }
+
+                    FilledTonalButton(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                        onClick = {
+                            bottomBarRightDialogVisible = true
+                        }) {
+                        Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text("Bottom Bar (Right): ${bottomSelectedSourceRight.label}", modifier = Modifier.weight(1.0f))
+                    }
+
+                    if (bottomBarRightDialogVisible){
+                        BarSelectDialog(bottomSelectedSourceRight, onHide = { bottomBarRightDialogVisible = false }, onSelect = { selected ->
+                            bottomSelectedSourceRight = selected
+                            coroutineScope.launch { updateSettings() }
+                            bottomBarRightDialogVisible = false
+                        })
+                    }
+                } else {
+                    FilledTonalButton(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                        onClick = {
+                            bottomBarDialogVisible = true
+                        }) {
+                        Icon(Icons.Default.Build, contentDescription = "Select", modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text("Bottom Bar: ${bottomSelectedSource.label}", modifier = Modifier.weight(1.0f))
+                    }
                 }
 
                 if (bottomBarDialogVisible){
@@ -344,7 +471,10 @@ fun MainScreen(onFinish: () -> Unit) {
                 }
 
                 if (topSelectedSource == SelectedSource.SPEED || topSelectedSource == SelectedSource.SPEED_3S ||
-                    bottomSelectedSource == SelectedSource.SPEED || bottomSelectedSource == SelectedSource.SPEED_3S){
+                    bottomSelectedSource == SelectedSource.SPEED || bottomSelectedSource == SelectedSource.SPEED_3S ||
+                    (splitTopBar && (topSelectedSourceLeft == SelectedSource.SPEED || topSelectedSourceLeft == SelectedSource.SPEED_3S || topSelectedSourceRight == SelectedSource.SPEED || topSelectedSourceRight == SelectedSource.SPEED_3S)) ||
+                    (splitBottomBar && (bottomSelectedSourceLeft == SelectedSource.SPEED || bottomSelectedSourceLeft == SelectedSource.SPEED_3S || bottomSelectedSourceRight == SelectedSource.SPEED || bottomSelectedSourceRight == SelectedSource.SPEED_3S))
+                ){
 
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(value = minSpeed, modifier = Modifier
@@ -371,7 +501,10 @@ fun MainScreen(onFinish: () -> Unit) {
                     }
                 }
 
-                if (topSelectedSource.isPower() || bottomSelectedSource.isPower()){
+                if (topSelectedSource.isPower() || bottomSelectedSource.isPower() ||
+                    (splitTopBar && (topSelectedSourceLeft.isPower() || topSelectedSourceRight.isPower())) ||
+                    (splitBottomBar && (bottomSelectedSourceLeft.isPower() || bottomSelectedSourceRight.isPower()))
+                ){
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Switch(checked = useCustomPowerRange, onCheckedChange = {
                             useCustomPowerRange = it
@@ -410,7 +543,10 @@ fun MainScreen(onFinish: () -> Unit) {
                     }
                 }
 
-                if (topSelectedSource == SelectedSource.HEART_RATE || bottomSelectedSource == SelectedSource.HEART_RATE){
+                if (topSelectedSource == SelectedSource.HEART_RATE || bottomSelectedSource == SelectedSource.HEART_RATE ||
+                    (splitTopBar && (topSelectedSourceLeft == SelectedSource.HEART_RATE || topSelectedSourceRight == SelectedSource.HEART_RATE)) ||
+                    (splitBottomBar && (bottomSelectedSourceLeft == SelectedSource.HEART_RATE || bottomSelectedSourceRight == SelectedSource.HEART_RATE))
+                ){
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Switch(checked = useCustomHrRange, onCheckedChange = {
                             useCustomHrRange = it
@@ -450,7 +586,10 @@ fun MainScreen(onFinish: () -> Unit) {
                 }
 
                 if (bottomSelectedSource == SelectedSource.CADENCE || topSelectedSource == SelectedSource.CADENCE ||
-                    bottomSelectedSource == SelectedSource.CADENCE_3S || topSelectedSource == SelectedSource.CADENCE_3S){
+                    bottomSelectedSource == SelectedSource.CADENCE_3S || topSelectedSource == SelectedSource.CADENCE_3S ||
+                    (splitTopBar && (topSelectedSourceLeft == SelectedSource.CADENCE || topSelectedSourceLeft == SelectedSource.CADENCE_3S || topSelectedSourceRight == SelectedSource.CADENCE || topSelectedSourceRight == SelectedSource.CADENCE_3S)) ||
+                    (splitBottomBar && (bottomSelectedSourceLeft == SelectedSource.CADENCE || bottomSelectedSourceLeft == SelectedSource.CADENCE_3S || bottomSelectedSourceRight == SelectedSource.CADENCE || bottomSelectedSourceRight == SelectedSource.CADENCE_3S))
+                ){
 
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(value = minCadence, modifier = Modifier
@@ -477,7 +616,10 @@ fun MainScreen(onFinish: () -> Unit) {
                     }
                 }
 
-                if (topSelectedSource == SelectedSource.GRADE || bottomSelectedSource == SelectedSource.GRADE){
+                if (topSelectedSource == SelectedSource.GRADE || bottomSelectedSource == SelectedSource.GRADE ||
+                    (splitTopBar && (topSelectedSourceLeft == SelectedSource.GRADE || topSelectedSourceRight == SelectedSource.GRADE)) ||
+                    (splitBottomBar && (bottomSelectedSourceLeft == SelectedSource.GRADE || bottomSelectedSourceRight == SelectedSource.GRADE))
+                ){
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         OutlinedTextField(value = minGrade, modifier = Modifier
                             .weight(1f)

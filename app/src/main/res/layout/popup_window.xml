@@ -4,8 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="80dp">
 
-    <de.timklge.karoopowerbar.CustomProgressBar
-        android:id="@+id/progressBar"
+    <de.timklge.karoopowerbar.CustomView
+        android:id="@+id/customView"
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:layout_gravity="center" />

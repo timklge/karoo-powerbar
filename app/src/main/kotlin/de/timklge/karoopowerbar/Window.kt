@@ -50,6 +50,10 @@ enum class PowerbarLocation {
     TOP, BOTTOM
 }
 
+enum class HorizontalPowerbarLocation {
+    FULL, LEFT, RIGHT
+}
+
 class Window(
     private val context: Context,
     val powerbarLocation: PowerbarLocation = PowerbarLocation.BOTTOM,
@@ -57,6 +61,10 @@ class Window(
     val barBackground: Boolean,
     val powerbarBarSize: CustomProgressBarBarSize,
     val powerbarFontSize: CustomProgressBarFontSize,
+    val splitBars: Boolean,
+    val selectedSource: SelectedSource = SelectedSource.NONE,
+    val selectedLeftSource: SelectedSource = SelectedSource.NONE,
+    val selectedRightSource: SelectedSource = SelectedSource.NONE
 ) {
     companion object {
         val FIELD_TARGET_VALUE_ID = "FIELD_WORKOUT_TARGET_VALUE_ID";
@@ -69,9 +77,8 @@ class Window(
     private val windowManager: WindowManager
     private val layoutInflater: LayoutInflater
 
-    private val powerbar: CustomProgressBar
-
-    var selectedSource: SelectedSource = SelectedSource.POWER
+    private val powerbars: MutableMap<HorizontalPowerbarLocation, CustomProgressBar> = mutableMapOf()
+    private val view: CustomView
 
     init {
         layoutParams = WindowManager.LayoutParams(
@@ -84,8 +91,8 @@ class Window(
 
         layoutInflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         rootView = layoutInflater.inflate(R.layout.popup_window, null)
-        powerbar = rootView.findViewById(R.id.progressBar)
-        powerbar.progress = null
+        view = rootView.findViewById(R.id.customView)
+        view.progressBars = powerbars
 
         windowManager = context.getSystemService(WINDOW_SERVICE) as WindowManager
         val displayMetrics = DisplayMetrics()
@@ -116,47 +123,68 @@ class Window(
 
     private val karooSystem: KarooSystemService = KarooSystemService(context)
 
-    private var serviceJob: Job? = null
+    private var serviceJobs: MutableSet<Job> = mutableSetOf()
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     suspend fun open() {
-        serviceJob = CoroutineScope(Dispatchers.Default).launch {
-            val filter = IntentFilter("de.timklge.HIDE_POWERBAR")
-            if (Build.VERSION.SDK_INT >= 33) {
-                context.registerReceiver(hideReceiver, filter, Context.RECEIVER_EXPORTED)
-            } else {
-                context.registerReceiver(hideReceiver, filter)
-            }
+        val filter = IntentFilter("de.timklge.HIDE_POWERBAR")
+        if (Build.VERSION.SDK_INT >= 33) {
+            context.registerReceiver(hideReceiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            context.registerReceiver(hideReceiver, filter)
+        }
 
-            karooSystem.connect { connected ->
-                Log.i(TAG, "Karoo system service connected: $connected")
-            }
+        karooSystem.connect { connected ->
+            Log.i(TAG, "Karoo system service connected: $connected")
+        }
 
+        powerbars.clear()
+        if (!splitBars) {
+            if (selectedSource != SelectedSource.NONE){
+                powerbars[HorizontalPowerbarLocation.FULL] = CustomProgressBar(view, selectedSource, powerbarLocation, HorizontalPowerbarLocation.FULL)
+            }
+        } else {
+            if (selectedLeftSource != SelectedSource.NONE) {
+                powerbars[HorizontalPowerbarLocation.LEFT] = CustomProgressBar(view, selectedLeftSource, powerbarLocation, HorizontalPowerbarLocation.LEFT)
+            }
+            if (selectedRightSource != SelectedSource.NONE) {
+                powerbars[HorizontalPowerbarLocation.RIGHT] = CustomProgressBar(view, selectedRightSource, powerbarLocation, HorizontalPowerbarLocation.RIGHT)
+            }
+        }
+
+        powerbars.values.forEach { powerbar ->
             powerbar.progressColor = context.resources.getColor(R.color.zone7)
             powerbar.progress = null
-            powerbar.location = powerbarLocation
             powerbar.showLabel = showLabel
             powerbar.barBackground = barBackground
             powerbar.fontSize = powerbarFontSize
             powerbar.barSize = powerbarBarSize
             powerbar.invalidate()
+        }
 
-            Log.i(TAG, "Streaming $selectedSource")
+        Log.i(TAG, "Streaming $selectedSource")
 
-            when (selectedSource){
-                SelectedSource.POWER -> streamPower(PowerStreamSmoothing.RAW)
-                SelectedSource.POWER_3S -> streamPower(PowerStreamSmoothing.SMOOTHED_3S)
-                SelectedSource.POWER_10S -> streamPower(PowerStreamSmoothing.SMOOTHED_10S)
-                SelectedSource.HEART_RATE -> streamHeartrate()
-                SelectedSource.SPEED -> streamSpeed(false)
-                SelectedSource.SPEED_3S -> streamSpeed(true)
-                SelectedSource.CADENCE -> streamCadence(false)
-                SelectedSource.CADENCE_3S -> streamCadence(true)
-                SelectedSource.ROUTE_PROGRESS -> streamRouteProgress(::getRouteProgress)
-                SelectedSource.REMAINING_ROUTE -> streamRouteProgress(::getRemainingRouteProgress)
-                SelectedSource.GRADE -> streamGrade()
-                SelectedSource.NONE -> {}
-            }
+        val selectedSources = powerbars.values.map { it.source }.toSet()
+
+        selectedSources.forEach { selectedSource ->
+            serviceJobs.add( CoroutineScope(Dispatchers.IO).launch {
+                Log.i(TAG, "Starting stream for $selectedSource")
+
+                when (selectedSource){
+                    SelectedSource.POWER -> streamPower(SelectedSource.POWER, PowerStreamSmoothing.RAW)
+                    SelectedSource.POWER_3S -> streamPower(SelectedSource.POWER_3S, PowerStreamSmoothing.SMOOTHED_3S)
+                    SelectedSource.POWER_10S -> streamPower(SelectedSource.POWER_10S, PowerStreamSmoothing.SMOOTHED_10S)
+                    SelectedSource.HEART_RATE -> streamHeartrate()
+                    SelectedSource.SPEED -> streamSpeed(SelectedSource.SPEED, false)
+                    SelectedSource.SPEED_3S -> streamSpeed(SelectedSource.SPEED_3S, true)
+                    SelectedSource.CADENCE -> streamCadence(SelectedSource.CADENCE, false)
+                    SelectedSource.CADENCE_3S -> streamCadence(SelectedSource.CADENCE_3S, true)
+                    SelectedSource.ROUTE_PROGRESS -> streamRouteProgress(SelectedSource.ROUTE_PROGRESS, ::getRouteProgress)
+                    SelectedSource.REMAINING_ROUTE -> streamRouteProgress(SelectedSource.REMAINING_ROUTE, ::getRemainingRouteProgress)
+                    SelectedSource.GRADE -> streamGrade()
+                    SelectedSource.NONE -> {}
+                }
+            })
         }
 
         try {
@@ -195,7 +223,10 @@ class Window(
         return BarProgress(routeProgress, "$distanceToDestinationInUserUnit")
     }
 
-    private suspend fun streamRouteProgress(routeProgressProvider: (UserProfile, Double?, Double?, Double?) -> BarProgress) {
+    private suspend fun streamRouteProgress(
+        source: SelectedSource,
+        routeProgressProvider: (UserProfile, Double?, Double?, Double?) -> BarProgress
+    ) {
         data class StreamData(
             val userProfile: UserProfile,
             val distanceToDestination: Double?,
@@ -238,14 +269,18 @@ class Window(
             val routeEndAt = lastKnownRouteLength?.plus((distanceToDestination ?: 0.0))
             val barProgress = routeProgressProvider(userProfile, riddenDistance, routeEndAt, distanceToDestination)
 
-            powerbar.progressColor = context.getColor(R.color.zone0)
-            powerbar.progress = barProgress.progress
-            powerbar.label = barProgress.label
-            powerbar.invalidate()
+            val powerbarsWithRouteProgressSource = powerbars.values.filter { it.source == source }
+
+            powerbarsWithRouteProgressSource.forEach { powerbar ->
+                powerbar.progressColor = context.getColor(R.color.zone0)
+                powerbar.progress = barProgress.progress
+                powerbar.label = barProgress.label
+                powerbar.invalidate()
+            }
         }
     }
 
-    private suspend fun streamSpeed(smoothed: Boolean) {
+    private suspend fun streamSpeed(source: SelectedSource, smoothed: Boolean) {
         val speedFlow = karooSystem.streamDataFlow(if(smoothed) DataType.Type.SMOOTHED_3S_AVERAGE_SPEED else DataType.Type.SPEED)
             .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
             .distinctUntilChanged()
@@ -263,30 +298,33 @@ class Window(
                     else -> valueMetersPerSecond?.times(3.6)
                 }?.roundToInt()
 
-                if (value != null && valueMetersPerSecond != null) {
-                    val minSpeed = streamData.settings?.minSpeed ?: PowerbarSettings.defaultMinSpeedMs
-                    val maxSpeed = streamData.settings?.maxSpeed ?: PowerbarSettings.defaultMaxSpeedMs
-                    val progress = remap(valueMetersPerSecond, minSpeed.toDouble(), maxSpeed.toDouble(), 0.0, 1.0) ?: 0.0
+                val powerbarsWithSpeedSource = powerbars.values.filter { it.source == source }
+                powerbarsWithSpeedSource.forEach { powerbar ->
+                    if (value != null) {
+                        val minSpeed = streamData.settings?.minSpeed ?: PowerbarSettings.defaultMinSpeedMs
+                        val maxSpeed = streamData.settings?.maxSpeed ?: PowerbarSettings.defaultMaxSpeedMs
+                        val progress = remap(valueMetersPerSecond, minSpeed.toDouble(), maxSpeed.toDouble(), 0.0, 1.0) ?: 0.0
 
-                    @ColorRes val zoneColorRes = Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
+                        @ColorRes val zoneColorRes = Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
 
-                    powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
-                        context.getColor(zoneColorRes)
+                        powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
+                            context.getColor(zoneColorRes)
+                        } else {
+                            context.getColor(R.color.zone0)
+                        }
+                        powerbar.progress = if (value > 0) progress else null
+                        powerbar.label = "$value"
+
+                        Log.d(TAG, "Speed: $value min: $minSpeed max: $maxSpeed")
                     } else {
-                        context.getColor(R.color.zone0)
+                        powerbar.progressColor = context.getColor(R.color.zone0)
+                        powerbar.progress = null
+                        powerbar.label = "?"
+
+                        Log.d(TAG, "Speed: Unavailable")
                     }
-                    powerbar.progress = if (value > 0) progress else null
-                    powerbar.label = "$value"
-
-                    Log.d(TAG, "Speed: $value min: $minSpeed max: $maxSpeed")
-                } else {
-                    powerbar.progressColor = context.getColor(R.color.zone0)
-                    powerbar.progress = null
-                    powerbar.label = "?"
-
-                    Log.d(TAG, "Speed: Unavailable")
+                    powerbar.invalidate()
                 }
-                powerbar.invalidate()
             }
     }
 
@@ -297,6 +335,7 @@ class Window(
                 in -Float.MAX_VALUE..<-7.5f -> R.color.eleDarkBlue // Dark blue
                 in -7.5f..<-4.6f -> R.color.eleLightBlue // Light blue
                 in -4.6f..<-2f -> R.color.eleWhite // White
+                in -2f..<2f -> R.color.eleGray // Gray
                 in 2f..<4.6f -> R.color.eleDarkGreen // Dark green
                 in 4.6f..<7.5f -> R.color.eleLightGreen // Light green
                 in 7.5f..<12.5f -> R.color.eleYellow // Yellow
@@ -321,27 +360,31 @@ class Window(
         }.distinctUntilChanged().throttle(1_000).collect { streamData ->
             val value = streamData.value
 
-            if (value != null) {
-                val minGradient = streamData.settings?.minGradient ?: PowerbarSettings.defaultMinGradient
-                val maxGradient = streamData.settings?.maxGradient ?: PowerbarSettings.defaultMaxGradient
+            val powerbarsWithGradeSource = powerbars.values.filter { it.source == SelectedSource.GRADE }
 
-                powerbar.progressColor = getInclineIndicatorColor(value.toFloat()) ?: context.getColor(R.color.zone0)
-                powerbar.progress = remap(value.toDouble(), minGradient.toDouble(), maxGradient.toDouble(), 0.0, 1.0)
-                powerbar.label = "${String.format(Locale.getDefault(), "%.1f", value)}%"
+            powerbarsWithGradeSource.forEach { powerbar ->
+                if (value != null) {
+                    val minGradient = streamData.settings?.minGradient ?: PowerbarSettings.defaultMinGradient
+                    val maxGradient = streamData.settings?.maxGradient ?: PowerbarSettings.defaultMaxGradient
 
-                Log.d(TAG, "Grade: $value")
-            } else {
-                powerbar.progressColor = context.getColor(R.color.zone0)
-                powerbar.progress = null
-                powerbar.label = "?"
+                    powerbar.progressColor = getInclineIndicatorColor(value.toFloat()) ?: context.getColor(R.color.zone0)
+                    powerbar.progress = remap(value.toDouble(), minGradient.toDouble(), maxGradient.toDouble(), 0.0, 1.0)
+                    powerbar.label = "${String.format(Locale.getDefault(), "%.1f", value)}%"
 
-                Log.d(TAG, "Grade: Unavailable")
+                    Log.d(TAG, "Grade: $value")
+                } else {
+                    powerbar.progressColor = context.getColor(R.color.zone0)
+                    powerbar.progress = null
+                    powerbar.label = "?"
+
+                    Log.d(TAG, "Grade: Unavailable")
+                }
+                powerbar.invalidate()
             }
-            powerbar.invalidate()
         }
     }
 
-    private suspend fun streamCadence(smoothed: Boolean) {
+    private suspend fun streamCadence(source: SelectedSource, smoothed: Boolean) {
         val cadenceFlow = karooSystem.streamDataFlow(if(smoothed) DataType.Type.SMOOTHED_3S_AVERAGE_CADENCE else DataType.Type.CADENCE)
             .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
             .distinctUntilChanged()
@@ -357,35 +400,38 @@ class Window(
             StreamData(userProfile, speed, settings, cadenceTarget)
         }.distinctUntilChanged().throttle(1_000).collect { streamData ->
             val value = streamData.value?.roundToInt()
+            val powerbarsWithCadenceSource = powerbars.values.filter { it.source == source }
 
-            if (value != null) {
-                val minCadence = streamData.settings?.minCadence ?: PowerbarSettings.defaultMinCadence
-                val maxCadence = streamData.settings?.maxCadence ?: PowerbarSettings.defaultMaxCadence
-                val progress = remap(value.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0) ?: 0.0
+            powerbarsWithCadenceSource.forEach { powerbar ->
+                if (value != null) {
+                    val minCadence = streamData.settings?.minCadence ?: PowerbarSettings.defaultMinCadence
+                    val maxCadence = streamData.settings?.maxCadence ?: PowerbarSettings.defaultMaxCadence
+                    val progress = remap(value.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0) ?: 0.0
 
-                powerbar.minTarget = remap(streamData.cadenceTarget?.values?.get(FIELD_TARGET_MIN_ID)?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
-                powerbar.maxTarget = remap(streamData.cadenceTarget?.values?.get(FIELD_TARGET_MAX_ID)?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
-                powerbar.target = remap(streamData.cadenceTarget?.values?.get(FIELD_TARGET_VALUE_ID)?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
+                    powerbar.minTarget = remap(streamData.cadenceTarget?.values?.get(FIELD_TARGET_MIN_ID)?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
+                    powerbar.maxTarget = remap(streamData.cadenceTarget?.values?.get(FIELD_TARGET_MAX_ID)?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
+                    powerbar.target = remap(streamData.cadenceTarget?.values?.get(FIELD_TARGET_VALUE_ID)?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
 
-                @ColorRes val zoneColorRes = Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
+                    @ColorRes val zoneColorRes = Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
 
-                powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
-                    context.getColor(zoneColorRes)
+                    powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
+                        context.getColor(zoneColorRes)
+                    } else {
+                        context.getColor(R.color.zone0)
+                    }
+                    powerbar.progress = if (value > 0) progress else null
+                    powerbar.label = "$value"
+
+                    Log.d(TAG, "Cadence: $value min: $minCadence max: $maxCadence")
                 } else {
-                    context.getColor(R.color.zone0)
+                    powerbar.progressColor = context.getColor(R.color.zone0)
+                    powerbar.progress = null
+                    powerbar.label = "?"
+
+                    Log.d(TAG, "Cadence: Unavailable")
                 }
-                powerbar.progress = if (value > 0) progress else null
-                powerbar.label = "$value"
-
-                Log.d(TAG, "Cadence: $value min: $minCadence max: $maxCadence")
-            } else {
-                powerbar.progressColor = context.getColor(R.color.zone0)
-                powerbar.progress = null
-                powerbar.label = "?"
-
-                Log.d(TAG, "Cadence: Unavailable")
+                powerbar.invalidate()
             }
-            powerbar.invalidate()
         }
     }
 
@@ -405,35 +451,38 @@ class Window(
             StreamData(userProfile, hr, settings, hrTarget)
         }.distinctUntilChanged().throttle(1_000).collect { streamData ->
             val value = streamData.value?.roundToInt()
+            val powerbarsWithHrSource = powerbars.values.filter { it.source == SelectedSource.HEART_RATE }
 
-            if (value != null) {
-                val customMinHr = if (streamData.settings?.useCustomHrRange == true) streamData.settings.minHr else null
-                val customMaxHr = if (streamData.settings?.useCustomHrRange == true) streamData.settings.maxHr else null
-                val minHr = customMinHr ?: streamData.userProfile.restingHr
-                val maxHr = customMaxHr ?: streamData.userProfile.maxHr
-                val progress = remap(value.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
+            powerbarsWithHrSource.forEach { powerbar ->
+                if (value != null) {
+                    val customMinHr = if (streamData.settings?.useCustomHrRange == true) streamData.settings.minHr else null
+                    val customMaxHr = if (streamData.settings?.useCustomHrRange == true) streamData.settings.maxHr else null
+                    val minHr = customMinHr ?: streamData.userProfile.restingHr
+                    val maxHr = customMaxHr ?: streamData.userProfile.maxHr
+                    val progress = remap(value.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
 
-                powerbar.minTarget = remap(streamData.heartrateTarget?.values?.get(FIELD_TARGET_MIN_ID), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
-                powerbar.maxTarget = remap(streamData.heartrateTarget?.values?.get(FIELD_TARGET_MAX_ID), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
-                powerbar.target = remap(streamData.heartrateTarget?.values?.get(FIELD_TARGET_VALUE_ID), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
+                    powerbar.minTarget = remap(streamData.heartrateTarget?.values?.get(FIELD_TARGET_MIN_ID), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
+                    powerbar.maxTarget = remap(streamData.heartrateTarget?.values?.get(FIELD_TARGET_MAX_ID), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
+                    powerbar.target = remap(streamData.heartrateTarget?.values?.get(FIELD_TARGET_VALUE_ID), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
 
-                powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
-                    context.getColor(getZone(streamData.userProfile.heartRateZones, value)?.colorResource ?: R.color.zone7)
+                    powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
+                        context.getColor(getZone(streamData.userProfile.heartRateZones, value)?.colorResource ?: R.color.zone7)
+                    } else {
+                        context.getColor(R.color.zone0)
+                    }
+                    powerbar.progress = if (value > 0) progress else null
+                    powerbar.label = "$value"
+
+                    Log.d(TAG, "Hr: $value min: $minHr max: $maxHr")
                 } else {
-                    context.getColor(R.color.zone0)
+                    powerbar.progressColor = context.getColor(R.color.zone0)
+                    powerbar.progress = null
+                    powerbar.label = "?"
+
+                    Log.d(TAG, "Hr: Unavailable")
                 }
-                powerbar.progress = if (value > 0) progress else null
-                powerbar.label = "$value"
-
-                Log.d(TAG, "Hr: $value min: $minHr max: $maxHr")
-            } else {
-                powerbar.progressColor = context.getColor(R.color.zone0)
-                powerbar.progress = null
-                powerbar.label = "?"
-
-                Log.d(TAG, "Hr: Unavailable")
+                powerbar.invalidate()
             }
-            powerbar.invalidate()
         }
     }
 
@@ -443,7 +492,7 @@ class Window(
         SMOOTHED_10S(DataType.Type.SMOOTHED_10S_AVERAGE_POWER),
     }
 
-    private suspend fun streamPower(smoothed: PowerStreamSmoothing) {
+    private suspend fun streamPower(source: SelectedSource, smoothed: PowerStreamSmoothing) {
         val powerFlow = karooSystem.streamDataFlow(smoothed.dataTypeId)
             .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
             .distinctUntilChanged()
@@ -460,35 +509,38 @@ class Window(
             StreamData(userProfile, hr, settings, powerTarget)
         }.distinctUntilChanged().throttle(1_000).collect { streamData ->
             val value = streamData.value?.roundToInt()
+            val powerbarsWithPowerSource = powerbars.values.filter { it.source == source }
 
-            if (value != null) {
-                val customMinPower = if (streamData.settings?.useCustomPowerRange == true) streamData.settings.minPower else null
-                val customMaxPower = if (streamData.settings?.useCustomPowerRange == true) streamData.settings.maxPower else null
-                val minPower = customMinPower ?: streamData.userProfile.powerZones.first().min
-                val maxPower = customMaxPower ?: (streamData.userProfile.powerZones.last().min + 30)
-                val progress = remap(value.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
+            powerbarsWithPowerSource.forEach { powerbar ->
+                if (value != null) {
+                    val customMinPower = if (streamData.settings?.useCustomPowerRange == true) streamData.settings.minPower else null
+                    val customMaxPower = if (streamData.settings?.useCustomPowerRange == true) streamData.settings.maxPower else null
+                    val minPower = customMinPower ?: streamData.userProfile.powerZones.first().min
+                    val maxPower = customMaxPower ?: (streamData.userProfile.powerZones.last().min + 30)
+                    val progress = remap(value.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
 
-                powerbar.minTarget = remap(streamData.powerTarget?.values?.get(FIELD_TARGET_MIN_ID), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
-                powerbar.maxTarget = remap(streamData.powerTarget?.values?.get(FIELD_TARGET_MAX_ID), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
-                powerbar.target = remap(streamData.powerTarget?.values?.get(FIELD_TARGET_VALUE_ID), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
+                    powerbar.minTarget = remap(streamData.powerTarget?.values?.get(FIELD_TARGET_MIN_ID), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
+                    powerbar.maxTarget = remap(streamData.powerTarget?.values?.get(FIELD_TARGET_MAX_ID), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
+                    powerbar.target = remap(streamData.powerTarget?.values?.get(FIELD_TARGET_VALUE_ID), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
 
-                powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
-                    context.getColor(getZone(streamData.userProfile.powerZones, value)?.colorResource ?: R.color.zone7)
+                    powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
+                        context.getColor(getZone(streamData.userProfile.powerZones, value)?.colorResource ?: R.color.zone7)
+                    } else {
+                        context.getColor(R.color.zone0)
+                    }
+                    powerbar.progress = if (value > 0) progress else null
+                    powerbar.label = "${value}W"
+
+                    Log.d(TAG, "Power: $value min: $minPower max: $maxPower")
                 } else {
-                    context.getColor(R.color.zone0)
+                    powerbar.progressColor = context.getColor(R.color.zone0)
+                    powerbar.progress = null
+                    powerbar.label = "?"
+
+                    Log.d(TAG, "Power: Unavailable")
                 }
-                powerbar.progress = if (value > 0) progress else null
-                powerbar.label = "${value}W"
-
-                Log.d(TAG, "Power: $value min: $minPower max: $maxPower")
-            } else {
-                powerbar.progressColor = context.getColor(R.color.zone0)
-                powerbar.progress = null
-                powerbar.label = "?"
-
-                Log.d(TAG, "Power: Unavailable")
+                powerbar.invalidate()
             }
-            powerbar.invalidate()
         }
     }
 
@@ -501,7 +553,9 @@ class Window(
                 currentHideJob?.cancel()
                 currentHideJob = null
             }
-            serviceJob?.cancel()
+            serviceJobs.forEach { job ->
+                job.cancel()
+            }
             (context.getSystemService(WINDOW_SERVICE) as WindowManager).removeView(rootView)
             rootView.invalidate()
             (rootView.parent as? ViewGroup)?.removeAllViews()
