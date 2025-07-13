@@ -8,15 +8,33 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
+import de.timklge.karoopowerbar.screens.SelectedSource
 
-class CustomProgressBar @JvmOverloads constructor(
+class CustomView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
+    var progressBars: Map<HorizontalPowerbarLocation, CustomProgressBar>? = null
+
+    override fun onDrawForeground(canvas: Canvas) {
+        super.onDrawForeground(canvas)
+
+        // Draw all progress bars
+        progressBars?.values?.forEach { progressBar ->
+            Log.d(KarooPowerbarExtension.TAG, "Drawing progress bar for source: ${progressBar.source} - location: ${progressBar.location} - horizontalLocation: ${progressBar.horizontalLocation}")
+            progressBar.onDrawForeground(canvas)
+        }
+    }
+}
+
+class CustomProgressBar(private val view: CustomView,
+                        val source: SelectedSource,
+                        val location: PowerbarLocation,
+                        val horizontalLocation: HorizontalPowerbarLocation) {
     var progress: Double? = 0.5
-    var location: PowerbarLocation = PowerbarLocation.BOTTOM
     var label: String = ""
     var minTarget: Double? = null
     var maxTarget: Double? = null
@@ -29,7 +47,7 @@ class CustomProgressBar @JvmOverloads constructor(
         set(value) {
             field = value
             textPaint.textSize = value.fontSize
-            invalidate() // Redraw to apply new font size
+            view.invalidate() // Redraw to apply new font size
         }
 
     var barSize = CustomProgressBarBarSize.MEDIUM
@@ -45,7 +63,7 @@ class CustomProgressBar @JvmOverloads constructor(
                 CustomProgressBarBarSize.MEDIUM -> 8f
                 CustomProgressBarBarSize.LARGE -> 10f
             }
-            invalidate() // Redraw to apply new bar size
+            view.invalidate() // Redraw to apply new bar size
         }
 
     private val targetColor = 0xFF9933FF.toInt()
@@ -120,9 +138,7 @@ class CustomProgressBar @JvmOverloads constructor(
         style = Paint.Style.STROKE
     }
 
-    override fun onDrawForeground(canvas: Canvas) {
-        super.onDrawForeground(canvas)
-
+    fun onDrawForeground(canvas: Canvas) {
         // Determine if the current progress is within the target range
         val isTargetMet =
             progress != null && minTarget != null && maxTarget != null && progress!! >= minTarget!! && progress!! <= maxTarget!!
@@ -132,25 +148,65 @@ class CustomProgressBar @JvmOverloads constructor(
         blurPaint.color = progressColor
         blurPaintHighlight.color = ColorUtils.blendARGB(progressColor, 0xFFFFFF, 0.5f)
 
+        val p = (progress ?: 0.0).coerceIn(0.0, 1.0)
+        val fullWidth = canvas.width.toFloat()
+        val halfWidth = fullWidth / 2f
+
+        val barLeft = when (horizontalLocation) {
+            HorizontalPowerbarLocation.LEFT -> 0f
+            HorizontalPowerbarLocation.RIGHT -> fullWidth - (halfWidth * p).toFloat()
+            HorizontalPowerbarLocation.FULL -> 0f
+        }
+        val barRight = when (horizontalLocation) {
+            HorizontalPowerbarLocation.LEFT -> (halfWidth * p).toFloat()
+            HorizontalPowerbarLocation.RIGHT -> fullWidth
+            HorizontalPowerbarLocation.FULL -> (fullWidth * p).toFloat()
+        }
+
+        val minTargetX = when (horizontalLocation) {
+            HorizontalPowerbarLocation.LEFT -> if (minTarget != null) (halfWidth * minTarget!!).toFloat() else 0f
+            HorizontalPowerbarLocation.RIGHT -> if (minTarget != null) halfWidth + (halfWidth * minTarget!!).toFloat() else 0f
+            HorizontalPowerbarLocation.FULL -> if (minTarget != null) (fullWidth * minTarget!!).toFloat() else 0f
+        }
+        val maxTargetX = when (horizontalLocation) {
+            HorizontalPowerbarLocation.LEFT -> if (maxTarget != null) (halfWidth * maxTarget!!).toFloat() else 0f
+            HorizontalPowerbarLocation.RIGHT -> if (maxTarget != null) halfWidth + (halfWidth * maxTarget!!).toFloat() else 0f
+            HorizontalPowerbarLocation.FULL -> if (maxTarget != null) (fullWidth * maxTarget!!).toFloat() else 0f
+        }
+        val targetX = when (horizontalLocation) {
+            HorizontalPowerbarLocation.LEFT -> if (target != null) (halfWidth * target!!).toFloat() else 0f
+            HorizontalPowerbarLocation.RIGHT -> if (target != null) halfWidth + (halfWidth * target!!).toFloat() else 0f
+            HorizontalPowerbarLocation.FULL -> if (target != null) (fullWidth * target!!).toFloat() else 0f
+        }
+
+        val backgroundLeft = when (horizontalLocation) {
+            HorizontalPowerbarLocation.LEFT -> 0f
+            HorizontalPowerbarLocation.RIGHT -> halfWidth
+            HorizontalPowerbarLocation.FULL -> 0f
+        }
+        val backgroundRight = when (horizontalLocation) {
+            HorizontalPowerbarLocation.LEFT -> halfWidth
+            HorizontalPowerbarLocation.RIGHT -> fullWidth
+            HorizontalPowerbarLocation.FULL -> fullWidth
+        }
+
         when (location) {
             PowerbarLocation.TOP -> {
                 val rect = RectF(
-                    1f,
+                    barLeft,
                     15f,
-                    ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(0.0, 1.0)).toFloat(),
+                    barRight,
                     15f + barSize.barHeight // barSize.barHeight will be 0f if NONE
                 )
 
                 // Draw bar components only if barSize is not NONE
                 if (barSize != CustomProgressBarBarSize.NONE) {
                     if (barBackground){
-                        canvas.drawRect(0f, 15f, canvas.width.toFloat(), 15f + barSize.barHeight, backgroundPaint)
+                        canvas.drawRect(backgroundLeft, 15f, backgroundRight, 15f + barSize.barHeight, backgroundPaint)
                     }
 
                     // Draw target zone fill behind the progress bar
                     if (minTarget != null && maxTarget != null) {
-                        val minTargetX = (canvas.width * minTarget!!).toFloat()
-                        val maxTargetX = (canvas.width * maxTarget!!).toFloat()
                         canvas.drawRoundRect(
                             minTargetX,
                             15f,
@@ -172,8 +228,6 @@ class CustomProgressBar @JvmOverloads constructor(
                 if (progress != null) {
                     // Draw target zone stroke after progress bar, before label
                     if (minTarget != null && maxTarget != null) {
-                        val minTargetX = (canvas.width * minTarget!!).toFloat()
-                        val maxTargetX = (canvas.width * maxTarget!!).toFloat()
                         // Draw stroked rounded rectangle for the target zone
                         canvas.drawRoundRect(
                             minTargetX,
@@ -188,7 +242,6 @@ class CustomProgressBar @JvmOverloads constructor(
 
                     // Draw vertical target indicator line if target is present
                     if (target != null) {
-                        val targetX = (canvas.width * target!!).toFloat()
                         targetIndicatorPaint.color = if (isTargetMet) Color.GREEN else Color.RED
                         canvas.drawLine(targetX, 15f, targetX, 15f + barSize.barHeight, targetIndicatorPaint)
                     }
@@ -203,7 +256,7 @@ class CustomProgressBar @JvmOverloads constructor(
 
                         val textBounds = textPaint.measureText(label)
                         val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
-                        val x = (rect.right - xOffset).coerceIn(0f..canvas.width-xOffset*2f)
+                        val x = (if (horizontalLocation != HorizontalPowerbarLocation.RIGHT) rect.right - xOffset else rect.left - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
                         val r = x + xOffset * 2
 
                         val fm = textPaint.fontMetrics
@@ -226,9 +279,9 @@ class CustomProgressBar @JvmOverloads constructor(
 
             PowerbarLocation.BOTTOM -> {
                 val rect = RectF(
-                    1f,
+                    barLeft,
                     canvas.height.toFloat() - 1f - barSize.barHeight, // barSize.barHeight will be 0f if NONE
-                    ((canvas.width.toDouble() - 1f) * (progress ?: 0.0).coerceIn(0.0, 1.0)).toFloat(),
+                    barRight,
                     canvas.height.toFloat()
                 )
 
@@ -236,13 +289,11 @@ class CustomProgressBar @JvmOverloads constructor(
                 if (barSize != CustomProgressBarBarSize.NONE) {
                     if (barBackground){
                         // Use barSize.barHeight for background top calculation
-                        canvas.drawRect(0f, canvas.height.toFloat() - barSize.barHeight, canvas.width.toFloat(), canvas.height.toFloat(), backgroundPaint)
+                        canvas.drawRect(backgroundLeft, canvas.height.toFloat() - barSize.barHeight, backgroundRight, canvas.height.toFloat(), backgroundPaint)
                     }
 
                     // Draw target zone fill behind the progress bar
                     if (minTarget != null && maxTarget != null) {
-                        val minTargetX = (canvas.width * minTarget!!).toFloat()
-                        val maxTargetX = (canvas.width * maxTarget!!).toFloat()
                         canvas.drawRoundRect(
                             minTargetX,
                             canvas.height.toFloat() - barSize.barHeight,
@@ -265,8 +316,6 @@ class CustomProgressBar @JvmOverloads constructor(
                 if (progress != null) {
                     // Draw target zone stroke after progress bar, before label
                     if (minTarget != null && maxTarget != null) {
-                        val minTargetX = (canvas.width * minTarget!!).toFloat()
-                        val maxTargetX = (canvas.width * maxTarget!!).toFloat()
                         // Draw stroked rounded rectangle for the target zone
                         canvas.drawRoundRect(
                             minTargetX,
@@ -281,7 +330,6 @@ class CustomProgressBar @JvmOverloads constructor(
 
                     // Draw vertical target indicator line if target is present
                     if (target != null) {
-                        val targetX = (canvas.width * target!!).toFloat()
                         targetIndicatorPaint.color = if (isTargetMet) Color.GREEN else Color.RED
                         canvas.drawLine(targetX, canvas.height.toFloat() - barSize.barHeight, targetX, canvas.height.toFloat(), targetIndicatorPaint)
                     }
@@ -296,7 +344,7 @@ class CustomProgressBar @JvmOverloads constructor(
 
                         val textBounds = textPaint.measureText(label)
                         val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
-                        val x = (rect.right - xOffset).coerceIn(0f..canvas.width-xOffset*2f)
+                        val x = (if (horizontalLocation != HorizontalPowerbarLocation.RIGHT) rect.right - xOffset else rect.left - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
                         val r = x + xOffset * 2
 
                         // textDrawBaselineY calculation uses rect.top and barSize.barHeight.
@@ -314,5 +362,10 @@ class CustomProgressBar @JvmOverloads constructor(
                 }
             }
         }
+    }
+
+    fun invalidate() {
+        // Invalidate the view to trigger a redraw
+        view.invalidate()
     }
 }

@@ -7,6 +7,7 @@ import de.timklge.karoopowerbar.screens.SelectedSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -15,8 +16,16 @@ val settingsKey = stringPreferencesKey("settings")
 
 @Serializable
 data class PowerbarSettings(
-    val source: SelectedSource = SelectedSource.POWER,
+    @SerialName("source") val bottomBarSource: SelectedSource = SelectedSource.POWER,
     val topBarSource: SelectedSource = SelectedSource.NONE,
+
+    val splitTopBar: Boolean = false,
+    val splitBottomBar: Boolean = false,
+    val topBarLeftSource: SelectedSource = SelectedSource.NONE,
+    val topBarRightSource: SelectedSource = SelectedSource.NONE,
+    val bottomBarLeftSource: SelectedSource = SelectedSource.POWER,
+    val bottomBarRightSource: SelectedSource = SelectedSource.NONE,
+
     val onlyShowWhileRiding: Boolean = true,
     val showLabelOnBars: Boolean = true,
     val useZoneColors: Boolean = true,

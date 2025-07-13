@@ -52,19 +52,21 @@ class ForegroundService : Service() {
                     windows.forEach { it.close() }
                     windows.clear()
 
-                    if (settings.source != SelectedSource.NONE && showBars) {
-                        Window(this@ForegroundService, PowerbarLocation.BOTTOM, settings.showLabelOnBars, settings.barBackground, settings.barBarSize, settings.barFontSize).apply {
-                            selectedSource = settings.source
-                            windows.add(this)
-                            open()
+                    if (showBars){
+                        if (settings.bottomBarSource != SelectedSource.NONE || settings.bottomBarLeftSource != SelectedSource.NONE || settings.bottomBarRightSource != SelectedSource.NONE) {
+                            Window(this@ForegroundService, PowerbarLocation.BOTTOM, settings.showLabelOnBars, settings.barBackground, settings.barBarSize, settings.barFontSize,
+                                settings.splitBottomBar, settings.bottomBarSource, settings.bottomBarLeftSource, settings.bottomBarRightSource).apply {
+                                    windows.add(this)
+                                    open()
+                            }
                         }
-                    }
 
-                    if (settings.topBarSource != SelectedSource.NONE && showBars){
-                        Window(this@ForegroundService, PowerbarLocation.TOP, settings.showLabelOnBars, settings.barBackground, settings.barBarSize, settings.barFontSize).apply {
-                            selectedSource = settings.topBarSource
-                            open()
-                            windows.add(this)
+                        if (settings.topBarSource != SelectedSource.NONE || settings.topBarLeftSource != SelectedSource.NONE || settings.topBarRightSource != SelectedSource.NONE) {
+                            Window(this@ForegroundService, PowerbarLocation.TOP, settings.showLabelOnBars, settings.barBackground, settings.barBarSize, settings.barFontSize,
+                                settings.splitTopBar, settings.topBarSource, settings.topBarLeftSource, settings.topBarRightSource).apply {
+                                    open()
+                                    windows.add(this)
+                            }
                         }
                     }
             }
