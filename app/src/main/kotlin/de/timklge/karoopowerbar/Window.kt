@@ -367,7 +367,8 @@ class Window(
                     val minGradient = streamData.settings?.minGradient ?: PowerbarSettings.defaultMinGradient
                     val maxGradient = streamData.settings?.maxGradient ?: PowerbarSettings.defaultMaxGradient
 
-                    powerbar.progressColor = getInclineIndicatorColor(value.toFloat()) ?: context.getColor(R.color.zone0)
+                    val colorRes = getInclineIndicatorColor(value.toFloat()) ?: R.color.zone0
+                    powerbar.progressColor = context.getColor(colorRes)
                     powerbar.progress = remap(value.toDouble(), minGradient.toDouble(), maxGradient.toDouble(), 0.0, 1.0)
                     powerbar.label = "${String.format(Locale.getDefault(), "%.1f", value)}%"
 
