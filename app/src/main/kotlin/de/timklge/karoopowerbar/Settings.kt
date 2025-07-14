@@ -51,7 +51,7 @@ data class PowerbarSettings(
         const val defaultMinCadence = 50
         const val defaultMaxCadence = 120
         const val defaultMinGradient = 0
-        const val defaultMaxGradient = 20
+        const val defaultMaxGradient = 15
     }
 }
 
