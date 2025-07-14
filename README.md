@@ -12,6 +12,7 @@ Compatible with Karoo 2 and Karoo 3 devices.
 ![Powerbar](powerbar0.png)
 ![Settings](powerbar1.png)
 ![Powerbar GIF](powerbar_min.gif)
+![Powerbar x4](powerbar2.png)
 
 ## Usage
 
@@ -25,6 +26,7 @@ to be displayed at the bottom or at the top of the screen:
 - Average power over the last 10 seconds
 - Speed
 - Cadence
+- Grade
 - Route Progress (shows currently ridden distance)
 - Remaining Route (shows remaining distance to the end of the route)
 
