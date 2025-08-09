@@ -42,6 +42,7 @@ class CustomProgressBar(private val view: CustomView,
     var showLabel: Boolean = true
     var barBackground: Boolean = false
     @ColorInt var progressColor: Int = 0xFF2b86e6.toInt()
+    var drawMode: ProgressBarDrawMode = ProgressBarDrawMode.STANDARD
 
     var fontSize = CustomProgressBarFontSize.MEDIUM
         set(value) {
@@ -152,15 +153,63 @@ class CustomProgressBar(private val view: CustomView,
         val fullWidth = canvas.width.toFloat()
         val halfWidth = fullWidth / 2f
 
-        val barLeft = when (horizontalLocation) {
-            HorizontalPowerbarLocation.LEFT -> 0f
-            HorizontalPowerbarLocation.RIGHT -> fullWidth - (halfWidth * p).toFloat()
-            HorizontalPowerbarLocation.FULL -> 0f
-        }
-        val barRight = when (horizontalLocation) {
-            HorizontalPowerbarLocation.LEFT -> (halfWidth * p).toFloat()
-            HorizontalPowerbarLocation.RIGHT -> fullWidth
-            HorizontalPowerbarLocation.FULL -> (fullWidth * p).toFloat()
+        // Calculate bar left and right positions based on draw mode
+        val (barLeft, barRight) = when (drawMode) {
+            ProgressBarDrawMode.STANDARD -> {
+                // Standard left-to-right progress bar
+                when (horizontalLocation) {
+                    HorizontalPowerbarLocation.LEFT -> Pair(0f, (halfWidth * p).toFloat())
+                    HorizontalPowerbarLocation.RIGHT -> Pair(fullWidth - (halfWidth * p).toFloat(), fullWidth)
+                    HorizontalPowerbarLocation.FULL -> Pair(0f, (fullWidth * p).toFloat())
+                }
+            }
+            ProgressBarDrawMode.CENTER_OUT -> {
+                // Center-outward progress bar: 0.5 = invisible, <0.5 = extend left, >0.5 = extend right
+                when (horizontalLocation) {
+                    HorizontalPowerbarLocation.LEFT -> {
+                        val centerPoint = halfWidth / 2f  // Center of left half
+                        when {
+                            p == 0.5 -> Pair(centerPoint, centerPoint) // Invisible at 0.5
+                            p < 0.5 -> {
+                                val leftExtent = centerPoint * (0.5 - p) * 2.0 // Map 0.0-0.5 to full left extension
+                                Pair((centerPoint - leftExtent).toFloat(), centerPoint)
+                            }
+                            else -> {
+                                val rightExtent = centerPoint * (p - 0.5) * 2.0 // Map 0.5-1.0 to full right extension
+                                Pair(centerPoint, (centerPoint + rightExtent).toFloat())
+                            }
+                        }
+                    }
+                    HorizontalPowerbarLocation.RIGHT -> {
+                        val centerPoint = halfWidth + (halfWidth / 2f)  // Center of right half
+                        when {
+                            p == 0.5 -> Pair(centerPoint, centerPoint) // Invisible at 0.5
+                            p < 0.5 -> {
+                                val leftExtent = (halfWidth / 2f) * (0.5 - p) * 2.0 // Map 0.0-0.5 to full left extension
+                                Pair((centerPoint - leftExtent).toFloat(), centerPoint)
+                            }
+                            else -> {
+                                val rightExtent = (halfWidth / 2f) * (p - 0.5) * 2.0 // Map 0.5-1.0 to full right extension
+                                Pair(centerPoint, (centerPoint + rightExtent).toFloat())
+                            }
+                        }
+                    }
+                    HorizontalPowerbarLocation.FULL -> {
+                        val centerPoint = halfWidth  // Center of full width
+                        when {
+                            p == 0.5 -> Pair(centerPoint, centerPoint) // Invisible at 0.5
+                            p < 0.5 -> {
+                                val leftExtent = halfWidth * (0.5 - p) * 2.0 // Map 0.0-0.5 to full left extension
+                                Pair((centerPoint - leftExtent).toFloat(), centerPoint)
+                            }
+                            else -> {
+                                val rightExtent = halfWidth * (p - 0.5) * 2.0 // Map 0.5-1.0 to full right extension
+                                Pair(centerPoint, (centerPoint + rightExtent).toFloat())
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         val minTargetX = when (horizontalLocation) {
@@ -256,7 +305,44 @@ class CustomProgressBar(private val view: CustomView,
 
                         val textBounds = textPaint.measureText(label)
                         val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
-                        val x = (if (horizontalLocation != HorizontalPowerbarLocation.RIGHT) rect.right - xOffset else rect.left - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+
+                        // Calculate label position based on draw mode
+                        val x = when (drawMode) {
+                            ProgressBarDrawMode.STANDARD -> {
+                                // Original logic for standard mode
+                                (if (horizontalLocation != HorizontalPowerbarLocation.RIGHT) rect.right - xOffset else rect.left - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+                            }
+                            ProgressBarDrawMode.CENTER_OUT -> {
+                                // For center outward mode, position label at the edge of the bar
+                                when {
+                                    p == 0.5 -> {
+                                        // When bar is invisible (at center), position at center
+                                        when (horizontalLocation) {
+                                            HorizontalPowerbarLocation.LEFT -> {
+                                                val centerPoint = halfWidth / 2f
+                                                (centerPoint - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+                                            }
+                                            HorizontalPowerbarLocation.RIGHT -> {
+                                                val centerPoint = halfWidth + (halfWidth / 2f)
+                                                (centerPoint - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+                                            }
+                                            HorizontalPowerbarLocation.FULL -> {
+                                                val centerPoint = halfWidth
+                                                (centerPoint - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+                                            }
+                                        }
+                                    }
+                                    p < 0.5 -> {
+                                        // Bar extends left from center, place label at left edge
+                                        (rect.left - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+                                    }
+                                    else -> {
+                                        // Bar extends right from center, place label at right edge
+                                        (rect.right - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+                                    }
+                                }
+                            }
+                        }
                         val r = x + xOffset * 2
 
                         val fm = textPaint.fontMetrics
@@ -344,7 +430,44 @@ class CustomProgressBar(private val view: CustomView,
 
                         val textBounds = textPaint.measureText(label)
                         val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
-                        val x = (if (horizontalLocation != HorizontalPowerbarLocation.RIGHT) rect.right - xOffset else rect.left - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+
+                        // Calculate label position based on draw mode
+                        val x = when (drawMode) {
+                            ProgressBarDrawMode.STANDARD -> {
+                                // Original logic for standard mode
+                                (if (horizontalLocation != HorizontalPowerbarLocation.RIGHT) rect.right - xOffset else rect.left - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+                            }
+                            ProgressBarDrawMode.CENTER_OUT -> {
+                                // For center outward mode, position label at the edge of the bar
+                                when {
+                                    p == 0.5 -> {
+                                        // When bar is invisible (at center), position at center
+                                        when (horizontalLocation) {
+                                            HorizontalPowerbarLocation.LEFT -> {
+                                                val centerPoint = halfWidth / 2f
+                                                (centerPoint - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+                                            }
+                                            HorizontalPowerbarLocation.RIGHT -> {
+                                                val centerPoint = halfWidth + (halfWidth / 2f)
+                                                (centerPoint - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+                                            }
+                                            HorizontalPowerbarLocation.FULL -> {
+                                                val centerPoint = halfWidth
+                                                (centerPoint - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+                                            }
+                                        }
+                                    }
+                                    p < 0.5 -> {
+                                        // Bar extends left from center, place label at left edge
+                                        (rect.left - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+                                    }
+                                    else -> {
+                                        // Bar extends right from center, place label at right edge
+                                        (rect.right - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
+                                    }
+                                }
+                            }
+                        }
                         val r = x + xOffset * 2
 
                         // textDrawBaselineY calculation uses rect.top and barSize.barHeight.

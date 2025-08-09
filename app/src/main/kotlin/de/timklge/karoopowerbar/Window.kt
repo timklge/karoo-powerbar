@@ -55,6 +55,11 @@ enum class HorizontalPowerbarLocation {
     FULL, LEFT, RIGHT
 }
 
+enum class ProgressBarDrawMode {
+    STANDARD,    // Normal left-to-right progress
+    CENTER_OUT   // Progress extends outward from center (0.5 = invisible, <0.5 = left, >0.5 = right)
+}
+
 class Window(
     private val context: Context,
     val powerbarLocation: PowerbarLocation = PowerbarLocation.BOTTOM,
@@ -183,6 +188,7 @@ class Window(
                     SelectedSource.ROUTE_PROGRESS -> streamRouteProgress(SelectedSource.ROUTE_PROGRESS, ::getRouteProgress)
                     SelectedSource.REMAINING_ROUTE -> streamRouteProgress(SelectedSource.REMAINING_ROUTE, ::getRemainingRouteProgress)
                     SelectedSource.GRADE -> streamGrade()
+                    SelectedSource.POWER_BALANCE -> streamBalance()
                     SelectedSource.NONE -> {}
                 }
             })
@@ -197,6 +203,51 @@ class Window(
         } catch (e: Exception) {
             Log.e(TAG, e.toString())
         }
+    }
+
+    private suspend fun streamBalance() {
+        data class StreamData(val powerBalanceLeft: Double?, val power: Double?)
+
+        karooSystem.streamDataFlow(DataType.Type.PEDAL_POWER_BALANCE)
+            .map {
+                val values = (it as? StreamState.Streaming)?.dataPoint?.values
+
+                StreamData(values?.get(DataType.Field.PEDAL_POWER_BALANCE_LEFT), values?.get(DataType.Field.POWER))
+            }
+            .distinctUntilChanged()
+            .throttle(1_000).collect { streamData ->
+                val powerBalanceLeft = streamData.powerBalanceLeft
+                val powerbarsWithBalanceSource = powerbars.values.filter { it.source == SelectedSource.POWER_BALANCE }
+
+                powerbarsWithBalanceSource.forEach { powerbar ->
+                    powerbar.drawMode = ProgressBarDrawMode.CENTER_OUT
+
+                    if (streamData.powerBalanceLeft != null) {
+                        val value = remap(1.0 - (powerBalanceLeft ?: 0.5).coerceIn(0.0, 1.0), 0.4, 0.6, 0.0, 1.0)
+
+                        val percentLeft = ((powerBalanceLeft ?: 0.5) * 100).roundToInt()
+                        val percentDiffTo50 = (percentLeft - 50).absoluteValue
+
+                        @ColorRes val zoneColorRes = Zone.entries[percentDiffTo50.toInt().coerceIn(0, Zone.entries.size-1)].colorResource
+
+                        powerbar.progressColor = context.getColor(zoneColorRes)
+                        powerbar.progress = value
+
+                        val percentRight = 100 - percentLeft
+
+                        powerbar.label = "${percentLeft}-${percentRight}"
+
+                        Log.d(TAG, "Balance: $powerBalanceLeft power: ${streamData.power}")
+                    } else {
+                        powerbar.progressColor = context.getColor(R.color.zone0)
+                        powerbar.progress = null
+                        powerbar.label = "?"
+
+                        Log.d(TAG, "Balance: Unavailable")
+                    }
+                    powerbar.invalidate()
+                }
+            }
     }
 
     data class BarProgress(

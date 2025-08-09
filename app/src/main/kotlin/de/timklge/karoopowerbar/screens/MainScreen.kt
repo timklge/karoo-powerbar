@@ -88,6 +88,7 @@ enum class SelectedSource(val id: String, val label: String) {
     CADENCE("cadence", "Cadence"),
     CADENCE_3S("cadence_3s", "Cadence (3 sec avg)"),
     GRADE("grade", "Grade"),
+    POWER_BALANCE("power_balance", "Power Balance"),
     ROUTE_PROGRESS("route_progress", "Route Progress"),
     REMAINING_ROUTE("route_progress_remaining", "Route Remaining");
 
