@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 fun remap(value: Double?, fromMin: Double, fromMax: Double, toMin: Double, toMax: Double): Double? {
@@ -364,12 +365,17 @@ class Window(
 
             powerbarsWithGradeSource.forEach { powerbar ->
                 if (value != null) {
-                    val minGradient = streamData.settings?.minGradient ?: PowerbarSettings.defaultMinGradient
-                    val maxGradient = streamData.settings?.maxGradient ?: PowerbarSettings.defaultMaxGradient
+                    if (value.absoluteValue >= 0.5) {
+                        val minGradient = streamData.settings?.minGradient ?: PowerbarSettings.defaultMinGradient
+                        val maxGradient = streamData.settings?.maxGradient ?: PowerbarSettings.defaultMaxGradient
+
+                        powerbar.progress = remap(value.absoluteValue, minGradient.toDouble(), maxGradient.toDouble(), 0.0, 1.0)
+                    } else {
+                        powerbar.progress = null
+                    }
 
                     val colorRes = getInclineIndicatorColor(value.toFloat()) ?: R.color.zone0
                     powerbar.progressColor = context.getColor(colorRes)
-                    powerbar.progress = remap(value.toDouble(), minGradient.toDouble(), maxGradient.toDouble(), 0.0, 1.0)
                     powerbar.label = "${String.format(Locale.getDefault(), "%.1f", value)}%"
 
                     Log.d(TAG, "Grade: $value")
