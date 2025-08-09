@@ -201,7 +201,7 @@ class Window(
 
     data class BarProgress(
         val progress: Double?,
-        val label: String,
+        val label: String?,
     )
 
     private fun getRouteProgress(userProfile: UserProfile, riddenDistance: Double?, routeEndAt: Double?, distanceToDestination: Double?): BarProgress {
@@ -211,7 +211,7 @@ class Window(
             else -> riddenDistance?.times(0.001)?.roundToInt() // Kilometers
         }
 
-        return BarProgress(routeProgress, "$routeProgressInUserUnit")
+        return BarProgress(routeProgress, routeProgressInUserUnit?.toString())
     }
 
     private fun getRemainingRouteProgress(userProfile: UserProfile, riddenDistance: Double?, routeEndAt: Double?, distanceToDestination: Double?): BarProgress {
@@ -221,7 +221,7 @@ class Window(
             else -> distanceToDestination?.times(0.001)?.roundToInt() // Kilometers
         }
 
-        return BarProgress(routeProgress, "$distanceToDestinationInUserUnit")
+        return BarProgress(routeProgress, distanceToDestinationInUserUnit?.toString())
     }
 
     private suspend fun streamRouteProgress(
@@ -275,7 +275,7 @@ class Window(
             powerbarsWithRouteProgressSource.forEach { powerbar ->
                 powerbar.progressColor = context.getColor(R.color.zone0)
                 powerbar.progress = barProgress.progress
-                powerbar.label = barProgress.label
+                powerbar.label = barProgress.label ?: ""
                 powerbar.invalidate()
             }
         }
