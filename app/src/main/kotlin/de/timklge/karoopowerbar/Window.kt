@@ -364,7 +364,7 @@ class Window(
                         } else {
                             context.getColor(R.color.zone0)
                         }
-                        powerbar.progress = if (value > 0) progress else null
+                        powerbar.progress = progress
                         powerbar.label = "$value"
 
                         Log.d(TAG, "Speed: $value min: $minSpeed max: $maxSpeed")
@@ -416,14 +416,10 @@ class Window(
 
             powerbarsWithGradeSource.forEach { powerbar ->
                 if (value != null) {
-                    if (value.absoluteValue >= 0.5) {
-                        val minGradient = streamData.settings?.minGradient ?: PowerbarSettings.defaultMinGradient
-                        val maxGradient = streamData.settings?.maxGradient ?: PowerbarSettings.defaultMaxGradient
+                    val minGradient = streamData.settings?.minGradient ?: PowerbarSettings.defaultMinGradient
+                    val maxGradient = streamData.settings?.maxGradient ?: PowerbarSettings.defaultMaxGradient
 
-                        powerbar.progress = remap(value.absoluteValue, minGradient.toDouble(), maxGradient.toDouble(), 0.0, 1.0)
-                    } else {
-                        powerbar.progress = null
-                    }
+                    powerbar.progress = remap(value.absoluteValue, minGradient.toDouble(), maxGradient.toDouble(), 0.0, 1.0)
 
                     val colorRes = getInclineIndicatorColor(value.toFloat()) ?: R.color.zone0
                     powerbar.progressColor = context.getColor(colorRes)
@@ -477,7 +473,7 @@ class Window(
                     } else {
                         context.getColor(R.color.zone0)
                     }
-                    powerbar.progress = if (value > 0) progress else null
+                    powerbar.progress = progress
                     powerbar.label = "$value"
 
                     Log.d(TAG, "Cadence: $value min: $minCadence max: $maxCadence")
@@ -528,7 +524,7 @@ class Window(
                     } else {
                         context.getColor(R.color.zone0)
                     }
-                    powerbar.progress = if (value > 0) progress else null
+                    powerbar.progress = progress
                     powerbar.label = "$value"
 
                     Log.d(TAG, "Hr: $value min: $minHr max: $maxHr")
@@ -586,7 +582,7 @@ class Window(
                     } else {
                         context.getColor(R.color.zone0)
                     }
-                    powerbar.progress = if (value > 0) progress else null
+                    powerbar.progress = progress
                     powerbar.label = "${value}W"
 
                     Log.d(TAG, "Power: $value min: $minPower max: $maxPower")
