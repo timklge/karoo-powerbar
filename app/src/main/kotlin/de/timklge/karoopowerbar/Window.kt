@@ -223,15 +223,20 @@ class Window(
                     powerbar.drawMode = ProgressBarDrawMode.CENTER_OUT
 
                     if (streamData.powerBalanceLeft != null) {
-                        val value = remap(1.0 - (powerBalanceLeft ?: 0.5).coerceIn(0.0, 1.0), 0.4, 0.6, 0.0, 1.0)
+                        val value = remap((powerBalanceLeft ?: 50.0).coerceIn(0.0, 100.0), 40.0, 60.0, 0.0, 100.0)
 
-                        val percentLeft = ((powerBalanceLeft ?: 0.5) * 100).roundToInt()
-                        val percentDiffTo50 = (percentLeft - 50).absoluteValue
+                        val percentLeft = (powerBalanceLeft ?: 50.0).roundToInt()
 
-                        @ColorRes val zoneColorRes = Zone.entries[percentDiffTo50.toInt().coerceIn(0, Zone.entries.size-1)].colorResource
+                        @ColorRes val zoneColorRes = if (percentLeft < 50) {
+                            R.color.zone0
+                        } else if (percentLeft == 50) {
+                            R.color.zone1
+                        } else {
+                            R.color.zone7
+                        }
 
                         powerbar.progressColor = context.getColor(zoneColorRes)
-                        powerbar.progress = value
+                        powerbar.progress = value?.div(100.0)
 
                         val percentRight = 100 - percentLeft
 
