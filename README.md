@@ -21,14 +21,15 @@ it on top of other apps (i. e. the karoo ride app). You can select one of the fo
 to be displayed at the bottom or at the top of the screen:
 
 - Power
-- Heart rate
-- Average power over the last 3 seconds
-- Average power over the last 10 seconds
+- Heart Rate
+- Power (Instant, 3s, 10s)
 - Speed
 - Cadence
 - Grade
 - Route Progress (shows currently ridden distance)
 - Remaining Route (shows remaining distance to the end of the route)
+- Power Balance (Instant, 3s, 10s)
+- Gears
 
 Subsequently, the bar(s) will be shown when riding. Bars are filled and colored according
 to your current power output / heart rate zone as setup in your Karoo settings. Optionally, the actual data value can be displayed on top of the bar.
