@@ -90,6 +90,8 @@ enum class SelectedSource(val id: String, val labelResId: Int) {
     CADENCE_3S("cadence_3s", R.string.source_cadence_3s),
     GRADE("grade", R.string.source_grade),
     POWER_BALANCE("power_balance", R.string.source_power_balance),
+    POWER_BALANCE_3S("power_balance_3s", R.string.source_power_balance_3s),
+    POWER_BALANCE_10S("power_balance_10s", R.string.source_power_balance_10s),
     ROUTE_PROGRESS("route_progress", R.string.source_route_progress),
     REMAINING_ROUTE("route_progress_remaining", R.string.source_route_remaining),
     FRONT_GEAR("front_gear", R.string.source_front_gear),

@@ -47,6 +47,8 @@
     <string name="source_cadence_3s">Trittfrequenz (3 Sek. Ø)</string>
     <string name="source_grade">Steigung</string>
     <string name="source_power_balance">Leistungsbalance</string>
+    <string name="source_power_balance_3s">Leistungsbalance (3 Sek. Ø)</string>
+    <string name="source_power_balance_10s">Leistungsbalance (10 Sek. Ø)</string>
     <string name="source_route_progress">Routenfortschritt</string>
     <string name="source_route_remaining">Verbleibende Route</string>
     <string name="source_front_gear">Vorderer Gang</string>

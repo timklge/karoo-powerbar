@@ -188,7 +188,9 @@ class Window(
                     SelectedSource.ROUTE_PROGRESS -> streamRouteProgress(SelectedSource.ROUTE_PROGRESS, ::getRouteProgress)
                     SelectedSource.REMAINING_ROUTE -> streamRouteProgress(SelectedSource.REMAINING_ROUTE, ::getRemainingRouteProgress)
                     SelectedSource.GRADE -> streamGrade()
-                    SelectedSource.POWER_BALANCE -> streamBalance()
+                    SelectedSource.POWER_BALANCE -> streamBalance(PedalBalanceSmoothing.RAW)
+                    SelectedSource.POWER_BALANCE_3S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_3S)
+                    SelectedSource.POWER_BALANCE_10S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_10S)
                     SelectedSource.FRONT_GEAR -> streamGears(Gears.FRONT)
                     SelectedSource.REAR_GEAR -> streamGears(Gears.REAR)
                     SelectedSource.NONE -> {}
@@ -207,10 +209,10 @@ class Window(
         }
     }
 
-    private suspend fun streamBalance() {
+    private suspend fun streamBalance(smoothing: PedalBalanceSmoothing) {
         data class StreamData(val powerBalanceLeft: Double?, val power: Double?)
 
-        karooSystem.streamDataFlow(DataType.Type.PEDAL_POWER_BALANCE)
+        karooSystem.streamDataFlow(smoothing.dataTypeId)
             .map {
                 val values = (it as? StreamState.Streaming)?.dataPoint?.values
 
@@ -603,6 +605,12 @@ class Window(
         RAW(DataType.Type.POWER),
         SMOOTHED_3S(DataType.Type.SMOOTHED_3S_AVERAGE_POWER),
         SMOOTHED_10S(DataType.Type.SMOOTHED_10S_AVERAGE_POWER),
+    }
+
+    enum class PedalBalanceSmoothing(val dataTypeId: String){
+        RAW(DataType.Type.PEDAL_POWER_BALANCE),
+        SMOOTHED_3S(DataType.Type.SMOOTHED_3S_AVERAGE_PEDAL_POWER_BALANCE),
+        SMOOTHED_10S(DataType.Type.SMOOTHED_10S_AVERAGE_PEDAL_POWER_BALANCE),
     }
 
     private suspend fun streamPower(source: SelectedSource, smoothed: PowerStreamSmoothing) {
