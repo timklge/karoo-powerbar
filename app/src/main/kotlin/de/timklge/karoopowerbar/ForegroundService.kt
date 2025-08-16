@@ -79,7 +79,7 @@ class ForegroundService : Service() {
 
     private fun setupForeground() {
         val channelId = "de.timklge.karoopowerbar"
-        val channelName = "Background Service"
+        val channelName = getString(R.string.notification_channel_name)
         val chan = NotificationChannel(
             channelId,
             channelName,
@@ -88,14 +88,13 @@ class ForegroundService : Service() {
 
         val manager =
             checkNotNull(getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager?)
-        manager.createNotificationChannel(chan)
 
-        val notificationBuilder: NotificationCompat.Builder =
-            NotificationCompat.Builder(this, channelId)
-        val notification: Notification = notificationBuilder.setOngoing(true)
-            .setContentTitle("Powerbar service running")
-            .setContentText("Displaying on top of other apps")
+        manager.createNotificationChannel(chan)
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+        val notification = notificationBuilder.setOngoing(true)
             .setSmallIcon(R.drawable.bar)
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(getString(R.string.notification_text))
             .setPriority(NotificationManager.IMPORTANCE_MIN)
             .setCategory(Notification.CATEGORY_SERVICE)
             .build()

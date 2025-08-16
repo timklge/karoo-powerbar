@@ -3,17 +3,17 @@ package de.timklge.karoopowerbar
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class CustomProgressBarSize(val id: String, val label: String, val fontSize: Float, val barHeight: Float) {
-    SMALL("small", "Small", 35f, 10f),
-    MEDIUM("medium", "Medium", 40f, 15f),
-    LARGE("large", "Large", 60f, 25f),
+enum class CustomProgressBarSize(val id: String, val labelResId: Int, val fontSize: Float, val barHeight: Float) {
+    SMALL("small", R.string.size_small, 35f, 10f),
+    MEDIUM("medium", R.string.size_medium, 40f, 15f),
+    LARGE("large", R.string.size_large, 60f, 25f),
 }
 
 @Serializable
-enum class CustomProgressBarFontSize(val id: String, val label: String, val fontSize: Float) {
-    SMALL("small", "Small", 35f),
-    MEDIUM("medium", "Medium", 40f),
-    LARGE("large", "Large", 60f);
+enum class CustomProgressBarFontSize(val id: String, val labelResId: Int, val fontSize: Float) {
+    SMALL("small", R.string.size_small, 35f),
+    MEDIUM("medium", R.string.size_medium, 40f),
+    LARGE("large", R.string.size_large, 60f);
 
     companion object {
         fun fromSize(size: CustomProgressBarSize): CustomProgressBarFontSize {
@@ -27,11 +27,11 @@ enum class CustomProgressBarFontSize(val id: String, val label: String, val font
 }
 
 @Serializable
-enum class CustomProgressBarBarSize(val id: String, val label: String, val barHeight: Float) {
-    NONE("none", "None", 0f),
-    SMALL("small", "Small", 10f),
-    MEDIUM("medium", "Medium", 15f),
-    LARGE("large", "Large", 25f);
+enum class CustomProgressBarBarSize(val id: String, val labelResId: Int, val barHeight: Float) {
+    NONE("none", R.string.size_none, 0f),
+    SMALL("small", R.string.size_small, 10f),
+    MEDIUM("medium", R.string.size_medium, 15f),
+    LARGE("large", R.string.size_large, 25f);
 
     companion object {
         fun fromSize(size: CustomProgressBarSize): CustomProgressBarBarSize {
