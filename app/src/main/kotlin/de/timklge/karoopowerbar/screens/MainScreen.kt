@@ -309,6 +309,27 @@ fun MainScreen(onFinish: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
+                if (showAlerts){
+                    if(!karooConnected){
+                        Text(modifier = Modifier.padding(5.dp), text = "Could not read device status. Is your Karoo updated?")
+                    }
+
+                    if (!givenPermissions) {
+                        Text(modifier = Modifier.padding(5.dp), text = "You have not granted the permission to show the power bar overlay. Please do so.")
+
+                        FilledTonalButton(modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp), onClick = {
+                            val myIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                            startActivity(ctx, myIntent, null)
+                        }) {
+                            Icon(Icons.Default.Build, contentDescription = "Give permission")
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text("Give permission")
+                        }
+                    }
+                }
+
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 10.dp)) {
                     Text("Top Bar", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.weight(1f))
@@ -683,27 +704,6 @@ fun MainScreen(onFinish: () -> Unit) {
                 }
 
                 Spacer(modifier = Modifier.padding(30.dp))
-
-                if (showAlerts){
-                    if(!karooConnected){
-                        Text(modifier = Modifier.padding(5.dp), text = "Could not read device status. Is your Karoo updated?")
-                    }
-
-                    if (!givenPermissions) {
-                        Text(modifier = Modifier.padding(5.dp), text = "You have not given permissions to show the power bar overlay. Please do so.")
-
-                        FilledTonalButton(modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp), onClick = {
-                            val myIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-                            startActivity(ctx, myIntent, null)
-                        }) {
-                            Icon(Icons.Default.Build, contentDescription = "Give permission")
-                            Spacer(modifier = Modifier.width(5.dp))
-                            Text("Give permission")
-                        }
-                    }
-                }
             }
         }
 
