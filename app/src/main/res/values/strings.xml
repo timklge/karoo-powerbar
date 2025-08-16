@@ -1,4 +1,77 @@
 <resources>
     <string name="app_name">Powerbar</string>
     <string name="extension_name">Powerbar</string>
+
+    <!-- Main Screen Strings -->
+    <string name="powerbar_title">Powerbar</string>
+    <string name="karoo_connection_error">Could not read device status. Is your Karoo updated?</string>
+    <string name="permission_not_granted">You have not granted the permission to show the power bar overlay. Please do so.</string>
+    <string name="give_permission">Give permission</string>
+    <string name="top_bar">Top Bar</string>
+    <string name="bottom_bar">Bottom Bar</string>
+    <string name="split">Split</string>
+    <string name="top_bar_left">Top Bar (Left): %s</string>
+    <string name="top_bar_right">Top Bar (Right): %s</string>
+    <string name="top_bar_single">Top Bar: %s</string>
+    <string name="bottom_bar_left">Bottom Bar (Left): %s</string>
+    <string name="bottom_bar_right">Bottom Bar (Right): %s</string>
+    <string name="bottom_bar_single">Bottom Bar: %s</string>
+    <string name="bar_size">Bar Size</string>
+    <string name="text_size">Text Size</string>
+    <string name="min_speed">Min Speed</string>
+    <string name="max_speed">Max Speed</string>
+    <string name="use_custom_power_range">Use custom power range</string>
+    <string name="min_power">Min Power</string>
+    <string name="max_power">Max Power</string>
+    <string name="use_custom_hr_range">Use custom HR range</string>
+    <string name="min_hr">Min Hr</string>
+    <string name="max_hr">Max Hr</string>
+    <string name="min_cadence">Min Cadence</string>
+    <string name="max_cadence">Max Cadence</string>
+    <string name="min_grade">Min Grade</string>
+    <string name="max_grade">Max Grade</string>
+    <string name="color_based_on_zones">Color based on HR / power zones</string>
+    <string name="show_value_on_bars">Show value on bars</string>
+    <string name="solid_background">Solid background</string>
+    <string name="only_show_while_riding">Only show while riding</string>
+
+    <!-- Data Source Labels -->
+    <string name="source_none">None</string>
+    <string name="source_heart_rate">Heart Rate</string>
+    <string name="source_power">Power</string>
+    <string name="source_power_3s">Power (3 sec avg)</string>
+    <string name="source_power_10s">Power (10 sec avg)</string>
+    <string name="source_speed">Speed</string>
+    <string name="source_speed_3s">Speed (3 sec avg)</string>
+    <string name="source_cadence">Cadence</string>
+    <string name="source_cadence_3s">Cadence (3 sec avg)</string>
+    <string name="source_grade">Grade</string>
+    <string name="source_power_balance">Power Balance</string>
+    <string name="source_route_progress">Route Progress</string>
+    <string name="source_route_remaining">Route Remaining</string>
+    <string name="source_front_gear">Front Gear</string>
+    <string name="source_rear_gear">Rear Gear</string>
+
+    <!-- Units -->
+    <string name="unit_mph">mph</string>
+    <string name="unit_kph">kph</string>
+    <string name="unit_watts">W</string>
+    <string name="unit_bpm">bpm</string>
+    <string name="unit_rpm">rpm</string>
+    <string name="unit_percent">%</string>
+
+    <!-- Content Descriptions -->
+    <string name="content_desc_give_permission">Give permission</string>
+    <string name="content_desc_select">Select</string>
+    <string name="content_desc_back">Back</string>
+
+    <!-- Notification -->
+    <string name="notification_text">Displaying on top of other apps</string>
+    <string name="notification_channel_name">Background Service</string>
+
+    <!-- Size Options -->
+    <string name="size_none">None</string>
+    <string name="size_small">Small</string>
+    <string name="size_medium">Medium</string>
+    <string name="size_large">Large</string>
 </resources>

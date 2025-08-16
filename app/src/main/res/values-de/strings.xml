@@ -1,0 +1,77 @@
+<resources>
+    <string name="app_name">Powerbar</string>
+    <string name="extension_name">Powerbar</string>
+
+    <!-- Main Screen Strings -->
+    <string name="powerbar_title">Powerbar</string>
+    <string name="karoo_connection_error">Gerätestatus konnte nicht gelesen werden. Ist Ihr Karoo aktualisiert?</string>
+    <string name="permission_not_granted">Sie haben die Berechtigung zum Anzeigen der Powerbar nicht erteilt. Bitte tun Sie dies.</string>
+    <string name="give_permission">Berechtigung erteilen</string>
+    <string name="top_bar">Oben</string>
+    <string name="bottom_bar">Unten</string>
+    <string name="split">Teilen</string>
+    <string name="top_bar_left">Oben (Links): %s</string>
+    <string name="top_bar_right">Oben (Rechts): %s</string>
+    <string name="top_bar_single">Oben: %s</string>
+    <string name="bottom_bar_left">Unten (Links): %s</string>
+    <string name="bottom_bar_right">Unten (Rechts): %s</string>
+    <string name="bottom_bar_single">Unten: %s</string>
+    <string name="bar_size">Balkengröße</string>
+    <string name="text_size">Textgröße</string>
+    <string name="min_speed">Min. Geschwindigkeit</string>
+    <string name="max_speed">Max. Geschwindigkeit</string>
+    <string name="use_custom_power_range">Eigenen Leistungsbereich verwenden</string>
+    <string name="min_power">Min. Leistung</string>
+    <string name="max_power">Max. Leistung</string>
+    <string name="use_custom_hr_range">Eigenen HF-Bereich verwenden</string>
+    <string name="min_hr">Min. HF</string>
+    <string name="max_hr">Max. HF</string>
+    <string name="min_cadence">Min. Trittfrequenz</string>
+    <string name="max_cadence">Max. Trittfrequenz</string>
+    <string name="min_grade">Min. Steigung</string>
+    <string name="max_grade">Max. Steigung</string>
+    <string name="color_based_on_zones">Farbe basierend auf HF-/Leistungszonen</string>
+    <string name="show_value_on_bars">Werte auf Balken anzeigen</string>
+    <string name="solid_background">Fester Hintergrund</string>
+    <string name="only_show_while_riding">Nur während der Fahrt anzeigen</string>
+
+    <!-- Data Source Labels -->
+    <string name="source_none">Keine</string>
+    <string name="source_heart_rate">Herzfrequenz</string>
+    <string name="source_power">Leistung</string>
+    <string name="source_power_3s">Leistung (3 Sek. Ø)</string>
+    <string name="source_power_10s">Leistung (10 Sek. Ø)</string>
+    <string name="source_speed">Geschwindigkeit</string>
+    <string name="source_speed_3s">Geschwindigkeit (3 Sek. Ø)</string>
+    <string name="source_cadence">Trittfrequenz</string>
+    <string name="source_cadence_3s">Trittfrequenz (3 Sek. Ø)</string>
+    <string name="source_grade">Steigung</string>
+    <string name="source_power_balance">Leistungsbalance</string>
+    <string name="source_route_progress">Routenfortschritt</string>
+    <string name="source_route_remaining">Verbleibende Route</string>
+    <string name="source_front_gear">Vorderer Gang</string>
+    <string name="source_rear_gear">Hinterer Gang</string>
+
+    <!-- Units -->
+    <string name="unit_mph">mph</string>
+    <string name="unit_kph">km/h</string>
+    <string name="unit_watts">W</string>
+    <string name="unit_bpm">S/min</string>
+    <string name="unit_rpm">U/min</string>
+    <string name="unit_percent">%</string>
+
+    <!-- Content Descriptions -->
+    <string name="content_desc_give_permission">Berechtigung erteilen</string>
+    <string name="content_desc_select">Auswählen</string>
+    <string name="content_desc_back">Zurück</string>
+
+    <!-- Notification -->
+    <string name="notification_text">Anzeige über anderen Apps</string>
+    <string name="notification_channel_name">Hintergrunddienst</string>
+
+    <!-- Size Options -->
+    <string name="size_none">Keine</string>
+    <string name="size_small">Klein</string>
+    <string name="size_medium">Mittel</string>
+    <string name="size_large">Groß</string>
+</resources>
