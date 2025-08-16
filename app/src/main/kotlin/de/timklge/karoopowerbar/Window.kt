@@ -189,6 +189,8 @@ class Window(
                     SelectedSource.REMAINING_ROUTE -> streamRouteProgress(SelectedSource.REMAINING_ROUTE, ::getRemainingRouteProgress)
                     SelectedSource.GRADE -> streamGrade()
                     SelectedSource.POWER_BALANCE -> streamBalance()
+                    SelectedSource.FRONT_GEAR -> streamGears(Gears.FRONT)
+                    SelectedSource.REAR_GEAR -> streamGears(Gears.REAR)
                     SelectedSource.NONE -> {}
                 }
             })
@@ -335,6 +337,54 @@ class Window(
                 powerbar.invalidate()
             }
         }
+    }
+
+    enum class Gears(val prefix: String, val dataTypeId: String, val numberFieldId: String, val maxFieldId: String) {
+        FRONT("F", DataType.Type.SHIFTING_FRONT_GEAR, DataType.Field.SHIFTING_FRONT_GEAR, DataType.Field.SHIFTING_FRONT_GEAR_MAX),
+        REAR("R", DataType.Type.SHIFTING_REAR_GEAR, DataType.Field.SHIFTING_REAR_GEAR, DataType.Field.SHIFTING_REAR_GEAR_MAX)
+    }
+
+    private suspend fun streamGears(gears: Gears) {
+        data class GearsState(val currentGear: Int?, val maxGear: Int?, val colorize: Boolean)
+        data class StreamState(val settings: PowerbarSettings, val streamState: io.hammerhead.karooext.models.StreamState?)
+
+        val gearsSource = when (gears) {
+            Gears.FRONT -> SelectedSource.FRONT_GEAR
+            Gears.REAR -> SelectedSource.REAR_GEAR
+        }
+
+        combine(context.streamSettings(), karooSystem.streamDataFlow(gears.dataTypeId)) { settings, streamState -> StreamState(settings, streamState) }
+            .map { (settings, streamState) ->
+                val valueMap = (streamState as? io.hammerhead.karooext.models.StreamState.Streaming)?.dataPoint?.values
+
+                valueMap?.let {
+                    GearsState(valueMap[gears.numberFieldId]?.toInt(), valueMap[gears.maxFieldId]?.toInt(), settings.useZoneColors)
+                }
+
+                // if (gears == Gears.FRONT) GearsState(1, 2, settings.useZoneColors) else GearsState(6, 12, settings.useZoneColors)
+            }
+            .distinctUntilChanged().collect { gearState ->
+                val powerbarsWithGearsSource = powerbars.values.filter { it.source == gearsSource }
+                powerbarsWithGearsSource.forEach { powerbar ->
+                    if (gearState?.currentGear != null) {
+                        val currentGear = gearState.currentGear
+                        val maxGear = gearState.maxGear ?: gearState.currentGear
+                        val progress = remap(currentGear.toDouble(), 1.0, maxGear.toDouble(), 0.0, 1.0)
+
+                        powerbar.progressColor = progress?.let { context.getColor(getZone(progress).colorResource) } ?: context.getColor(R.color.zone0)
+                        powerbar.progress = progress
+                        powerbar.label = "${gears.prefix}${currentGear}"
+
+                        Log.d(TAG, "Gears ${gears.name}: $currentGear/$maxGear")
+                    } else {
+                        powerbar.progressColor = context.getColor(R.color.zone0)
+                        powerbar.progress = null
+                        powerbar.label = "?"
+
+                        Log.d(TAG, "Gears ${gears.name}: Unavailable")
+                    }
+                }
+            }
     }
 
     private suspend fun streamSpeed(source: SelectedSource, smoothed: Boolean) {
