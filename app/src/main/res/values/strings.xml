@@ -47,6 +47,8 @@
     <string name="source_cadence_3s">Cadence (3 sec avg)</string>
     <string name="source_grade">Grade</string>
     <string name="source_power_balance">Power Balance</string>
+    <string name="source_power_balance_3s">Power Balance (3 sec avg)</string>
+    <string name="source_power_balance_10s">Power Balance (10 sec avg)</string>
     <string name="source_route_progress">Route Progress</string>
     <string name="source_route_remaining">Route Remaining</string>
     <string name="source_front_gear">Front Gear</string>
