@@ -371,7 +371,11 @@ class Window(
                         val maxGear = gearState.maxGear ?: gearState.currentGear
                         val progress = remap(currentGear.toDouble(), 1.0, maxGear.toDouble(), 0.0, 1.0)
 
-                        powerbar.progressColor = progress?.let { context.getColor(getZone(progress).colorResource) } ?: context.getColor(R.color.zone0)
+                        powerbar.progressColor = if (gearState.colorize) {
+                            progress?.let { context.getColor(getZone(progress).colorResource) } ?: context.getColor(R.color.zone0)
+                        } else {
+                            context.getColor(R.color.zone0)
+                        }
                         powerbar.progress = progress
                         powerbar.label = "${gears.prefix}${currentGear}"
 
