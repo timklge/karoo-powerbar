@@ -90,7 +90,9 @@ enum class SelectedSource(val id: String, val label: String) {
     GRADE("grade", "Grade"),
     POWER_BALANCE("power_balance", "Power Balance"),
     ROUTE_PROGRESS("route_progress", "Route Progress"),
-    REMAINING_ROUTE("route_progress_remaining", "Route Remaining");
+    REMAINING_ROUTE("route_progress_remaining", "Route Remaining"),
+    FRONT_GEAR("front_gear", "Front Gear"),
+    REAR_GEAR("rear_gear", "Rear Gear");
 
     fun isPower() = this == POWER || this == POWER_3S || this == POWER_10S
 }

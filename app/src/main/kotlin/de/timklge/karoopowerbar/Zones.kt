@@ -37,3 +37,10 @@ fun getZone(userZones: List<UserProfile.Zone>, value: Int): Zone? {
 
     return null
 }
+
+val zoneList = listOf(Zone.Zone0, Zone.Zone1, Zone.Zone2, Zone.Zone3, Zone.Zone4, Zone.Zone5, Zone.Zone6, Zone.Zone7, Zone.Zone8)
+
+fun getZone(progress: Double): Zone {
+    val index = (progress * zoneList.size).toInt().coerceIn(0, zoneList.size - 1)
+    return zoneList[index]
+}
