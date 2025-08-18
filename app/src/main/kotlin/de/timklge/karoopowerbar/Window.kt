@@ -188,9 +188,9 @@ class Window(
                     SelectedSource.ROUTE_PROGRESS -> streamRouteProgress(SelectedSource.ROUTE_PROGRESS, ::getRouteProgress)
                     SelectedSource.REMAINING_ROUTE -> streamRouteProgress(SelectedSource.REMAINING_ROUTE, ::getRemainingRouteProgress)
                     SelectedSource.GRADE -> streamGrade()
-                    SelectedSource.POWER_BALANCE -> streamBalance(PedalBalanceSmoothing.RAW)
-                    SelectedSource.POWER_BALANCE_3S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_3S)
-                    SelectedSource.POWER_BALANCE_10S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_10S)
+                    SelectedSource.POWER_BALANCE -> streamBalance(PedalBalanceSmoothing.RAW, SelectedSource.POWER_BALANCE)
+                    SelectedSource.POWER_BALANCE_3S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_3S, SelectedSource.POWER_BALANCE_3S)
+                    SelectedSource.POWER_BALANCE_10S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_10S, SelectedSource.POWER_BALANCE_10S)
                     SelectedSource.FRONT_GEAR -> streamGears(Gears.FRONT)
                     SelectedSource.REAR_GEAR -> streamGears(Gears.REAR)
                     SelectedSource.NONE -> {}
@@ -209,7 +209,7 @@ class Window(
         }
     }
 
-    private suspend fun streamBalance(smoothing: PedalBalanceSmoothing) {
+    private suspend fun streamBalance(smoothing: PedalBalanceSmoothing, selectedSource: SelectedSource) {
         data class StreamData(val powerBalanceLeft: Double?, val power: Double?)
 
         karooSystem.streamDataFlow(smoothing.dataTypeId)
@@ -221,7 +221,7 @@ class Window(
             .distinctUntilChanged()
             .throttle(1_000).collect { streamData ->
                 val powerBalanceLeft = streamData.powerBalanceLeft
-                val powerbarsWithBalanceSource = powerbars.values.filter { it.source == SelectedSource.POWER_BALANCE }
+                val powerbarsWithBalanceSource = powerbars.values.filter { it.source == selectedSource }
 
                 powerbarsWithBalanceSource.forEach { powerbar ->
                     powerbar.drawMode = ProgressBarDrawMode.CENTER_OUT
