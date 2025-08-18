@@ -227,7 +227,7 @@ class Window(
                     powerbar.drawMode = ProgressBarDrawMode.CENTER_OUT
 
                     if (streamData.powerBalanceLeft != null) {
-                        val value = remap((powerBalanceLeft ?: 50.0).coerceIn(0.0, 100.0), 40.0, 60.0, 0.0, 100.0)
+                        val value = remap((powerBalanceLeft ?: 50.0).coerceIn(0.0, 100.0), 40.0, 60.0, 100.0, 0.0)
 
                         val percentLeft = (powerBalanceLeft ?: 50.0).roundToInt()
 
