@@ -18,8 +18,8 @@
     <string name="bottom_bar_single">Unten: %s</string>
     <string name="bar_size">Balkengröße</string>
     <string name="text_size">Textgröße</string>
-    <string name="min_speed">Min. Geschwindigkeit</string>
-    <string name="max_speed">Max. Geschwindigkeit</string>
+    <string name="min_speed">Min. Geschw.</string>
+    <string name="max_speed">Max. Geschw.</string>
     <string name="use_custom_power_range">Eigenen Leistungsbereich verwenden</string>
     <string name="min_power">Min. Leistung</string>
     <string name="max_power">Max. Leistung</string>
