@@ -389,6 +389,7 @@ class Window(
 
                         Log.d(TAG, "Gears ${gears.name}: Unavailable")
                     }
+                    powerbar.invalidate()
                 }
             }
     }
