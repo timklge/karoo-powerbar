@@ -227,11 +227,11 @@ class Window(
                     powerbar.drawMode = ProgressBarDrawMode.CENTER_OUT
 
                     if (streamData.powerBalanceLeft != null) {
-                        val value = remap((powerBalanceLeft ?: 50.0).coerceIn(0.0, 100.0), 40.0, 60.0, 100.0, 0.0)
+                        val value = remap(powerBalanceLeft.coerceIn(0.0, 100.0), 40.0, 60.0, 100.0, 0.0)
 
-                        val percentLeft = (powerBalanceLeft ?: 50.0).roundToInt()
+                        val percentLeft = powerBalanceLeft.roundToInt()
 
-                        @ColorRes val zoneColorRes = if (percentLeft < 50) {
+                        @ColorRes val zoneColorRes = if (percentLeft > 50) {
                             R.color.zone0
                         } else if (percentLeft == 50) {
                             R.color.zone1

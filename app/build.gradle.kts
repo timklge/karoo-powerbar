@@ -71,8 +71,8 @@ tasks.register("generateManifest") {
             "latestVersion" to android.defaultConfig.versionName,
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
-            "description" to "Open-source extension that adds colored power or heart rate progress bars to the edges of the screen, similar to the LEDs on Wahoo computers",
-            "releaseNotes" to "* Fix gear bar refresh\n* Add german localization\n* Add gear data sources\n* Show zero value on bars to indicate sensor availability\n* Fix pedal balance values\n* Add pedal balance data source\n* Add option to split bars",
+            "description" to "Open-source extension that adds colored progress bars representing power, heart rate etc. to the edge of the screen, similar to the LED bars on older Wahoo computers",
+            "releaseNotes" to "* Swap red / blue colorization for pedal balance source\n* Fix gear bar refresh\n* Add german localization\n* Add gear data sources\n* Show zero value on bars to indicate sensor availability\n* Fix pedal balance values",
             "screenshotUrls" to listOf(
                 "$baseUrl/powerbar_min.gif",
                 "$baseUrl/powerbar0.png",
