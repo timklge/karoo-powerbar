@@ -303,6 +303,9 @@ fun MainScreen(onFinish: () -> Unit) {
         onPauseOrDispose {  }
     }
 
+    fun isCharAllowed(index: Int, c: Char): Boolean {
+        return c.isDigit() || (c == '-' && index == 0)
+    }
 
     Box(modifier = Modifier.fillMaxSize()){
         Column(modifier = Modifier
@@ -508,7 +511,7 @@ fun MainScreen(onFinish: () -> Unit) {
                             .weight(1f)
                             .absolutePadding(right = 2.dp)
                             .onFocusEvent(::updateFocus),
-                            onValueChange = { minSpeed = it.filter { c -> c.isDigit() } },
+                            onValueChange = { minSpeed = it.filterIndexed(::isCharAllowed) },
                             label = { Text(stringResource(R.string.min_speed)) },
                             suffix = { Text(stringResource(if (isImperial) R.string.unit_mph else R.string.unit_kph)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -519,7 +522,7 @@ fun MainScreen(onFinish: () -> Unit) {
                             .weight(1f)
                             .absolutePadding(left = 2.dp)
                             .onFocusEvent(::updateFocus),
-                            onValueChange = { maxSpeed = it.filter { c -> c.isDigit() } },
+                            onValueChange = { maxSpeed = it.filterIndexed(::isCharAllowed) },
                             label = { Text(stringResource(R.string.max_speed)) },
                             suffix = { Text(stringResource(if (isImperial) R.string.unit_mph else R.string.unit_kph)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -547,7 +550,7 @@ fun MainScreen(onFinish: () -> Unit) {
                                 .weight(1f)
                                 .absolutePadding(right = 2.dp)
                                 .onFocusEvent(::updateFocus),
-                                onValueChange = { customMinPower = it.filter { c -> c.isDigit() } },
+                                onValueChange = { customMinPower = it.filterIndexed(::isCharAllowed) },
                                 label = { Text(stringResource(R.string.min_power), fontSize = 12.sp) },
                                 suffix = { Text(stringResource(R.string.unit_watts)) },
                                 placeholder = { Text("$profileMinPower") },
@@ -559,7 +562,7 @@ fun MainScreen(onFinish: () -> Unit) {
                                 .weight(1f)
                                 .absolutePadding(left = 2.dp)
                                 .onFocusEvent(::updateFocus),
-                                onValueChange = { customMaxPower = it.filter { c -> c.isDigit() } },
+                                onValueChange = { customMaxPower = it.filterIndexed(::isCharAllowed) },
                                 label = { Text(stringResource(R.string.max_power), fontSize = 12.sp) },
                                 suffix = { Text(stringResource(R.string.unit_watts)) },
                                 placeholder = { Text("$profileMaxPower") },
@@ -589,7 +592,7 @@ fun MainScreen(onFinish: () -> Unit) {
                                 .weight(1f)
                                 .absolutePadding(right = 2.dp)
                                 .onFocusEvent(::updateFocus),
-                                onValueChange = { customMinHr = it.filter { c -> c.isDigit() } },
+                                onValueChange = { customMinHr = it.filterIndexed(::isCharAllowed) },
                                 label = { Text(stringResource(R.string.min_hr)) },
                                 suffix = { Text(stringResource(R.string.unit_bpm)) },
                                 placeholder = { if(profileRestHr > 0) Text("$profileRestHr") else Unit },
@@ -601,7 +604,7 @@ fun MainScreen(onFinish: () -> Unit) {
                                 .weight(1f)
                                 .absolutePadding(left = 2.dp)
                                 .onFocusEvent(::updateFocus),
-                                onValueChange = { customMaxHr = it.filter { c -> c.isDigit() } },
+                                onValueChange = { customMaxHr = it.filterIndexed(::isCharAllowed) },
                                 label = { Text(stringResource(R.string.max_hr)) },
                                 suffix = { Text(stringResource(R.string.unit_bpm)) },
                                 placeholder = { if(profileMaxHr > 0) Text("$profileMaxHr") else Unit },
@@ -623,7 +626,7 @@ fun MainScreen(onFinish: () -> Unit) {
                             .weight(1f)
                             .absolutePadding(right = 2.dp)
                             .onFocusEvent(::updateFocus),
-                            onValueChange = { minCadence = it.filter { c -> c.isDigit() } },
+                            onValueChange = { minCadence = it.filterIndexed(::isCharAllowed) },
                             label = { Text(stringResource(R.string.min_cadence)) },
                             suffix = { Text(stringResource(R.string.unit_rpm)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -634,7 +637,7 @@ fun MainScreen(onFinish: () -> Unit) {
                             .weight(1f)
                             .absolutePadding(left = 2.dp)
                             .onFocusEvent(::updateFocus),
-                            onValueChange = { maxCadence = it.filter { c -> c.isDigit() } },
+                            onValueChange = { maxCadence = it.filterIndexed(::isCharAllowed) },
                             label = { Text(stringResource(R.string.max_cadence)) },
                             suffix = { Text(stringResource(R.string.unit_rpm)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -652,7 +655,7 @@ fun MainScreen(onFinish: () -> Unit) {
                             .weight(1f)
                             .absolutePadding(right = 2.dp)
                             .onFocusEvent(::updateFocus),
-                            onValueChange = { minGrade = it.filterIndexed { index, c -> c.isDigit() || (c == '-' && index == 0) } },
+                            onValueChange = { minGrade = it.filterIndexed(::isCharAllowed) },
                             label = { Text(stringResource(R.string.min_grade)) },
                             suffix = { Text(stringResource(R.string.unit_percent)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -663,7 +666,7 @@ fun MainScreen(onFinish: () -> Unit) {
                             .weight(1f)
                             .absolutePadding(left = 2.dp)
                             .onFocusEvent(::updateFocus),
-                            onValueChange = { maxGrade = it.filterIndexed { index, c -> c.isDigit() || (c == '-' && index == 0) } },
+                            onValueChange = { maxGrade = it.filterIndexed(::isCharAllowed) },
                             label = { Text(stringResource(R.string.max_grade)) },
                             suffix = { Text(stringResource(R.string.unit_percent)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
