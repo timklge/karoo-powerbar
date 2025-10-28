@@ -191,6 +191,8 @@ class Window(
                     SelectedSource.POWER_BALANCE -> streamBalance(PedalBalanceSmoothing.RAW, SelectedSource.POWER_BALANCE)
                     SelectedSource.POWER_BALANCE_3S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_3S, SelectedSource.POWER_BALANCE_3S)
                     SelectedSource.POWER_BALANCE_10S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_10S, SelectedSource.POWER_BALANCE_10S)
+                    SelectedSource.POWER_BALANCE_LAP -> streamBalance(PedalBalanceSmoothing.SMOOTHED_LAP, SelectedSource.POWER_BALANCE_LAP)
+                    SelectedSource.POWER_BALANCE_AVG -> streamBalance(PedalBalanceSmoothing.SMOOTHED_RIDE, SelectedSource.POWER_BALANCE_AVG)
                     SelectedSource.FRONT_GEAR -> streamGears(Gears.FRONT)
                     SelectedSource.REAR_GEAR -> streamGears(Gears.REAR)
                     SelectedSource.NONE -> {}
@@ -612,6 +614,8 @@ class Window(
         RAW(DataType.Type.PEDAL_POWER_BALANCE),
         SMOOTHED_3S(DataType.Type.SMOOTHED_3S_AVERAGE_PEDAL_POWER_BALANCE),
         SMOOTHED_10S(DataType.Type.SMOOTHED_10S_AVERAGE_PEDAL_POWER_BALANCE),
+        SMOOTHED_LAP(DataType.Type.AVERAGE_PEDAL_POWER_BALANCE_LAP),
+        SMOOTHED_RIDE(DataType.Type.AVERAGE_PEDAL_POWER_BALANCE),
     }
 
     private suspend fun streamPower(source: SelectedSource, smoothed: PowerStreamSmoothing) {
