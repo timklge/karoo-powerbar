@@ -377,6 +377,8 @@ class Window(
         CALIBRATING(8, R.string.flight_attendant_mode_calibrating, R.color.zone0)
     }
 
+    private val flightAttendantSuspensionModes = FlightAttendantSuspensionMode.entries.associateBy { it.value }
+
     private suspend fun streamSuspensionMode() {
         karooSystem.streamDataFlow(TYPE_SUSPENSION_MODE_ID)
             .map {
@@ -388,7 +390,6 @@ class Window(
 
                 powerbarsWithSuspensionModeSource.forEach { powerbar ->
                     if (modeValue != null) {
-                        val flightAttendantSuspensionModes = FlightAttendantSuspensionMode.entries.associateBy { it.value }
                         val value = flightAttendantSuspensionModes[modeValue]
                         val label = value?.let { context.getString(it.labelResId) } ?: "?"
 
