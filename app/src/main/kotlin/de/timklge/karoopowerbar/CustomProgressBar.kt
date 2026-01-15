@@ -358,7 +358,7 @@ class CustomProgressBar(private val view: CustomView,
                         canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, textBackgroundPaint)
                         canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, blurPaint)
                         canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, lineStrokePaint)
-                        canvas.drawText(label, x + xOffset, finalTextBaselineY, textPaint)
+                        canvas.drawText(label.uppercase(), x + xOffset, finalTextBaselineY, textPaint)
                         }
                     }
             }

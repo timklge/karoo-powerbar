@@ -97,7 +97,10 @@ enum class SelectedSource(val id: String, val labelResId: Int) {
     ROUTE_PROGRESS("route_progress", R.string.source_route_progress),
     REMAINING_ROUTE("route_progress_remaining", R.string.source_route_remaining),
     FRONT_GEAR("front_gear", R.string.source_front_gear),
-    REAR_GEAR("rear_gear", R.string.source_rear_gear);
+    REAR_GEAR("rear_gear", R.string.source_rear_gear),
+    FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR("flight_attendant_suspension_state_rear", R.string.source_flight_attendant_suspension_state_rear),
+    FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT("flight_attendant_suspension_state_front", R.string.source_flight_attendant_suspension_state_front),
+    FLIGHT_ATTENDANT_SUSPENSION_MODE("flight_attendant_suspension_mode", R.string.source_flight_attendant_suspension_mode);
 
     fun isPower() = this == POWER || this == POWER_3S || this == POWER_10S
 }
