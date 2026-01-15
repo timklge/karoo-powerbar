@@ -410,6 +410,8 @@ class Window(
             }
     }
 
+    val flightAttendantSuspensionValues = FlightAttendantSuspensionStateValue.entries.associateBy { it.value }
+
     private suspend fun streamSuspensionState(type: FlightAttendantSuspensionLocation) {
         karooSystem.streamDataFlow(type.dataTypeId)
             .map {
@@ -424,7 +426,6 @@ class Window(
 
                 powerbarsWithSuspensionSource.forEach { powerbar ->
                     if (stateValue != null) {
-                        val flightAttendantSuspensionValues = FlightAttendantSuspensionStateValue.entries.associateBy { it.value }
                         val value = flightAttendantSuspensionValues[stateValue]
                         val label = value?.let { context.getString(it.labelResId) } ?: "?"
 
