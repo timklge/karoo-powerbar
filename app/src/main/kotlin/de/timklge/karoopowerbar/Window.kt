@@ -417,7 +417,7 @@ class Window(
             }
             .distinctUntilChanged()
             .collect { stateValue ->
-                val powerbarsWithSuspensionSource = powerbars.values.filter { it.source == when(type) {
+                val powerbarsWithSuspensionSource = powerbars.values.filter { it.source == when (type) {
                     FlightAttendantSuspensionLocation.FRONT -> SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT
                     FlightAttendantSuspensionLocation.REAR -> SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR
                 } }
