@@ -17,6 +17,7 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
 import androidx.annotation.ColorRes
+import androidx.annotation.StringRes
 import com.mapbox.geojson.LineString
 import com.mapbox.turf.TurfConstants.UNIT_METERS
 import com.mapbox.turf.TurfMeasurement
@@ -76,6 +77,8 @@ class Window(
         val FIELD_TARGET_VALUE_ID = "FIELD_WORKOUT_TARGET_VALUE_ID";
         val FIELD_TARGET_MIN_ID = "FIELD_WORKOUT_TARGET_MIN_VALUE_ID";
         val FIELD_TARGET_MAX_ID = "FIELD_WORKOUT_TARGET_MAX_VALUE_ID";
+        val TYPE_SUSPENSION_MODE_ID = "TYPE_SUSPENSION_MODE_ID"
+        val FIELD_SUSPENSION_MODE_ID = "FIELD_SUSPENSION_MODE_ID"
     }
 
     private val rootView: View
@@ -195,6 +198,9 @@ class Window(
                     SelectedSource.POWER_BALANCE_AVG -> streamBalance(PedalBalanceSmoothing.SMOOTHED_RIDE, SelectedSource.POWER_BALANCE_AVG)
                     SelectedSource.FRONT_GEAR -> streamGears(Gears.FRONT)
                     SelectedSource.REAR_GEAR -> streamGears(Gears.REAR)
+                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT -> streamSuspensionState(FlightAttendantSuspensionLocation.FRONT)
+                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR -> streamSuspensionState(FlightAttendantSuspensionLocation.REAR)
+                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_MODE -> streamSuspensionMode()
                     SelectedSource.NONE -> {}
                 }
             })
@@ -346,6 +352,98 @@ class Window(
     enum class Gears(val prefix: String, val dataTypeId: String, val numberFieldId: String, val maxFieldId: String) {
         FRONT("F", DataType.Type.SHIFTING_FRONT_GEAR, DataType.Field.SHIFTING_FRONT_GEAR, DataType.Field.SHIFTING_FRONT_GEAR_MAX),
         REAR("R", DataType.Type.SHIFTING_REAR_GEAR, DataType.Field.SHIFTING_REAR_GEAR, DataType.Field.SHIFTING_REAR_GEAR_MAX)
+    }
+
+    enum class FlightAttendantSuspensionLocation(val dataTypeId: String, val stateFieldId: String) {
+        FRONT("TYPE_SUSPENSION_STATE_FRONT_ID", "FIELD_SUSPENSION_STATE_FRONT_ID"),
+        REAR("TYPE_SUSPENSION_STATE_REAR_ID", "FIELD_SUSPENSION_STATE_REAR_ID")
+    }
+
+    enum class FlightAttendantSuspensionStateValue(val value: Int, @StringRes val labelResId: Int, @ColorRes val colorResId: Int) {
+        OPEN(0, R.string.flight_attendant_state_open, R.color.zone1),
+        PEDAL(1, R.string.flight_attendant_state_pedal, R.color.zone3),
+        LOCKED(2, R.string.flight_attendant_state_locked, R.color.zone7)
+    }
+
+    enum class FlightAttendantSuspensionMode(val value: Int, @StringRes val labelResId: Int, @ColorRes val colorResId: Int) {
+        STARTUP(0, R.string.flight_attendant_mode_startup, R.color.zone0),
+        AUTOMATIC(1, R.string.flight_attendant_mode_automatic, R.color.zone1),
+        OVERRIDE(2, R.string.flight_attendant_mode_override, R.color.zone5),
+        SAFETY(3, R.string.flight_attendant_mode_safety, R.color.zone6),
+        MANUAL(4, R.string.flight_attendant_mode_manual, R.color.zone7),
+        BIAS(5, R.string.flight_attendant_mode_bias, R.color.zone4),
+        FORK_LSC(6, R.string.flight_attendant_mode_fork_lsc, R.color.zone2),
+        RS_LSC(7, R.string.flight_attendant_mode_rs_lsc, R.color.zone3),
+        CALIBRATING(8, R.string.flight_attendant_mode_calibrating, R.color.zone0)
+    }
+
+    private val flightAttendantSuspensionModes = FlightAttendantSuspensionMode.entries.associateBy { it.value }
+
+    private suspend fun streamSuspensionMode() {
+        karooSystem.streamDataFlow(TYPE_SUSPENSION_MODE_ID)
+            .map {
+                (it as? StreamState.Streaming)?.dataPoint?.values?.get(FIELD_SUSPENSION_MODE_ID)?.toInt()
+            }
+            .distinctUntilChanged()
+            .collect { modeValue ->
+                val powerbarsWithSuspensionModeSource = powerbars.values.filter { it.source == SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_MODE }
+
+                powerbarsWithSuspensionModeSource.forEach { powerbar ->
+                    if (modeValue != null) {
+                        val value = flightAttendantSuspensionModes[modeValue]
+                        val label = value?.let { context.getString(it.labelResId) } ?: "?"
+
+                        powerbar.progressColor = context.getColor(value?.colorResId ?: R.color.zone0)
+                        powerbar.progress = 0.0
+                        powerbar.label = label
+
+                        Log.d(TAG, "Suspension Mode: $label")
+                    } else {
+                        powerbar.progressColor = context.getColor(R.color.zone0)
+                        powerbar.progress = null
+                        powerbar.label = "?"
+
+                        Log.d(TAG, "Suspension Mode: Unavailable")
+                    }
+                    powerbar.invalidate()
+                }
+            }
+    }
+
+    val flightAttendantSuspensionValues = FlightAttendantSuspensionStateValue.entries.associateBy { it.value }
+
+    private suspend fun streamSuspensionState(type: FlightAttendantSuspensionLocation) {
+        karooSystem.streamDataFlow(type.dataTypeId)
+            .map {
+                (it as? StreamState.Streaming)?.dataPoint?.values?.get(type.stateFieldId)?.toInt()
+            }
+            .distinctUntilChanged()
+            .collect { stateValue ->
+                val powerbarsWithSuspensionSource = powerbars.values.filter { it.source == when (type) {
+                    FlightAttendantSuspensionLocation.FRONT -> SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT
+                    FlightAttendantSuspensionLocation.REAR -> SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR
+                } }
+
+                powerbarsWithSuspensionSource.forEach { powerbar ->
+                    if (stateValue != null) {
+                        val value = flightAttendantSuspensionValues[stateValue]
+                        val label = value?.let { context.getString(it.labelResId) } ?: "?"
+
+                        powerbar.progressColor = context.getColor(value?.colorResId ?: R.color.zone0)
+                        powerbar.progress = 0.0
+                        powerbar.label = label
+
+                        Log.d(TAG, "Suspension ${type.name}: $label")
+                    } else {
+                        powerbar.progressColor = context.getColor(R.color.zone0)
+                        powerbar.progress = null
+                        powerbar.label = "?"
+
+                        Log.d(TAG, "Suspension ${type.name}: Unavailable")
+                    }
+                    powerbar.invalidate()
+                }
+            }
     }
 
     private suspend fun streamGears(gears: Gears) {

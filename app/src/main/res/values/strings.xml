@@ -78,4 +78,22 @@
     <string name="size_small">Small</string>
     <string name="size_medium">Medium</string>
     <string name="size_large">Large</string>
+
+    <string name="source_flight_attendant_suspension_mode">Flight Attendant Mode</string>
+    <string name="source_flight_attendant_suspension_state_front">Flight Attendant Fork Position</string>
+    <string name="source_flight_attendant_suspension_state_rear">Flight Attendant Rear Shock Position</string>
+
+    <string name="flight_attendant_state_open">Open</string>
+    <string name="flight_attendant_state_pedal">Pedal</string>
+    <string name="flight_attendant_state_locked">Locked</string>
+
+    <string name="flight_attendant_mode_manual">Manual</string>
+    <string name="flight_attendant_mode_automatic">Auto</string>
+    <string name="flight_attendant_mode_startup">Startup</string>
+    <string name="flight_attendant_mode_override">Override</string>
+    <string name="flight_attendant_mode_safety">Safety</string>
+    <string name="flight_attendant_mode_bias">Bias</string>
+    <string name="flight_attendant_mode_fork_lsc">Fork LSC</string>
+    <string name="flight_attendant_mode_rs_lsc">RS LSC</string>
+    <string name="flight_attendant_mode_calibrating">Calibrating</string>
 </resources>
