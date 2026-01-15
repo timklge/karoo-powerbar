@@ -30,6 +30,8 @@ to be displayed at the bottom or at the top of the screen:
 - Remaining Route (shows remaining distance to the end of the route)
 - Power Balance (Instant, 3s, 10s)
 - Gears
+- Flight Attendant Fork / Rear Shock Position
+- Flight Attendant Mode
 
 Subsequently, the bar(s) will be shown when riding. Bars are filled and colored according
 to your current power output / heart rate zone as setup in your Karoo settings. Optionally, the actual data value can be displayed on top of the bar.
