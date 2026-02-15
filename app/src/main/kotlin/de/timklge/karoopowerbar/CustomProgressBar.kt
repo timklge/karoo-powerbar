@@ -214,17 +214,17 @@ class CustomProgressBar(private val view: CustomView,
 
         val minTargetX = when (horizontalLocation) {
             HorizontalPowerbarLocation.LEFT -> if (minTarget != null) (halfWidth * minTarget!!).toFloat() else 0f
-            HorizontalPowerbarLocation.RIGHT -> if (minTarget != null) halfWidth + (halfWidth * minTarget!!).toFloat() else 0f
+            HorizontalPowerbarLocation.RIGHT -> if (maxTarget != null) fullWidth - (halfWidth * maxTarget!!).toFloat() else 0f
             HorizontalPowerbarLocation.FULL -> if (minTarget != null) (fullWidth * minTarget!!).toFloat() else 0f
         }
         val maxTargetX = when (horizontalLocation) {
             HorizontalPowerbarLocation.LEFT -> if (maxTarget != null) (halfWidth * maxTarget!!).toFloat() else 0f
-            HorizontalPowerbarLocation.RIGHT -> if (maxTarget != null) halfWidth + (halfWidth * maxTarget!!).toFloat() else 0f
+            HorizontalPowerbarLocation.RIGHT -> if (minTarget != null) fullWidth - (halfWidth * minTarget!!).toFloat() else 0f
             HorizontalPowerbarLocation.FULL -> if (maxTarget != null) (fullWidth * maxTarget!!).toFloat() else 0f
         }
         val targetX = when (horizontalLocation) {
             HorizontalPowerbarLocation.LEFT -> if (target != null) (halfWidth * target!!).toFloat() else 0f
-            HorizontalPowerbarLocation.RIGHT -> if (target != null) halfWidth + (halfWidth * target!!).toFloat() else 0f
+            HorizontalPowerbarLocation.RIGHT -> if (target != null) fullWidth - (halfWidth * target!!).toFloat() else 0f
             HorizontalPowerbarLocation.FULL -> if (target != null) (fullWidth * target!!).toFloat() else 0f
         }
 
