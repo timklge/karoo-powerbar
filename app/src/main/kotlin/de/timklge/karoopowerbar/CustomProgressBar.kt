@@ -12,7 +12,7 @@ import android.util.Log
 import android.view.View
 import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
-import de.timklge.karoopowerbar.screens.SelectedSource
+import de.timklge.karoopowerbar.datatypes.SelectedSource
 
 class CustomView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null

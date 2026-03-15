@@ -3,7 +3,7 @@ package de.timklge.karoopowerbar
 import android.content.Context
 import android.util.Log
 import androidx.datastore.preferences.core.stringPreferencesKey
-import de.timklge.karoopowerbar.screens.SelectedSource
+import de.timklge.karoopowerbar.datatypes.SelectedSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map

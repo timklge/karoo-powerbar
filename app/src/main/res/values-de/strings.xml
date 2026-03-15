@@ -55,6 +55,7 @@
     <string name="source_route_remaining">Verbleibende Route</string>
     <string name="source_front_gear">Vorderer Gang</string>
     <string name="source_rear_gear">Hinterer Gang</string>
+    <string name="source_pedal_smoothness">Tretgleichmäßigkeit</string>
 
     <!-- Units -->
     <string name="unit_mph">mph</string>

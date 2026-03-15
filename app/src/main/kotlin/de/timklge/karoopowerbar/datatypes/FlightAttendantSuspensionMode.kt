@@ -1,7 +1,8 @@
-package de.timklge.karoopowerbar
+package de.timklge.karoopowerbar.datatypes
 
 import androidx.annotation.ColorRes
 import androidx.annotation.StringRes
+import de.timklge.karoopowerbar.R
 
 enum class FlightAttendantSuspensionMode(val value: Int, @StringRes val labelResId: Int, @ColorRes val colorResId: Int) {
     STARTUP(0, R.string.flight_attendant_mode_startup, R.color.zone0),

@@ -21,7 +21,13 @@ import com.mapbox.geojson.LineString
 import com.mapbox.turf.TurfConstants.UNIT_METERS
 import com.mapbox.turf.TurfMeasurement
 import de.timklge.karoopowerbar.KarooPowerbarExtension.Companion.TAG
-import de.timklge.karoopowerbar.screens.SelectedSource
+import de.timklge.karoopowerbar.datatypes.FlightAttendantSuspensionLocation
+import de.timklge.karoopowerbar.datatypes.FlightAttendantSuspensionMode
+import de.timklge.karoopowerbar.datatypes.FlightAttendantSuspensionStateValue
+import de.timklge.karoopowerbar.datatypes.Gears
+import de.timklge.karoopowerbar.datatypes.PedalBalanceSmoothing
+import de.timklge.karoopowerbar.datatypes.PowerStreamSmoothing
+import de.timklge.karoopowerbar.datatypes.SelectedSource
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataPoint
 import io.hammerhead.karooext.models.DataType
@@ -190,6 +196,7 @@ class Window(
                     SelectedSource.ROUTE_PROGRESS -> streamRouteProgress(SelectedSource.ROUTE_PROGRESS, ::getRouteProgress)
                     SelectedSource.REMAINING_ROUTE -> streamRouteProgress(SelectedSource.REMAINING_ROUTE, ::getRemainingRouteProgress)
                     SelectedSource.GRADE -> streamGrade()
+                    SelectedSource.PEDAL_SMOOTHNESS -> streamPedalSmoothness(SelectedSource.PEDAL_SMOOTHNESS)
                     SelectedSource.POWER_BALANCE -> streamBalance(PedalBalanceSmoothing.RAW, SelectedSource.POWER_BALANCE)
                     SelectedSource.POWER_BALANCE_3S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_3S, SelectedSource.POWER_BALANCE_3S)
                     SelectedSource.POWER_BALANCE_10S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_10S, SelectedSource.POWER_BALANCE_10S)
@@ -197,8 +204,10 @@ class Window(
                     SelectedSource.POWER_BALANCE_AVG -> streamBalance(PedalBalanceSmoothing.SMOOTHED_RIDE, SelectedSource.POWER_BALANCE_AVG)
                     SelectedSource.FRONT_GEAR -> streamGears(Gears.FRONT)
                     SelectedSource.REAR_GEAR -> streamGears(Gears.REAR)
-                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT -> streamSuspensionState(FlightAttendantSuspensionLocation.FRONT)
-                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR -> streamSuspensionState(FlightAttendantSuspensionLocation.REAR)
+                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT -> streamSuspensionState(
+                        FlightAttendantSuspensionLocation.FRONT)
+                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR -> streamSuspensionState(
+                        FlightAttendantSuspensionLocation.REAR)
                     SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_MODE -> streamSuspensionMode()
                     SelectedSource.NONE -> {}
                 }
@@ -214,6 +223,52 @@ class Window(
         } catch (e: Exception) {
             Log.e(TAG, e.toString())
         }
+    }
+
+    private suspend fun streamPedalSmoothness(selectedSource: SelectedSource) {
+        data class StreamData(val pedalSmoothnessLeft: Double?, val pedalSmoothnessRight: Double?, val power: Double?)
+
+        karooSystem.streamDataFlow(DataType.Type.PEDAL_SMOOTHNESS)
+            .map {
+                val values = (it as? StreamState.Streaming)?.dataPoint?.values
+
+                StreamData(values?.get(DataType.Field.PEDAL_SMOOTHNESS_LEFT), values?.get(DataType.Field.PEDAL_SMOOTHNESS_RIGHT), values?.get(DataType.Field.POWER))
+            }
+            .distinctUntilChanged()
+            .throttle(1_000).collect { streamData ->
+                val pedalSmoothnessLeft = streamData.pedalSmoothnessLeft?.coerceIn(0.0, 100.0)
+                val pedalSmoothnessRight = streamData.pedalSmoothnessRight?.coerceIn(0.0, 100.0)
+                val pedalSmoothnessAvg = if (pedalSmoothnessLeft != null && pedalSmoothnessRight != null) {
+                    (pedalSmoothnessLeft + pedalSmoothnessRight) / 2.0
+                } else {
+                    pedalSmoothnessRight ?: pedalSmoothnessLeft
+                }
+
+                val powerbarsWithSmoothnessSource = powerbars.values.filter { it.source == selectedSource }
+
+                powerbarsWithSmoothnessSource.forEach { powerbar ->
+                    if (pedalSmoothnessAvg != null) {
+                        @ColorRes val zoneColorRes = getZone(pedalSmoothnessAvg / 100.0).colorResource
+
+                        powerbar.progressColor = context.getColor(zoneColorRes)
+                        powerbar.progress = pedalSmoothnessAvg / 100.0
+                        powerbar.label = if (pedalSmoothnessLeft != null && pedalSmoothnessRight != null && pedalSmoothnessLeft.roundToInt() != pedalSmoothnessRight.roundToInt()) {
+                            "${pedalSmoothnessLeft.roundToInt()}-${pedalSmoothnessRight.roundToInt()}"
+                        } else {
+                            "${pedalSmoothnessAvg.roundToInt()}"
+                        }
+
+                        Log.d(TAG, "Pedal Smoothness: $pedalSmoothnessLeft-$pedalSmoothnessRight power: ${streamData.power}")
+                    } else {
+                        powerbar.progressColor = context.getColor(R.color.zone0)
+                        powerbar.progress = null
+                        powerbar.label = "?"
+
+                        Log.d(TAG, "Pedal Smoothness: Unavailable")
+                    }
+                    powerbar.invalidate()
+                }
+            }
     }
 
     private suspend fun streamBalance(smoothing: PedalBalanceSmoothing, selectedSource: SelectedSource) {
@@ -673,20 +728,6 @@ class Window(
         }
     }
 
-    enum class PowerStreamSmoothing(val dataTypeId: String){
-        RAW(DataType.Type.POWER),
-        SMOOTHED_3S(DataType.Type.SMOOTHED_3S_AVERAGE_POWER),
-        SMOOTHED_10S(DataType.Type.SMOOTHED_10S_AVERAGE_POWER),
-    }
-
-    enum class PedalBalanceSmoothing(val dataTypeId: String){
-        RAW(DataType.Type.PEDAL_POWER_BALANCE),
-        SMOOTHED_3S(DataType.Type.SMOOTHED_3S_AVERAGE_PEDAL_POWER_BALANCE),
-        SMOOTHED_10S(DataType.Type.SMOOTHED_10S_AVERAGE_PEDAL_POWER_BALANCE),
-        SMOOTHED_LAP(DataType.Type.AVERAGE_PEDAL_POWER_BALANCE_LAP),
-        SMOOTHED_RIDE(DataType.Type.AVERAGE_PEDAL_POWER_BALANCE),
-    }
-
     private suspend fun streamPower(source: SelectedSource, smoothed: PowerStreamSmoothing) {
         val powerFlow = karooSystem.streamDataFlow(smoothed.dataTypeId)
             .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
@@ -786,4 +827,3 @@ class Window(
         }
     }
 }
-

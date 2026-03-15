@@ -10,7 +10,7 @@ import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import de.timklge.karoopowerbar.KarooPowerbarExtension.Companion.TAG
-import de.timklge.karoopowerbar.screens.SelectedSource
+import de.timklge.karoopowerbar.datatypes.SelectedSource
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.RideState
 import kotlinx.coroutines.CoroutineScope

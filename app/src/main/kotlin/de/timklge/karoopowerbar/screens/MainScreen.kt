@@ -64,6 +64,7 @@ import de.timklge.karoopowerbar.KarooPowerbarExtension
 import de.timklge.karoopowerbar.PowerbarSettings
 import de.timklge.karoopowerbar.R
 import de.timklge.karoopowerbar.dataStore
+import de.timklge.karoopowerbar.datatypes.SelectedSource
 import de.timklge.karoopowerbar.settingsKey
 import de.timklge.karoopowerbar.streamSettings
 import de.timklge.karoopowerbar.streamUserProfile

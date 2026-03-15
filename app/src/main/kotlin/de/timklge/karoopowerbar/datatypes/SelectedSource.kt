@@ -1,4 +1,4 @@
-package de.timklge.karoopowerbar.screens
+package de.timklge.karoopowerbar.datatypes
 
 import de.timklge.karoopowerbar.R
 
@@ -18,6 +18,7 @@ enum class SelectedSource(val id: String, val labelResId: Int) {
     POWER_BALANCE_10S("power_balance_10s", R.string.source_power_balance_10s),
     POWER_BALANCE_LAP("power_balance_lap", R.string.source_power_balance_lap),
     POWER_BALANCE_AVG("power_balance_avg", R.string.source_power_balance_avg),
+    PEDAL_SMOOTHNESS("pedal_smoothness", R.string.source_pedal_smoothness),
     ROUTE_PROGRESS("route_progress", R.string.source_route_progress),
     REMAINING_ROUTE("route_progress_remaining", R.string.source_route_remaining),
     FRONT_GEAR("front_gear", R.string.source_front_gear),

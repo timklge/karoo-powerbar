@@ -1,4 +1,4 @@
-package de.timklge.karoopowerbar
+package de.timklge.karoopowerbar.datatypes
 
 import io.hammerhead.karooext.models.DataType
 
