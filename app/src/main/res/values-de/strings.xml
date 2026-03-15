@@ -30,6 +30,8 @@
     <string name="max_cadence">Max. Trittfrequenz</string>
     <string name="min_grade">Min. Steigung</string>
     <string name="max_grade">Max. Steigung</string>
+    <string name="min_pedal_smoothness">Min. Tretgleichmäßigkeit</string>
+    <string name="max_pedal_smoothness">Max. Tretgleichmäßigkeit</string>
     <string name="color_based_on_zones">Farbe basierend auf HF-/Leistungszonen</string>
     <string name="show_value_on_bars">Werte auf Balken anzeigen</string>
     <string name="solid_background">Fester Hintergrund</string>
