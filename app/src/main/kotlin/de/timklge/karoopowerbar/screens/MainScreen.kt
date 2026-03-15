@@ -161,6 +161,8 @@ fun MainScreen(onFinish: () -> Unit) {
     var customMaxHr by remember { mutableStateOf("") }
     var minGrade by remember { mutableStateOf("0") }
     var maxGrade by remember { mutableStateOf("0") }
+    var minPedalSmoothness by remember { mutableStateOf("0") }
+    var maxPedalSmoothness by remember { mutableStateOf("0") }
     var useCustomPowerRange by remember { mutableStateOf(false) }
     var useCustomHrRange by remember { mutableStateOf(false) }
 
@@ -197,6 +199,8 @@ fun MainScreen(onFinish: () -> Unit) {
             maxHr = customMaxHr.toIntOrNull(),
             minGradient = minGrade.toIntOrNull() ?: PowerbarSettings.defaultMinGradient,
             maxGradient = maxGrade.toIntOrNull() ?: PowerbarSettings.defaultMaxGradient,
+            minPedalSmoothness = minPedalSmoothness.toFloatOrNull() ?: PowerbarSettings.defaultMinPedalSmoothnessPercent,
+            maxPedalSmoothness = maxPedalSmoothness.toFloatOrNull() ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent,
             barBarSize = barBarSize,
             barFontSize = barFontSize,
             useCustomPowerRange = useCustomPowerRange,
@@ -260,6 +264,8 @@ fun MainScreen(onFinish: () -> Unit) {
                 customMaxHr = settings.maxHr?.toString() ?: ""
                 minGrade = settings.minGradient?.toString() ?: ""
                 maxGrade = settings.maxGradient?.toString() ?: ""
+                minPedalSmoothness = settings.minPedalSmoothness?.roundToInt()?.toString() ?: PowerbarSettings.defaultMinPedalSmoothnessPercent.roundToInt().toString()
+                maxPedalSmoothness = settings.maxPedalSmoothness?.roundToInt()?.toString() ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent.roundToInt().toString()
                 useCustomPowerRange = settings.useCustomPowerRange
                 useCustomHrRange = settings.useCustomHrRange
         }
@@ -647,6 +653,35 @@ fun MainScreen(onFinish: () -> Unit) {
                             .onFocusEvent(::updateFocus),
                             onValueChange = { maxGrade = it.filterIndexed(::isCharAllowed) },
                             label = { Text(stringResource(R.string.max_grade)) },
+                            suffix = { Text(stringResource(R.string.unit_percent)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
+                }
+
+                if (topSelectedSource == SelectedSource.PEDAL_SMOOTHNESS || bottomSelectedSource == SelectedSource.PEDAL_SMOOTHNESS ||
+                    (splitTopBar && (topSelectedSourceLeft == SelectedSource.PEDAL_SMOOTHNESS || topSelectedSourceRight == SelectedSource.PEDAL_SMOOTHNESS)) ||
+                    (splitBottomBar && (bottomSelectedSourceLeft == SelectedSource.PEDAL_SMOOTHNESS || bottomSelectedSourceRight == SelectedSource.PEDAL_SMOOTHNESS))
+                ){
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(value = minPedalSmoothness, modifier = Modifier
+                            .weight(1f)
+                            .absolutePadding(right = 2.dp)
+                            .onFocusEvent(::updateFocus),
+                            onValueChange = { minPedalSmoothness = it.filterIndexed(::isCharAllowed) },
+                            label = { Text(stringResource(R.string.min_pedal_smoothness), fontSize = 12.sp) },
+                            suffix = { Text(stringResource(R.string.unit_percent)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+
+                        OutlinedTextField(value = maxPedalSmoothness, modifier = Modifier
+                            .weight(1f)
+                            .absolutePadding(left = 2.dp)
+                            .onFocusEvent(::updateFocus),
+                            onValueChange = { maxPedalSmoothness = it.filterIndexed(::isCharAllowed) },
+                            label = { Text(stringResource(R.string.max_pedal_smoothness), fontSize = 12.sp) },
                             suffix = { Text(stringResource(R.string.unit_percent)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true

@@ -226,49 +226,55 @@ class Window(
     }
 
     private suspend fun streamPedalSmoothness(selectedSource: SelectedSource) {
-        data class StreamData(val pedalSmoothnessLeft: Double?, val pedalSmoothnessRight: Double?, val power: Double?)
+        data class StreamData(val pedalSmoothnessLeft: Double?, val pedalSmoothnessRight: Double?, val power: Double?,
+                              val settings: PowerbarSettings? = null)
 
-        karooSystem.streamDataFlow(DataType.Type.PEDAL_SMOOTHNESS)
-            .map {
-                val values = (it as? StreamState.Streaming)?.dataPoint?.values
+        val settingsFlow = context.streamSettings()
+        val pedalSmoothnessFlow = karooSystem.streamDataFlow(DataType.Type.PEDAL_SMOOTHNESS)
 
-                StreamData(values?.get(DataType.Field.PEDAL_SMOOTHNESS_LEFT), values?.get(DataType.Field.PEDAL_SMOOTHNESS_RIGHT), values?.get(DataType.Field.POWER))
+        combine(pedalSmoothnessFlow, settingsFlow) { pedalSmoothness, settings ->
+            val values = (pedalSmoothness as? StreamState.Streaming)?.dataPoint?.values
+            val pedalSmoothnessLeft = values?.get(DataType.Field.PEDAL_SMOOTHNESS_LEFT)
+            val pedalSmoothnessRight = values?.get(DataType.Field.PEDAL_SMOOTHNESS_RIGHT)
+
+            StreamData(pedalSmoothnessLeft, pedalSmoothnessRight, values?.get(DataType.Field.POWER), settings)
+        }.distinctUntilChanged().throttle(1_000).collect { streamData ->
+            val pedalSmoothnessLeft = streamData.pedalSmoothnessLeft?.coerceIn(0.0, 100.0)
+            val pedalSmoothnessRight = streamData.pedalSmoothnessRight?.coerceIn(0.0, 100.0)
+            val pedalSmoothnessAvg = if (pedalSmoothnessLeft != null && pedalSmoothnessRight != null) {
+                (pedalSmoothnessLeft + pedalSmoothnessRight) / 2.0
+            } else {
+                pedalSmoothnessRight ?: pedalSmoothnessLeft
             }
-            .distinctUntilChanged()
-            .throttle(1_000).collect { streamData ->
-                val pedalSmoothnessLeft = streamData.pedalSmoothnessLeft?.coerceIn(0.0, 100.0)
-                val pedalSmoothnessRight = streamData.pedalSmoothnessRight?.coerceIn(0.0, 100.0)
-                val pedalSmoothnessAvg = if (pedalSmoothnessLeft != null && pedalSmoothnessRight != null) {
-                    (pedalSmoothnessLeft + pedalSmoothnessRight) / 2.0
-                } else {
-                    pedalSmoothnessRight ?: pedalSmoothnessLeft
-                }
 
-                val powerbarsWithSmoothnessSource = powerbars.values.filter { it.source == selectedSource }
+            val powerbarsWithSmoothnessSource = powerbars.values.filter { it.source == selectedSource }
 
-                powerbarsWithSmoothnessSource.forEach { powerbar ->
-                    if (pedalSmoothnessAvg != null) {
-                        @ColorRes val zoneColorRes = getZone(pedalSmoothnessAvg / 100.0).colorResource
+            powerbarsWithSmoothnessSource.forEach { powerbar ->
+                if (pedalSmoothnessAvg != null) {
+                    val minPedalSmoothness = streamData.settings?.minPedalSmoothness ?: PowerbarSettings.defaultMinPedalSmoothnessPercent
+                    val maxPedalSmoothness = streamData.settings?.maxPedalSmoothness ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent
+                    val zone = remap(pedalSmoothnessAvg, minPedalSmoothness.toDouble(), maxPedalSmoothness.toDouble(), 1.0, 0.0)?.coerceIn(0.0, 1.0) ?: 0.0
+                    @ColorRes val zoneColorRes = getZone(zone).colorResource
 
-                        powerbar.progressColor = context.getColor(zoneColorRes)
-                        powerbar.progress = pedalSmoothnessAvg / 100.0
-                        powerbar.label = if (pedalSmoothnessLeft != null && pedalSmoothnessRight != null && pedalSmoothnessLeft.roundToInt() != pedalSmoothnessRight.roundToInt()) {
-                            "${pedalSmoothnessLeft.roundToInt()}-${pedalSmoothnessRight.roundToInt()}"
-                        } else {
-                            "${pedalSmoothnessAvg.roundToInt()}"
-                        }
-
-                        Log.d(TAG, "Pedal Smoothness: $pedalSmoothnessLeft-$pedalSmoothnessRight power: ${streamData.power}")
+                    powerbar.progressColor = context.getColor(zoneColorRes)
+                    powerbar.progress = pedalSmoothnessAvg / 100.0
+                    powerbar.label = if (pedalSmoothnessLeft != null && pedalSmoothnessRight != null && pedalSmoothnessLeft.roundToInt() != pedalSmoothnessRight.roundToInt()) {
+                        "${pedalSmoothnessLeft.roundToInt()}-${pedalSmoothnessRight.roundToInt()}"
                     } else {
-                        powerbar.progressColor = context.getColor(R.color.zone0)
-                        powerbar.progress = null
-                        powerbar.label = "?"
-
-                        Log.d(TAG, "Pedal Smoothness: Unavailable")
+                        "${pedalSmoothnessAvg.roundToInt()}"
                     }
-                    powerbar.invalidate()
+
+                    Log.d(TAG, "Pedal Smoothness: $pedalSmoothnessLeft-$pedalSmoothnessRight power: ${streamData.power}")
+                } else {
+                    powerbar.progressColor = context.getColor(R.color.zone0)
+                    powerbar.progress = null
+                    powerbar.label = "?"
+
+                    Log.d(TAG, "Pedal Smoothness: Unavailable")
                 }
+                powerbar.invalidate()
             }
+        }
     }
 
     private suspend fun streamBalance(smoothing: PedalBalanceSmoothing, selectedSource: SelectedSource) {
