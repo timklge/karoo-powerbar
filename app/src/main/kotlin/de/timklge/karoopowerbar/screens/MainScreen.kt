@@ -669,7 +669,11 @@ fun MainScreen(onFinish: () -> Unit) {
                             .weight(1f)
                             .absolutePadding(right = 2.dp)
                             .onFocusEvent(::updateFocus),
-                            onValueChange = { minPedalSmoothness = it.filterIndexed(::isCharAllowed) },
+                            onValueChange = { input ->
+                                val digitsOnly = input.filter { it.isDigit() }
+                                val clamped = digitsOnly.toIntOrNull()?.coerceIn(0, 100)?.toString() ?: digitsOnly
+                                minPedalSmoothness = clamped
+                            },
                             label = { Text(stringResource(R.string.min_pedal_smoothness), fontSize = 12.sp) },
                             suffix = { Text(stringResource(R.string.unit_percent)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -680,7 +684,11 @@ fun MainScreen(onFinish: () -> Unit) {
                             .weight(1f)
                             .absolutePadding(left = 2.dp)
                             .onFocusEvent(::updateFocus),
-                            onValueChange = { maxPedalSmoothness = it.filterIndexed(::isCharAllowed) },
+                            onValueChange = { input ->
+                                val digitsOnly = input.filter { it.isDigit() }
+                                val clamped = digitsOnly.toIntOrNull()?.coerceIn(0, 100)?.toString() ?: digitsOnly
+                                maxPedalSmoothness = clamped
+                            },
                             label = { Text(stringResource(R.string.max_pedal_smoothness), fontSize = 12.sp) },
                             suffix = { Text(stringResource(R.string.unit_percent)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
