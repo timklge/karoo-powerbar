@@ -253,11 +253,11 @@ class Window(
                 if (pedalSmoothnessAvg != null) {
                     val minPedalSmoothness = streamData.settings?.minPedalSmoothness ?: PowerbarSettings.defaultMinPedalSmoothnessPercent
                     val maxPedalSmoothness = streamData.settings?.maxPedalSmoothness ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent
-                    val zone = remap(pedalSmoothnessAvg, minPedalSmoothness.toDouble(), maxPedalSmoothness.toDouble(), 1.0, 0.0)?.coerceIn(0.0, 1.0) ?: 0.0
-                    @ColorRes val zoneColorRes = getZone(zone).colorResource
+                    val value = remap(pedalSmoothnessAvg, minPedalSmoothness.toDouble(), maxPedalSmoothness.toDouble(), 1.0, 0.0)?.coerceIn(0.0, 1.0) ?: 0.0
+                    @ColorRes val zoneColorRes = getZone(value).colorResource
 
                     powerbar.progressColor = context.getColor(zoneColorRes)
-                    powerbar.progress = pedalSmoothnessAvg / 100.0
+                    powerbar.progress = remap(pedalSmoothnessAvg, minPedalSmoothness.toDouble(), maxPedalSmoothness.toDouble(), 0.0, 1.0)?.coerceIn(0.0, 1.0)
                     powerbar.label = if (pedalSmoothnessLeft != null && pedalSmoothnessRight != null && pedalSmoothnessLeft.roundToInt() != pedalSmoothnessRight.roundToInt()) {
                         "${pedalSmoothnessLeft.roundToInt()}-${pedalSmoothnessRight.roundToInt()}"
                     } else {
