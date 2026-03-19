@@ -3,7 +3,7 @@ package de.timklge.karoopowerbar
 import android.content.Context
 import android.util.Log
 import androidx.datastore.preferences.core.stringPreferencesKey
-import de.timklge.karoopowerbar.screens.SelectedSource
+import de.timklge.karoopowerbar.datatypes.SelectedSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -39,6 +39,7 @@ data class PowerbarSettings(
     val minPower: Int? = null, val maxPower: Int? = null,
     val minHr: Int? = null, val maxHr: Int? = null,
     val minGradient: Int? = defaultMinGradient, val maxGradient: Int? = defaultMaxGradient,
+    val minPedalSmoothness: Float? = defaultMinPedalSmoothnessPercent, val maxPedalSmoothness: Float? = defaultMaxPedalSmoothnessPercent,
 
     val useCustomGradientRange: Boolean = false,
     val useCustomHrRange: Boolean = false,
@@ -52,6 +53,8 @@ data class PowerbarSettings(
         const val defaultMaxCadence = 120
         const val defaultMinGradient = 0
         const val defaultMaxGradient = 15
+        const val defaultMinPedalSmoothnessPercent = 10f
+        const val defaultMaxPedalSmoothnessPercent = 40f
     }
 }
 

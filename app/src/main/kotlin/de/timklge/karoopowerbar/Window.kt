@@ -17,12 +17,17 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
 import androidx.annotation.ColorRes
-import androidx.annotation.StringRes
 import com.mapbox.geojson.LineString
 import com.mapbox.turf.TurfConstants.UNIT_METERS
 import com.mapbox.turf.TurfMeasurement
 import de.timklge.karoopowerbar.KarooPowerbarExtension.Companion.TAG
-import de.timklge.karoopowerbar.screens.SelectedSource
+import de.timklge.karoopowerbar.datatypes.FlightAttendantSuspensionLocation
+import de.timklge.karoopowerbar.datatypes.FlightAttendantSuspensionMode
+import de.timklge.karoopowerbar.datatypes.FlightAttendantSuspensionStateValue
+import de.timklge.karoopowerbar.datatypes.Gears
+import de.timklge.karoopowerbar.datatypes.PedalBalanceSmoothing
+import de.timklge.karoopowerbar.datatypes.PowerStreamSmoothing
+import de.timklge.karoopowerbar.datatypes.SelectedSource
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataPoint
 import io.hammerhead.karooext.models.DataType
@@ -44,6 +49,7 @@ import kotlin.math.roundToInt
 
 fun remap(value: Double?, fromMin: Double, fromMax: Double, toMin: Double, toMax: Double): Double? {
     if (value == null) return null
+    if (fromMax - fromMin == 0.0) return null
 
     return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin
 }
@@ -191,6 +197,7 @@ class Window(
                     SelectedSource.ROUTE_PROGRESS -> streamRouteProgress(SelectedSource.ROUTE_PROGRESS, ::getRouteProgress)
                     SelectedSource.REMAINING_ROUTE -> streamRouteProgress(SelectedSource.REMAINING_ROUTE, ::getRemainingRouteProgress)
                     SelectedSource.GRADE -> streamGrade()
+                    SelectedSource.PEDAL_SMOOTHNESS -> streamPedalSmoothness(SelectedSource.PEDAL_SMOOTHNESS)
                     SelectedSource.POWER_BALANCE -> streamBalance(PedalBalanceSmoothing.RAW, SelectedSource.POWER_BALANCE)
                     SelectedSource.POWER_BALANCE_3S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_3S, SelectedSource.POWER_BALANCE_3S)
                     SelectedSource.POWER_BALANCE_10S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_10S, SelectedSource.POWER_BALANCE_10S)
@@ -198,8 +205,10 @@ class Window(
                     SelectedSource.POWER_BALANCE_AVG -> streamBalance(PedalBalanceSmoothing.SMOOTHED_RIDE, SelectedSource.POWER_BALANCE_AVG)
                     SelectedSource.FRONT_GEAR -> streamGears(Gears.FRONT)
                     SelectedSource.REAR_GEAR -> streamGears(Gears.REAR)
-                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT -> streamSuspensionState(FlightAttendantSuspensionLocation.FRONT)
-                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR -> streamSuspensionState(FlightAttendantSuspensionLocation.REAR)
+                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT -> streamSuspensionState(
+                        FlightAttendantSuspensionLocation.FRONT)
+                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR -> streamSuspensionState(
+                        FlightAttendantSuspensionLocation.REAR)
                     SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_MODE -> streamSuspensionMode()
                     SelectedSource.NONE -> {}
                 }
@@ -214,6 +223,58 @@ class Window(
             }
         } catch (e: Exception) {
             Log.e(TAG, e.toString())
+        }
+    }
+
+    private suspend fun streamPedalSmoothness(selectedSource: SelectedSource) {
+        data class StreamData(val pedalSmoothnessLeft: Double?, val pedalSmoothnessRight: Double?, val power: Double?,
+                              val settings: PowerbarSettings? = null)
+
+        val settingsFlow = context.streamSettings()
+        val pedalSmoothnessFlow = karooSystem.streamDataFlow(DataType.Type.PEDAL_SMOOTHNESS)
+
+        combine(pedalSmoothnessFlow, settingsFlow) { pedalSmoothness, settings ->
+            val values = (pedalSmoothness as? StreamState.Streaming)?.dataPoint?.values
+            val pedalSmoothnessLeft = values?.get(DataType.Field.PEDAL_SMOOTHNESS_LEFT)
+            val pedalSmoothnessRight = values?.get(DataType.Field.PEDAL_SMOOTHNESS_RIGHT)
+
+            StreamData(pedalSmoothnessLeft, pedalSmoothnessRight, values?.get(DataType.Field.POWER), settings)
+        }.distinctUntilChanged().throttle(1_000).collect { streamData ->
+            val pedalSmoothnessLeft = streamData.pedalSmoothnessLeft?.coerceIn(0.0, 100.0)
+            val pedalSmoothnessRight = streamData.pedalSmoothnessRight?.coerceIn(0.0, 100.0)
+            val pedalSmoothnessAvg = if (pedalSmoothnessLeft != null && pedalSmoothnessRight != null) {
+                (pedalSmoothnessLeft + pedalSmoothnessRight) / 2.0
+            } else {
+                pedalSmoothnessRight ?: pedalSmoothnessLeft
+            }
+
+            val powerbarsWithSmoothnessSource = powerbars.values.filter { it.source == selectedSource }
+
+            powerbarsWithSmoothnessSource.forEach { powerbar ->
+                if (pedalSmoothnessAvg != null) {
+                    val minPedalSmoothness = streamData.settings?.minPedalSmoothness ?: PowerbarSettings.defaultMinPedalSmoothnessPercent
+                    val maxPedalSmoothness = streamData.settings?.maxPedalSmoothness ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent
+                    val value = remap(pedalSmoothnessAvg, minPedalSmoothness.toDouble(), maxPedalSmoothness.toDouble(), 1.0, 0.0)?.coerceIn(0.0, 1.0) ?: 0.0
+                    @ColorRes val zoneColorRes = getZone(value).colorResource
+
+                    powerbar.progressColor = context.getColor(zoneColorRes)
+                    powerbar.progress = remap(pedalSmoothnessAvg, minPedalSmoothness.toDouble(), maxPedalSmoothness.toDouble(), 0.0, 1.0)?.coerceIn(0.0, 1.0)
+                    powerbar.label = if (pedalSmoothnessLeft != null && pedalSmoothnessRight != null && pedalSmoothnessLeft.roundToInt() != pedalSmoothnessRight.roundToInt()) {
+                        "${pedalSmoothnessLeft.roundToInt()}-${pedalSmoothnessRight.roundToInt()}"
+                    } else {
+                        "${pedalSmoothnessAvg.roundToInt()}"
+                    }
+
+                    Log.d(TAG, "Pedal Smoothness: $pedalSmoothnessLeft-$pedalSmoothnessRight power: ${streamData.power}")
+                } else {
+                    powerbar.progressColor = context.getColor(R.color.zone0)
+                    powerbar.progress = null
+                    powerbar.label = "?"
+
+                    Log.d(TAG, "Pedal Smoothness: Unavailable")
+                }
+                powerbar.invalidate()
+            }
         }
     }
 
@@ -347,34 +408,6 @@ class Window(
                 powerbar.invalidate()
             }
         }
-    }
-
-    enum class Gears(val prefix: String, val dataTypeId: String, val numberFieldId: String, val maxFieldId: String) {
-        FRONT("F", DataType.Type.SHIFTING_FRONT_GEAR, DataType.Field.SHIFTING_FRONT_GEAR, DataType.Field.SHIFTING_FRONT_GEAR_MAX),
-        REAR("R", DataType.Type.SHIFTING_REAR_GEAR, DataType.Field.SHIFTING_REAR_GEAR, DataType.Field.SHIFTING_REAR_GEAR_MAX)
-    }
-
-    enum class FlightAttendantSuspensionLocation(val dataTypeId: String, val stateFieldId: String) {
-        FRONT("TYPE_SUSPENSION_STATE_FRONT_ID", "FIELD_SUSPENSION_STATE_FRONT_ID"),
-        REAR("TYPE_SUSPENSION_STATE_REAR_ID", "FIELD_SUSPENSION_STATE_REAR_ID")
-    }
-
-    enum class FlightAttendantSuspensionStateValue(val value: Int, @StringRes val labelResId: Int, @ColorRes val colorResId: Int) {
-        OPEN(0, R.string.flight_attendant_state_open, R.color.zone1),
-        PEDAL(1, R.string.flight_attendant_state_pedal, R.color.zone3),
-        LOCKED(2, R.string.flight_attendant_state_locked, R.color.zone7)
-    }
-
-    enum class FlightAttendantSuspensionMode(val value: Int, @StringRes val labelResId: Int, @ColorRes val colorResId: Int) {
-        STARTUP(0, R.string.flight_attendant_mode_startup, R.color.zone0),
-        AUTOMATIC(1, R.string.flight_attendant_mode_automatic, R.color.zone1),
-        OVERRIDE(2, R.string.flight_attendant_mode_override, R.color.zone5),
-        SAFETY(3, R.string.flight_attendant_mode_safety, R.color.zone6),
-        MANUAL(4, R.string.flight_attendant_mode_manual, R.color.zone7),
-        BIAS(5, R.string.flight_attendant_mode_bias, R.color.zone4),
-        FORK_LSC(6, R.string.flight_attendant_mode_fork_lsc, R.color.zone2),
-        RS_LSC(7, R.string.flight_attendant_mode_rs_lsc, R.color.zone3),
-        CALIBRATING(8, R.string.flight_attendant_mode_calibrating, R.color.zone0)
     }
 
     private val flightAttendantSuspensionModes = FlightAttendantSuspensionMode.entries.associateBy { it.value }
@@ -700,20 +733,6 @@ class Window(
                 powerbar.invalidate()
             }
         }
-    }
-
-    enum class PowerStreamSmoothing(val dataTypeId: String){
-        RAW(DataType.Type.POWER),
-        SMOOTHED_3S(DataType.Type.SMOOTHED_3S_AVERAGE_POWER),
-        SMOOTHED_10S(DataType.Type.SMOOTHED_10S_AVERAGE_POWER),
-    }
-
-    enum class PedalBalanceSmoothing(val dataTypeId: String){
-        RAW(DataType.Type.PEDAL_POWER_BALANCE),
-        SMOOTHED_3S(DataType.Type.SMOOTHED_3S_AVERAGE_PEDAL_POWER_BALANCE),
-        SMOOTHED_10S(DataType.Type.SMOOTHED_10S_AVERAGE_PEDAL_POWER_BALANCE),
-        SMOOTHED_LAP(DataType.Type.AVERAGE_PEDAL_POWER_BALANCE_LAP),
-        SMOOTHED_RIDE(DataType.Type.AVERAGE_PEDAL_POWER_BALANCE),
     }
 
     private suspend fun streamPower(source: SelectedSource, smoothed: PowerStreamSmoothing) {

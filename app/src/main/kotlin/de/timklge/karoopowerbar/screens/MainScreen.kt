@@ -64,6 +64,7 @@ import de.timklge.karoopowerbar.KarooPowerbarExtension
 import de.timklge.karoopowerbar.PowerbarSettings
 import de.timklge.karoopowerbar.R
 import de.timklge.karoopowerbar.dataStore
+import de.timklge.karoopowerbar.datatypes.SelectedSource
 import de.timklge.karoopowerbar.settingsKey
 import de.timklge.karoopowerbar.streamSettings
 import de.timklge.karoopowerbar.streamUserProfile
@@ -77,33 +78,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.math.roundToInt
-
-enum class SelectedSource(val id: String, val labelResId: Int) {
-    NONE("none", R.string.source_none),
-    HEART_RATE("hr", R.string.source_heart_rate),
-    POWER("power", R.string.source_power),
-    POWER_3S("power_3s", R.string.source_power_3s),
-    POWER_10S("power_10s", R.string.source_power_10s),
-    SPEED("speed", R.string.source_speed),
-    SPEED_3S("speed_3s", R.string.source_speed_3s),
-    CADENCE("cadence", R.string.source_cadence),
-    CADENCE_3S("cadence_3s", R.string.source_cadence_3s),
-    GRADE("grade", R.string.source_grade),
-    POWER_BALANCE("power_balance", R.string.source_power_balance),
-    POWER_BALANCE_3S("power_balance_3s", R.string.source_power_balance_3s),
-    POWER_BALANCE_10S("power_balance_10s", R.string.source_power_balance_10s),
-    POWER_BALANCE_LAP("power_balance_lap", R.string.source_power_balance_lap),
-    POWER_BALANCE_AVG("power_balance_avg", R.string.source_power_balance_avg),
-    ROUTE_PROGRESS("route_progress", R.string.source_route_progress),
-    REMAINING_ROUTE("route_progress_remaining", R.string.source_route_remaining),
-    FRONT_GEAR("front_gear", R.string.source_front_gear),
-    REAR_GEAR("rear_gear", R.string.source_rear_gear),
-    FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR("flight_attendant_suspension_state_rear", R.string.source_flight_attendant_suspension_state_rear),
-    FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT("flight_attendant_suspension_state_front", R.string.source_flight_attendant_suspension_state_front),
-    FLIGHT_ATTENDANT_SUSPENSION_MODE("flight_attendant_suspension_mode", R.string.source_flight_attendant_suspension_mode);
-
-    fun isPower() = this == POWER || this == POWER_3S || this == POWER_10S
-}
 
 @Composable
 fun BarSelectDialog(currentSelectedSource: SelectedSource, onHide: () -> Unit, onSelect: (SelectedSource) -> Unit) {
@@ -187,6 +161,8 @@ fun MainScreen(onFinish: () -> Unit) {
     var customMaxHr by remember { mutableStateOf("") }
     var minGrade by remember { mutableStateOf("0") }
     var maxGrade by remember { mutableStateOf("0") }
+    var minPedalSmoothness by remember { mutableStateOf("0") }
+    var maxPedalSmoothness by remember { mutableStateOf("0") }
     var useCustomPowerRange by remember { mutableStateOf(false) }
     var useCustomHrRange by remember { mutableStateOf(false) }
 
@@ -223,6 +199,8 @@ fun MainScreen(onFinish: () -> Unit) {
             maxHr = customMaxHr.toIntOrNull(),
             minGradient = minGrade.toIntOrNull() ?: PowerbarSettings.defaultMinGradient,
             maxGradient = maxGrade.toIntOrNull() ?: PowerbarSettings.defaultMaxGradient,
+            minPedalSmoothness = minPedalSmoothness.toFloatOrNull() ?: PowerbarSettings.defaultMinPedalSmoothnessPercent,
+            maxPedalSmoothness = maxPedalSmoothness.toFloatOrNull() ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent,
             barBarSize = barBarSize,
             barFontSize = barFontSize,
             useCustomPowerRange = useCustomPowerRange,
@@ -286,6 +264,8 @@ fun MainScreen(onFinish: () -> Unit) {
                 customMaxHr = settings.maxHr?.toString() ?: ""
                 minGrade = settings.minGradient?.toString() ?: ""
                 maxGrade = settings.maxGradient?.toString() ?: ""
+                minPedalSmoothness = settings.minPedalSmoothness?.roundToInt()?.toString() ?: PowerbarSettings.defaultMinPedalSmoothnessPercent.roundToInt().toString()
+                maxPedalSmoothness = settings.maxPedalSmoothness?.roundToInt()?.toString() ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent.roundToInt().toString()
                 useCustomPowerRange = settings.useCustomPowerRange
                 useCustomHrRange = settings.useCustomHrRange
         }
@@ -673,6 +653,43 @@ fun MainScreen(onFinish: () -> Unit) {
                             .onFocusEvent(::updateFocus),
                             onValueChange = { maxGrade = it.filterIndexed(::isCharAllowed) },
                             label = { Text(stringResource(R.string.max_grade)) },
+                            suffix = { Text(stringResource(R.string.unit_percent)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
+                }
+
+                if (topSelectedSource == SelectedSource.PEDAL_SMOOTHNESS || bottomSelectedSource == SelectedSource.PEDAL_SMOOTHNESS ||
+                    (splitTopBar && (topSelectedSourceLeft == SelectedSource.PEDAL_SMOOTHNESS || topSelectedSourceRight == SelectedSource.PEDAL_SMOOTHNESS)) ||
+                    (splitBottomBar && (bottomSelectedSourceLeft == SelectedSource.PEDAL_SMOOTHNESS || bottomSelectedSourceRight == SelectedSource.PEDAL_SMOOTHNESS))
+                ){
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(value = minPedalSmoothness, modifier = Modifier
+                            .weight(1f)
+                            .absolutePadding(right = 2.dp)
+                            .onFocusEvent(::updateFocus),
+                            onValueChange = { input ->
+                                val digitsOnly = input.filter { it.isDigit() }
+                                val clamped = digitsOnly.toIntOrNull()?.coerceIn(0, 100)?.toString() ?: digitsOnly
+                                minPedalSmoothness = clamped
+                            },
+                            label = { Text(stringResource(R.string.min_pedal_smoothness), fontSize = 12.sp) },
+                            suffix = { Text(stringResource(R.string.unit_percent)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+
+                        OutlinedTextField(value = maxPedalSmoothness, modifier = Modifier
+                            .weight(1f)
+                            .absolutePadding(left = 2.dp)
+                            .onFocusEvent(::updateFocus),
+                            onValueChange = { input ->
+                                val digitsOnly = input.filter { it.isDigit() }
+                                val clamped = digitsOnly.toIntOrNull()?.coerceIn(0, 100)?.toString() ?: digitsOnly
+                                maxPedalSmoothness = clamped
+                            },
+                            label = { Text(stringResource(R.string.max_pedal_smoothness), fontSize = 12.sp) },
                             suffix = { Text(stringResource(R.string.unit_percent)) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true

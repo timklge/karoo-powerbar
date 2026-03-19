@@ -29,6 +29,7 @@ to be displayed at the bottom or at the top of the screen:
 - Route Progress (shows currently ridden distance)
 - Remaining Route (shows remaining distance to the end of the route)
 - Power Balance (Instant, 3s, 10s)
+- Pedal Smoothness
 - Gears
 - Flight Attendant Fork / Rear Shock Position
 - Flight Attendant Mode
