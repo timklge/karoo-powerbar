@@ -49,6 +49,7 @@ import kotlin.math.roundToInt
 
 fun remap(value: Double?, fromMin: Double, fromMax: Double, toMin: Double, toMax: Double): Double? {
     if (value == null) return null
+    if (fromMax - fromMin == 0.0) return null
 
     return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin
 }
