@@ -1,18 +1,12 @@
 package de.timklge.karoopowerbar
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.preferencesDataStore
 import de.timklge.karoopowerbar.screens.MainScreen
 import de.timklge.karoopowerbar.theme.AppTheme
-
-val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
