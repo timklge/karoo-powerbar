@@ -68,7 +68,7 @@ data class PowerbarSettings(
     }
 }
 
-fun Context.streamSettings(): Flow<PowerbarSettings> {
+fun Context.streamSettings(onError: ((Throwable) -> Unit)? = null): Flow<PowerbarSettings> {
     return dataStore.data.map { settingsJson ->
         try {
             jsonWithUnknownKeys.decodeFromString<PowerbarSettings>(
@@ -76,6 +76,7 @@ fun Context.streamSettings(): Flow<PowerbarSettings> {
             )
         } catch(e: Throwable){
             Log.e(KarooPowerbarExtension.TAG, "Failed to read preferences", e)
+            onError?.invoke(e)
             jsonWithUnknownKeys.decodeFromString<PowerbarSettings>(PowerbarSettings.defaultSettings)
         }
     }.distinctUntilChanged()

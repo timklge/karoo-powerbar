@@ -3,6 +3,7 @@ package de.timklge.karoopowerbar.screens
 import android.content.Intent
 import android.provider.Settings
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -235,7 +236,9 @@ fun MainScreen(onFinish: () -> Unit) {
     LaunchedEffect(isImperial) {
         givenPermissions = Settings.canDrawOverlays(ctx)
 
-        ctx.streamSettings()
+        ctx.streamSettings(onError = {
+            Toast.makeText(ctx, R.string.settings_restore_error, Toast.LENGTH_LONG).show()
+        })
             .combine(karooSystem.streamUserProfile()) { settings, profile -> settings to profile }
             .distinctUntilChanged()
             .collect { (settings, profile) ->
