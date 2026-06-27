@@ -43,7 +43,9 @@ data class PowerbarSettings(
 
     val useCustomGradientRange: Boolean = false,
     val useCustomHrRange: Boolean = false,
-    val useCustomPowerRange: Boolean = false
+    val useCustomPowerRange: Boolean = false,
+
+    val stickToEdge: Boolean = false,
 ){
     companion object {
         val defaultSettings = Json.encodeToString(PowerbarSettings())
