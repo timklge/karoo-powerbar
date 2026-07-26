@@ -99,4 +99,6 @@
     <string name="flight_attendant_mode_fork_lsc">Fork LSC</string>
     <string name="flight_attendant_mode_rs_lsc">RS LSC</string>
     <string name="flight_attendant_mode_calibrating">Kalibrierung</string>
+
+    <string name="settings_restore_error">Einstellungen konnten nicht wiederhergestellt werden. Standardwerte wurden angewendet.</string>
 </resources>
