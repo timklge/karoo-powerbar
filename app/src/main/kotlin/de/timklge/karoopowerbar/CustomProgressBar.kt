@@ -40,7 +40,6 @@ class CustomProgressBar(private val view: CustomView,
     var maxTarget: Double? = null
     var target: Double? = null
     var showLabel: Boolean = true
-    var barBackground: Boolean = false
     /** When enabled, the progress bar is not drawn and the value box is pinned to the edge of the screen. */
     var stickToEdge: Boolean = false
         set(value) {
@@ -256,11 +255,6 @@ class CustomProgressBar(private val view: CustomView,
 
                 // Draw bar components only if barSize is not NONE and not sticking to edge only
                 if (barSize != CustomProgressBarBarSize.NONE && !stickToEdge) {
-                    if (barBackground){
-                        canvas.drawRect(backgroundLeft, 15f, backgroundRight, 15f + barSize.barHeight, backgroundPaint)
-                    }
-
-                    // Draw target zone fill behind the progress bar
                     if (minTarget != null && maxTarget != null) {
                         canvas.drawRoundRect(
                             minTargetX,
@@ -396,11 +390,6 @@ class CustomProgressBar(private val view: CustomView,
 
                 // Draw bar components only if barSize is not NONE and not sticking to edge only
                 if (barSize != CustomProgressBarBarSize.NONE && !stickToEdge) {
-                    if (barBackground){
-                        // Use barSize.barHeight for background top calculation
-                        canvas.drawRect(backgroundLeft, canvas.height.toFloat() - barSize.barHeight, backgroundRight, canvas.height.toFloat(), backgroundPaint)
-                    }
-
                     // Draw target zone fill behind the progress bar
                     if (minTarget != null && maxTarget != null) {
                         canvas.drawRoundRect(

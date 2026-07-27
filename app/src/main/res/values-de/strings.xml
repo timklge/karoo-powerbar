@@ -34,7 +34,6 @@
     <string name="max_pedal_smoothness">Max. Tretgleichmäßigkeit</string>
     <string name="color_based_on_zones">Farbe basierend auf HF-/Leistungszonen</string>
     <string name="show_value_on_bars">Werte auf Balken anzeigen</string>
-    <string name="solid_background">Fester Hintergrund</string>
     <string name="stick_to_edge">Am Rand anheften (nur Wertefeld)</string>
     <string name="only_show_while_riding">Nur während der Fahrt anzeigen</string>
 

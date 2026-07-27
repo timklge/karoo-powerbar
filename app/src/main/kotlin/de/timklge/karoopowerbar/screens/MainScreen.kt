@@ -149,7 +149,6 @@ fun MainScreen(onFinish: () -> Unit) {
     var showLabelOnBars by remember { mutableStateOf(true) }
     var barBarSize by remember { mutableStateOf(CustomProgressBarBarSize.MEDIUM) }
     var barFontSize by remember { mutableStateOf(CustomProgressBarFontSize.MEDIUM) }
-    var barBackground by remember { mutableStateOf(false) }
     var stickToEdge by remember { mutableStateOf(false) }
 
     var minCadence by remember { mutableStateOf("0") }
@@ -190,7 +189,6 @@ fun MainScreen(onFinish: () -> Unit) {
             bottomBarLeftSource = bottomSelectedSourceLeft,
             bottomBarRightSource = bottomSelectedSourceRight,
             onlyShowWhileRiding = onlyShowWhileRiding, showLabelOnBars = showLabelOnBars,
-            barBackground = barBackground,
             stickToEdge = stickToEdge,
             useZoneColors = colorBasedOnZones,
             minCadence = minCadence.toIntOrNull() ?: PowerbarSettings.defaultMinCadence,
@@ -257,7 +255,6 @@ fun MainScreen(onFinish: () -> Unit) {
                 colorBasedOnZones = settings.useZoneColors
                 barBarSize = settings.barBarSize
                 barFontSize = settings.barFontSize
-                barBackground = settings.barBackground
                 stickToEdge = settings.stickToEdge
                 minCadence = settings.minCadence.toString()
                 maxCadence = settings.maxCadence.toString()
@@ -719,15 +716,6 @@ fun MainScreen(onFinish: () -> Unit) {
                     })
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(stringResource(R.string.show_value_on_bars))
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(checked = barBackground, onCheckedChange = {
-                        barBackground = it
-                        coroutineScope.launch { updateSettings() }
-                    })
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(stringResource(R.string.solid_background))
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
