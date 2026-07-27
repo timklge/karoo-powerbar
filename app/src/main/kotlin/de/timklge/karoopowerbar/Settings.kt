@@ -39,7 +39,6 @@ data class PowerbarSettings(
     val onlyShowWhileRiding: Boolean = true,
     val showLabelOnBars: Boolean = true,
     val useZoneColors: Boolean = true,
-    val barBackground: Boolean = false,
     val barSize: CustomProgressBarSize = CustomProgressBarSize.MEDIUM,
     val barFontSize: CustomProgressBarFontSize = CustomProgressBarFontSize.fromSize(barSize),
     val barBarSize: CustomProgressBarBarSize = CustomProgressBarBarSize.fromSize(barSize),

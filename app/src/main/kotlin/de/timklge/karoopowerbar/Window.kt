@@ -71,7 +71,6 @@ class Window(
     private val context: Context,
     val powerbarLocation: PowerbarLocation = PowerbarLocation.BOTTOM,
     val showLabel: Boolean,
-    val barBackground: Boolean,
     val powerbarBarSize: CustomProgressBarBarSize,
     val powerbarFontSize: CustomProgressBarFontSize,
     val splitBars: Boolean,
@@ -172,7 +171,6 @@ class Window(
             powerbar.progressColor = context.resources.getColor(R.color.zone7)
             powerbar.progress = null
             powerbar.showLabel = showLabel
-            powerbar.barBackground = barBackground
             powerbar.stickToEdge = stickToEdge
             powerbar.fontSize = powerbarFontSize
             powerbar.barSize = powerbarBarSize
