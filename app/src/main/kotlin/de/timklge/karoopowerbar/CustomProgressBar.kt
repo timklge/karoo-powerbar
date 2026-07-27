@@ -41,6 +41,12 @@ class CustomProgressBar(private val view: CustomView,
     var target: Double? = null
     var showLabel: Boolean = true
     var barBackground: Boolean = false
+    /** When enabled, the progress bar is not drawn and the value box is pinned to the edge of the screen. */
+    var stickToEdge: Boolean = false
+        set(value) {
+            field = value
+            view.invalidate()
+        }
     @ColorInt var progressColor: Int = 0xFF2b86e6.toInt()
     var drawMode: ProgressBarDrawMode = ProgressBarDrawMode.STANDARD
 
@@ -248,8 +254,8 @@ class CustomProgressBar(private val view: CustomView,
                     15f + barSize.barHeight // barSize.barHeight will be 0f if NONE
                 )
 
-                // Draw bar components only if barSize is not NONE
-                if (barSize != CustomProgressBarBarSize.NONE) {
+                // Draw bar components only if barSize is not NONE and not sticking to edge only
+                if (barSize != CustomProgressBarBarSize.NONE && !stickToEdge) {
                     if (barBackground){
                         canvas.drawRect(backgroundLeft, 15f, backgroundRight, 15f + barSize.barHeight, backgroundPaint)
                     }
@@ -275,8 +281,8 @@ class CustomProgressBar(private val view: CustomView,
                 }
                 // Draw label (if progress is not null and showLabel is true)
                 if (progress != null) {
-                    // Draw target zone stroke after progress bar, before label
-                    if (minTarget != null && maxTarget != null) {
+                    // Draw target zone stroke after progress bar, before label (only when a bar is shown)
+                    if (!stickToEdge && minTarget != null && maxTarget != null) {
                         // Draw stroked rounded rectangle for the target zone
                         canvas.drawRoundRect(
                             minTargetX,
@@ -289,8 +295,8 @@ class CustomProgressBar(private val view: CustomView,
                         )
                     }
 
-                    // Draw vertical target indicator line if target is present
-                    if (target != null) {
+                    // Draw vertical target indicator line if target is present (only when a bar is shown)
+                    if (!stickToEdge && target != null) {
                         targetIndicatorPaint.color = if (isTargetMet) Color.GREEN else Color.RED
                         canvas.drawLine(targetX, 15f, targetX, 15f + barSize.barHeight, targetIndicatorPaint)
                     }
@@ -307,7 +313,14 @@ class CustomProgressBar(private val view: CustomView,
                         val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
 
                         // Calculate label position based on draw mode
-                        val x = when (drawMode) {
+                        val x = if (stickToEdge) {
+                            // When sticking to edge, pin the value box to the horizontal edge of the screen
+                            when (horizontalLocation) {
+                                HorizontalPowerbarLocation.LEFT -> backgroundLeft
+                                HorizontalPowerbarLocation.RIGHT -> backgroundRight - xOffset * 2f
+                                HorizontalPowerbarLocation.FULL -> backgroundRight - xOffset * 2f
+                            }
+                        } else when (drawMode) {
                             ProgressBarDrawMode.STANDARD -> {
                                 // Original logic for standard mode
                                 (if (horizontalLocation != HorizontalPowerbarLocation.RIGHT) rect.right - xOffset else rect.left - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
@@ -346,14 +359,24 @@ class CustomProgressBar(private val view: CustomView,
                         val r = x + xOffset * 2
 
                         val fm = textPaint.fontMetrics
-                        // barCenterY calculation uses barSize.barHeight, which is 0f for NONE,
-                        // correctly centering the label on the 15f line.
-                        val barCenterY = rect.top + barSize.barHeight / 2f
-                        val centeredTextBaselineY = barCenterY - (fm.ascent + fm.descent) / 2f
-                        val calculatedTextBoxTop = centeredTextBaselineY + fm.ascent
-                        val finalTextBoxTop = calculatedTextBoxTop.coerceAtLeast(0f)
-                        val finalTextBaselineY = finalTextBoxTop - fm.ascent
-                        val finalTextBoxBottom = finalTextBaselineY + fm.descent
+                        val finalTextBoxTop: Float
+                        val finalTextBaselineY: Float
+                        val finalTextBoxBottom: Float
+                        if (stickToEdge) {
+                            // Pin the value box to the top edge of the screen
+                            finalTextBoxTop = 2f
+                            finalTextBaselineY = finalTextBoxTop - fm.ascent
+                            finalTextBoxBottom = finalTextBaselineY + fm.descent
+                        } else {
+                            // barCenterY calculation uses barSize.barHeight, which is 0f for NONE,
+                            // correctly centering the label on the 15f line.
+                            val barCenterY = rect.top + barSize.barHeight / 2f
+                            val centeredTextBaselineY = barCenterY - (fm.ascent + fm.descent) / 2f
+                            val calculatedTextBoxTop = centeredTextBaselineY + fm.ascent
+                            finalTextBoxTop = calculatedTextBoxTop.coerceAtLeast(0f)
+                            finalTextBaselineY = finalTextBoxTop - fm.ascent
+                            finalTextBoxBottom = finalTextBaselineY + fm.descent
+                        }
 
                         canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, textBackgroundPaint)
                         canvas.drawRoundRect(x, finalTextBoxTop, r, finalTextBoxBottom, 2f, 2f, blurPaint)
@@ -371,8 +394,8 @@ class CustomProgressBar(private val view: CustomView,
                     canvas.height.toFloat()
                 )
 
-                // Draw bar components only if barSize is not NONE
-                if (barSize != CustomProgressBarBarSize.NONE) {
+                // Draw bar components only if barSize is not NONE and not sticking to edge only
+                if (barSize != CustomProgressBarBarSize.NONE && !stickToEdge) {
                     if (barBackground){
                         // Use barSize.barHeight for background top calculation
                         canvas.drawRect(backgroundLeft, canvas.height.toFloat() - barSize.barHeight, backgroundRight, canvas.height.toFloat(), backgroundPaint)
@@ -400,8 +423,8 @@ class CustomProgressBar(private val view: CustomView,
 
                 // Draw label (if progress is not null and showLabel is true)
                 if (progress != null) {
-                    // Draw target zone stroke after progress bar, before label
-                    if (minTarget != null && maxTarget != null) {
+                    // Draw target zone stroke after progress bar, before label (only when a bar is shown)
+                    if (!stickToEdge && minTarget != null && maxTarget != null) {
                         // Draw stroked rounded rectangle for the target zone
                         canvas.drawRoundRect(
                             minTargetX,
@@ -414,8 +437,8 @@ class CustomProgressBar(private val view: CustomView,
                         )
                     }
 
-                    // Draw vertical target indicator line if target is present
-                    if (target != null) {
+                    // Draw vertical target indicator line if target is present (only when a bar is shown)
+                    if (!stickToEdge && target != null) {
                         targetIndicatorPaint.color = if (isTargetMet) Color.GREEN else Color.RED
                         canvas.drawLine(targetX, canvas.height.toFloat() - barSize.barHeight, targetX, canvas.height.toFloat(), targetIndicatorPaint)
                     }
@@ -432,7 +455,14 @@ class CustomProgressBar(private val view: CustomView,
                         val xOffset = (textBounds + 20).coerceAtLeast(10f) / 2f
 
                         // Calculate label position based on draw mode
-                        val x = when (drawMode) {
+                        val x = if (stickToEdge) {
+                            // When sticking to edge, pin the value box to the horizontal edge of the screen
+                            when (horizontalLocation) {
+                                HorizontalPowerbarLocation.LEFT -> backgroundLeft
+                                HorizontalPowerbarLocation.RIGHT -> backgroundRight - xOffset * 2f
+                                HorizontalPowerbarLocation.FULL -> backgroundRight - xOffset * 2f
+                            }
+                        } else when (drawMode) {
                             ProgressBarDrawMode.STANDARD -> {
                                 // Original logic for standard mode
                                 (if (horizontalLocation != HorizontalPowerbarLocation.RIGHT) rect.right - xOffset else rect.left - xOffset).coerceIn(backgroundLeft..backgroundRight-xOffset*2f)
@@ -470,12 +500,22 @@ class CustomProgressBar(private val view: CustomView,
                         }
                         val r = x + xOffset * 2
 
-                        // textDrawBaselineY calculation uses rect.top and barSize.barHeight.
-                        // If NONE, barSize.barHeight is 0f. rect.top becomes canvas.height - 1f.
-                        // So, baseline is (canvas.height - 1f) + 0f - 1f = canvas.height - 2f.
-                        val textDrawBaselineY = rect.top + barSize.barHeight - 1f
-                        val yBox = textDrawBaselineY + textPaint.ascent()
-                        val bBox = textDrawBaselineY + textPaint.descent()
+                        val textDrawBaselineY: Float
+                        val yBox: Float
+                        val bBox: Float
+                        if (stickToEdge) {
+                            // Pin the value box to the bottom edge of the screen
+                            bBox = canvas.height.toFloat() - 2f
+                            textDrawBaselineY = bBox - textPaint.descent()
+                            yBox = textDrawBaselineY + textPaint.ascent()
+                        } else {
+                            // textDrawBaselineY calculation uses rect.top and barSize.barHeight.
+                            // If NONE, barSize.barHeight is 0f. rect.top becomes canvas.height - 1f.
+                            // So, baseline is (canvas.height - 1f) + 0f - 1f = canvas.height - 2f.
+                            textDrawBaselineY = rect.top + barSize.barHeight - 1f
+                            yBox = textDrawBaselineY + textPaint.ascent()
+                            bBox = textDrawBaselineY + textPaint.descent()
+                        }
 
                         canvas.drawRoundRect(x, yBox, r, bBox, 2f, 2f, textBackgroundPaint)
                         canvas.drawRoundRect(x, yBox, r, bBox, 2f, 2f, blurPaint)

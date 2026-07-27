@@ -35,6 +35,7 @@
     <string name="color_based_on_zones">Color based on HR / power zones</string>
     <string name="show_value_on_bars">Show value on bars</string>
     <string name="solid_background">Solid background</string>
+    <string name="stick_to_edge">Stick to edge (value box only)</string>
     <string name="only_show_while_riding">Only show while riding</string>
 
     <!-- Data Source Labels -->

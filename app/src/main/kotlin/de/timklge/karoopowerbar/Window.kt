@@ -75,6 +75,7 @@ class Window(
     val powerbarBarSize: CustomProgressBarBarSize,
     val powerbarFontSize: CustomProgressBarFontSize,
     val splitBars: Boolean,
+    val stickToEdge: Boolean = false,
     val selectedSource: SelectedSource = SelectedSource.NONE,
     val selectedLeftSource: SelectedSource = SelectedSource.NONE,
     val selectedRightSource: SelectedSource = SelectedSource.NONE
@@ -172,6 +173,7 @@ class Window(
             powerbar.progress = null
             powerbar.showLabel = showLabel
             powerbar.barBackground = barBackground
+            powerbar.stickToEdge = stickToEdge
             powerbar.fontSize = powerbarFontSize
             powerbar.barSize = powerbarBarSize
             powerbar.invalidate()

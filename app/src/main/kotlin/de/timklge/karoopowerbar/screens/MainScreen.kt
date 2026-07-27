@@ -150,6 +150,7 @@ fun MainScreen(onFinish: () -> Unit) {
     var barBarSize by remember { mutableStateOf(CustomProgressBarBarSize.MEDIUM) }
     var barFontSize by remember { mutableStateOf(CustomProgressBarFontSize.MEDIUM) }
     var barBackground by remember { mutableStateOf(false) }
+    var stickToEdge by remember { mutableStateOf(false) }
 
     var minCadence by remember { mutableStateOf("0") }
     var maxCadence by remember { mutableStateOf("0") }
@@ -190,6 +191,7 @@ fun MainScreen(onFinish: () -> Unit) {
             bottomBarRightSource = bottomSelectedSourceRight,
             onlyShowWhileRiding = onlyShowWhileRiding, showLabelOnBars = showLabelOnBars,
             barBackground = barBackground,
+            stickToEdge = stickToEdge,
             useZoneColors = colorBasedOnZones,
             minCadence = minCadence.toIntOrNull() ?: PowerbarSettings.defaultMinCadence,
             maxCadence = maxCadence.toIntOrNull() ?: PowerbarSettings.defaultMaxCadence,
@@ -256,6 +258,7 @@ fun MainScreen(onFinish: () -> Unit) {
                 barBarSize = settings.barBarSize
                 barFontSize = settings.barFontSize
                 barBackground = settings.barBackground
+                stickToEdge = settings.stickToEdge
                 minCadence = settings.minCadence.toString()
                 maxCadence = settings.maxCadence.toString()
                 isImperial = profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
@@ -725,6 +728,15 @@ fun MainScreen(onFinish: () -> Unit) {
                     })
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(stringResource(R.string.solid_background))
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = stickToEdge, onCheckedChange = {
+                        stickToEdge = it
+                        coroutineScope.launch { updateSettings() }
+                    })
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(stringResource(R.string.stick_to_edge))
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
