@@ -23,6 +23,7 @@ enum class SelectedSource(val id: String, val labelResId: Int) {
     REMAINING_ROUTE("route_progress_remaining", R.string.source_route_remaining),
     FRONT_GEAR("front_gear", R.string.source_front_gear),
     REAR_GEAR("rear_gear", R.string.source_rear_gear),
+    COMBINED_GEAR("combined_gear", R.string.source_combined_gear),
     FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR("flight_attendant_suspension_state_rear", R.string.source_flight_attendant_suspension_state_rear),
     FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT("flight_attendant_suspension_state_front", R.string.source_flight_attendant_suspension_state_front),
     FLIGHT_ATTENDANT_SUSPENSION_MODE("flight_attendant_suspension_mode", R.string.source_flight_attendant_suspension_mode);

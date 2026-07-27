@@ -72,7 +72,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that adds colored progress bars representing power, heart rate etc. to the edge of the screen, similar to the LED bars on older Wahoo computers",
-            "releaseNotes" to "* Remove legacy solid bar background option\n* Add option to stick value box to the edge of the screen without bar",
+            "releaseNotes" to "* Add combined front, rear gear data source\n* Remove legacy solid bar background option\n* Add option to stick value box to the edge of the screen without bar",
             "screenshotUrls" to listOf(
                 "$baseUrl/powerbar_min.gif",
                 "$baseUrl/powerbar0.png",
