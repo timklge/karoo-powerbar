@@ -205,6 +205,7 @@ class Window(
                     SelectedSource.POWER_BALANCE_AVG -> streamBalance(PedalBalanceSmoothing.SMOOTHED_RIDE, SelectedSource.POWER_BALANCE_AVG)
                     SelectedSource.FRONT_GEAR -> streamGears(Gears.FRONT)
                     SelectedSource.REAR_GEAR -> streamGears(Gears.REAR)
+                    SelectedSource.COMBINED_GEAR -> streamCombinedGears()
                     SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT -> streamSuspensionState(
                         FlightAttendantSuspensionLocation.FRONT)
                     SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR -> streamSuspensionState(
@@ -525,6 +526,72 @@ class Window(
                     powerbar.invalidate()
                 }
             }
+    }
+
+    private suspend fun streamCombinedGears() {
+        data class GearsState(
+            val frontGear: Int?,
+            val frontMax: Int?,
+            val rearGear: Int?,
+            val rearMax: Int?,
+            val colorize: Boolean,
+        )
+
+        data class StreamState(val settings: PowerbarSettings, val front: io.hammerhead.karooext.models.StreamState?, val rear: io.hammerhead.karooext.models.StreamState?)
+
+        val frontFlow = karooSystem.streamDataFlow(Gears.FRONT.dataTypeId)
+        val rearFlow = karooSystem.streamDataFlow(Gears.REAR.dataTypeId)
+
+        combine(context.streamSettings(), frontFlow, rearFlow) { settings, front, rear ->
+            StreamState(settings, front, rear)
+        }.map { (settings, front, rear) ->
+            val frontValues = (front as? io.hammerhead.karooext.models.StreamState.Streaming)?.dataPoint?.values
+            val rearValues = (rear as? io.hammerhead.karooext.models.StreamState.Streaming)?.dataPoint?.values
+            GearsState(
+                frontGear = frontValues?.get(Gears.FRONT.numberFieldId)?.toInt(),
+                frontMax = frontValues?.get(Gears.FRONT.maxFieldId)?.toInt(),
+                rearGear = rearValues?.get(Gears.REAR.numberFieldId)?.toInt(),
+                rearMax = rearValues?.get(Gears.REAR.maxFieldId)?.toInt(),
+                colorize = settings.useZoneColors,
+            )
+        }.distinctUntilChanged().collect { gearState ->
+            val powerbarsWithGearsSource = powerbars.values.filter { it.source == SelectedSource.COMBINED_GEAR }
+            powerbarsWithGearsSource.forEach { powerbar ->
+                if (gearState.frontGear != null && gearState.rearGear != null) {
+                    val frontMax = gearState.frontMax ?: gearState.frontGear
+                    val rearMax = gearState.rearMax ?: gearState.rearGear
+
+                    val frontProgress = remap(gearState.frontGear.toDouble(), 1.0, frontMax.toDouble(), 0.0, 1.0) ?: 0.0
+                    val rearProgress = remap(gearState.rearGear.toDouble(), 1.0, rearMax.toDouble(), 1.0, 0.0) ?: 0.0
+                    val progress = ((frontProgress + rearProgress) / 2.0).coerceIn(0.0, 1.0)
+
+                    powerbar.progressColor = if (gearState.colorize) {
+                        context.getColor(getZone(progress).colorResource)
+                    } else {
+                        context.getColor(R.color.zone0)
+                    }
+                    powerbar.progress = progress
+                    powerbar.label = "F${gearState.frontGear}-R${gearState.rearGear}"
+
+                    Log.d(TAG, "Gears Combined: F${gearState.frontGear}/${frontMax} R${gearState.rearGear}/${rearMax}")
+                } else if (gearState.frontGear != null || gearState.rearGear != null) {
+                    powerbar.progressColor = context.getColor(R.color.zone0)
+                    powerbar.progress = null
+                    val frontPart = gearState.frontGear?.let { "F$it" } ?: "F?"
+                    val rearPart = gearState.rearGear?.let { "R$it" } ?: "R?"
+                    powerbar.label = "$frontPart-$rearPart"
+
+                    Log.d(TAG, "Gears Combined: Partial")
+                } else {
+                    powerbar.progressColor = context.getColor(R.color.zone0)
+                    powerbar.progress = null
+                    powerbar.label = "?"
+
+                    Log.d(TAG, "Gears Combined: Unavailable")
+                }
+                powerbar.invalidate()
+            }
+        }
     }
 
     private suspend fun streamSpeed(source: SelectedSource, smoothed: Boolean) {

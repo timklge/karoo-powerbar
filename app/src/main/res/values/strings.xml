@@ -57,6 +57,7 @@
     <string name="source_route_remaining">Route Remaining</string>
     <string name="source_front_gear">Front Gear</string>
     <string name="source_rear_gear">Rear Gear</string>
+    <string name="source_combined_gear">Front &amp; Rear Gear</string>
     <string name="source_pedal_smoothness">Pedal Smoothness</string>
 
     <!-- Units -->
