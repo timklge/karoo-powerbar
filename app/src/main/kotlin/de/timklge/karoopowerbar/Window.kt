@@ -356,7 +356,7 @@ class Window(
 
     private suspend fun streamRouteProgress(
         source: SelectedSource,
-        routeProgressProvider: (userProfile: UserProfile, riddenDistance: Double?, routeEndAt: Double?) -> BarProgress
+        routeProgressProvider: (userProfile: UserProfile, riddenDistance: Double?, distanceToDestination: Double?) -> BarProgress
     ) {
         data class StreamData(
             val userProfile: UserProfile,
@@ -366,7 +366,6 @@ class Window(
         )
 
         var lastKnownRoutePolyline: String? = null
-        var lastKnownRouteLength: Double? = null
 
         combine(karooSystem.streamUserProfile(), karooSystem.streamDataFlow(DataType.Type.DISTANCE_TO_DESTINATION), karooSystem.streamNavigationState(), karooSystem.streamDataFlow(DataType.Type.DISTANCE)) { userProfile, distanceToDestination, navigationState, riddenDistance ->
             StreamData(
@@ -385,16 +384,6 @@ class Window(
 
             if (routePolyline != lastKnownRoutePolyline) {
                 lastKnownRoutePolyline = routePolyline
-                lastKnownRouteLength = when (state){
-                    is OnNavigationState.NavigationState.NavigatingRoute -> state.routeDistance
-                    is OnNavigationState.NavigationState.NavigatingToDestination -> try {
-                        TurfMeasurement.length(LineString.fromPolyline(state.polyline, 5), UNIT_METERS)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to calculate route length", e)
-                        null
-                    }
-                    else -> null
-                }
             }
 
             val barProgress = routeProgressProvider(userProfile, riddenDistance, distanceToDestination)
