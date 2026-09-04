@@ -668,8 +668,9 @@ class Window(
                 if (value != null) {
                     val minGradient = streamData.settings?.minGradient ?: PowerbarSettings.defaultMinGradient
                     val maxGradient = streamData.settings?.maxGradient ?: PowerbarSettings.defaultMaxGradient
+                    val useAbsoluteValue = minGradient >= 0
 
-                    powerbar.progress = remap(value.absoluteValue, minGradient.toDouble(), maxGradient.toDouble(), 0.0, 1.0)
+                    powerbar.progress = remap(if (useAbsoluteValue) value.absoluteValue else value, minGradient.toDouble(), maxGradient.toDouble(), 0.0, 1.0)
 
                     val colorRes = getInclineIndicatorColor(value.toFloat()) ?: R.color.zone0
                     powerbar.progressColor = context.getColor(colorRes)

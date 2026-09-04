@@ -72,7 +72,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that adds colored progress bars representing power, heart rate etc. to the edge of the screen, similar to the LED bars on older Wahoo computers",
-            "releaseNotes" to "* Fix route progress / remaining route distance bar length",
+            "releaseNotes" to "* Do not use absolute gradient value for bar progress if negative custom range is set",
             "screenshotUrls" to listOf(
                 "$baseUrl/powerbar_min.gif",
                 "$baseUrl/powerbar0.png",
