@@ -48,7 +48,7 @@ class CustomView @JvmOverloads constructor(
 
 class CustomProgressBar(private val view: CustomView,
                         val source: SelectedSource,
-                        val location: PowerbarLocation,
+                        val location: VerticalPowerbarLocation,
                         val horizontalLocation: HorizontalPowerbarLocation) {
     var progress: Double? = 0.5
     var label: String = ""
@@ -261,7 +261,7 @@ class CustomProgressBar(private val view: CustomView,
         }
 
         when (location) {
-            PowerbarLocation.TOP -> {
+            VerticalPowerbarLocation.TOP -> {
                 val rect = RectF(
                     barLeft,
                     15f,
@@ -396,7 +396,7 @@ class CustomProgressBar(private val view: CustomView,
                     }
             }
 
-            PowerbarLocation.BOTTOM -> {
+            VerticalPowerbarLocation.BOTTOM -> {
                 val rect = RectF(
                     barLeft,
                     canvas.height.toFloat() - 1f - barSize.barHeight, // barSize.barHeight will be 0f if NONE

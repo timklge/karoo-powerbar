@@ -333,7 +333,7 @@ fun MainScreen(onFinish: () -> Unit) {
                             .fillMaxWidth()
                             .height(50.dp), onClick = {
                             val myIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-                            startActivity(ctx, myIntent, null)
+                            ctx.startActivity(myIntent, null)
                         }) {
                             Icon(Icons.Default.Build, contentDescription = stringResource(R.string.content_desc_give_permission))
                             Spacer(modifier = Modifier.width(5.dp))
