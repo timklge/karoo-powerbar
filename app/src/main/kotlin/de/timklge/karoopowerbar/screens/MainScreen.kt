@@ -90,6 +90,7 @@ import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
@@ -135,19 +136,26 @@ fun BarSelectDialog(currentSelectedSource: SelectedSource, onHide: () -> Unit, o
 fun MainScreen(onFinish: () -> Unit) {
     var karooConnected by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
+    val initialSettings = remember(ctx) {
+        runBlocking {
+            ctx.streamSettings(onError = {
+                Toast.makeText(ctx, R.string.settings_restore_error, Toast.LENGTH_LONG).show()
+            }).first()
+        }
+    }
     val coroutineScope = rememberCoroutineScope()
     val karooSystem = remember { KarooSystemService(ctx) }
 
-    var bottomSelectedSource by remember { mutableStateOf(SelectedSource.POWER) }
-    var topSelectedSource by remember { mutableStateOf(SelectedSource.NONE) }
+    var bottomSelectedSource by remember { mutableStateOf(initialSettings.bottomBarSource) }
+    var topSelectedSource by remember { mutableStateOf(initialSettings.topBarSource) }
 
-    var splitTopBar by remember { mutableStateOf(false) }
-    var splitBottomBar by remember { mutableStateOf(false) }
+    var splitTopBar by remember { mutableStateOf(initialSettings.splitTopBar) }
+    var splitBottomBar by remember { mutableStateOf(initialSettings.splitBottomBar) }
 
-    var topSelectedSourceLeft by remember { mutableStateOf(SelectedSource.NONE) }
-    var topSelectedSourceRight by remember { mutableStateOf(SelectedSource.NONE) }
-    var bottomSelectedSourceLeft by remember { mutableStateOf(SelectedSource.NONE) }
-    var bottomSelectedSourceRight by remember { mutableStateOf(SelectedSource.NONE) }
+    var topSelectedSourceLeft by remember { mutableStateOf(initialSettings.topBarLeftSource) }
+    var topSelectedSourceRight by remember { mutableStateOf(initialSettings.topBarRightSource) }
+    var bottomSelectedSourceLeft by remember { mutableStateOf(initialSettings.bottomBarLeftSource) }
+    var bottomSelectedSourceRight by remember { mutableStateOf(initialSettings.bottomBarRightSource) }
 
     var bottomBarDialogVisible by remember { mutableStateOf(false) }
     var topBarDialogVisible by remember { mutableStateOf(false) }
@@ -160,28 +168,32 @@ fun MainScreen(onFinish: () -> Unit) {
     var showAlerts by remember { mutableStateOf(false) }
     var givenPermissions by remember { mutableStateOf(false) }
 
-    var onlyShowWhileRiding by remember { mutableStateOf(false) }
-    var colorBasedOnZones by remember { mutableStateOf(false) }
-    var showLabelOnBars by remember { mutableStateOf(true) }
-    var barBarSize by remember { mutableStateOf(CustomProgressBarBarSize.MEDIUM) }
-    var barFontSize by remember { mutableStateOf(CustomProgressBarFontSize.MEDIUM) }
-    var stickToEdge by remember { mutableStateOf(false) }
+    var onlyShowWhileRiding by remember { mutableStateOf(initialSettings.onlyShowWhileRiding) }
+    var colorBasedOnZones by remember { mutableStateOf(initialSettings.useZoneColors) }
+    var showLabelOnBars by remember { mutableStateOf(initialSettings.showLabelOnBars) }
+    var barBarSize by remember { mutableStateOf(initialSettings.barBarSize) }
+    var barFontSize by remember { mutableStateOf(initialSettings.barFontSize) }
+    var stickToEdge by remember { mutableStateOf(initialSettings.stickToEdge) }
 
-    var minCadence by remember { mutableStateOf("0") }
-    var maxCadence by remember { mutableStateOf("0") }
-    var minSpeed by remember { mutableStateOf("0") }
-    var maxSpeed by remember { mutableStateOf("0") }
+    var minCadence by remember { mutableStateOf(initialSettings.minCadence.toString()) }
+    var maxCadence by remember { mutableStateOf(initialSettings.maxCadence.toString()) }
+    var minSpeed by remember { mutableStateOf((initialSettings.minSpeed * 3.6f).roundToInt().toString()) }
+    var maxSpeed by remember { mutableStateOf((initialSettings.maxSpeed * 3.6f).roundToInt().toString()) }
     var isImperial by remember { mutableStateOf(false) }
-    var customMinPower by remember { mutableStateOf("") }
-    var customMaxPower by remember { mutableStateOf("") }
-    var customMinHr by remember { mutableStateOf("") }
-    var customMaxHr by remember { mutableStateOf("") }
-    var minGrade by remember { mutableStateOf("0") }
-    var maxGrade by remember { mutableStateOf("0") }
-    var minPedalSmoothness by remember { mutableStateOf("0") }
-    var maxPedalSmoothness by remember { mutableStateOf("0") }
-    var useCustomPowerRange by remember { mutableStateOf(false) }
-    var useCustomHrRange by remember { mutableStateOf(false) }
+    var customMinPower by remember { mutableStateOf(initialSettings.minPower?.toString() ?: "") }
+    var customMaxPower by remember { mutableStateOf(initialSettings.maxPower?.toString() ?: "") }
+    var customMinHr by remember { mutableStateOf(initialSettings.minHr?.toString() ?: "") }
+    var customMaxHr by remember { mutableStateOf(initialSettings.maxHr?.toString() ?: "") }
+    var minGrade by remember { mutableStateOf(initialSettings.minGradient?.toString() ?: "") }
+    var maxGrade by remember { mutableStateOf(initialSettings.maxGradient?.toString() ?: "") }
+    var minPedalSmoothness by remember {
+        mutableStateOf(initialSettings.minPedalSmoothness?.roundToInt()?.toString() ?: PowerbarSettings.defaultMinPedalSmoothnessPercent.roundToInt().toString())
+    }
+    var maxPedalSmoothness by remember {
+        mutableStateOf(initialSettings.maxPedalSmoothness?.roundToInt()?.toString() ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent.roundToInt().toString())
+    }
+    var useCustomPowerRange by remember { mutableStateOf(initialSettings.useCustomPowerRange) }
+    var useCustomHrRange by remember { mutableStateOf(initialSettings.useCustomHrRange) }
 
     var profileMaxHr by remember { mutableIntStateOf(0) }
     var profileRestHr by remember { mutableIntStateOf(0) }
@@ -249,7 +261,7 @@ fun MainScreen(onFinish: () -> Unit) {
             profileMaxPower = profileData.powerZones.last().min + 50
         }
     }
-    LaunchedEffect(isImperial) {
+    LaunchedEffect(Unit) {
         givenPermissions = Settings.canDrawOverlays(ctx)
 
         ctx.streamSettings(onError = {
