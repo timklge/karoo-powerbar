@@ -70,7 +70,7 @@ class ForegroundService : Service() {
 
                     if (showBars){
                         if (settings.bottomBarSource != SelectedSource.NONE || settings.bottomBarLeftSource != SelectedSource.NONE || settings.bottomBarRightSource != SelectedSource.NONE) {
-                            Window(this@ForegroundService, PowerbarLocation.BOTTOM, settings.showLabelOnBars,
+                            Window(this@ForegroundService, VerticalPowerbarLocation.BOTTOM, settings.showLabelOnBars,
                                 settings.barBarSize, settings.barFontSize,
                                 settings.splitBottomBar, settings.stickToEdge, settings.bottomBarSource, settings.bottomBarLeftSource, settings.bottomBarRightSource).apply {
                                     windows.add(this)
@@ -79,7 +79,7 @@ class ForegroundService : Service() {
                         }
 
                         if (settings.topBarSource != SelectedSource.NONE || settings.topBarLeftSource != SelectedSource.NONE || settings.topBarRightSource != SelectedSource.NONE) {
-                            Window(this@ForegroundService, PowerbarLocation.TOP, settings.showLabelOnBars,
+                            Window(this@ForegroundService, VerticalPowerbarLocation.TOP, settings.showLabelOnBars,
                                 settings.barBarSize, settings.barFontSize,
                                 settings.splitTopBar, settings.stickToEdge, settings.topBarSource, settings.topBarLeftSource, settings.topBarRightSource).apply {
                                     open()

@@ -32,36 +32,33 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowManager
-import androidx.annotation.ColorRes
-import com.mapbox.geojson.LineString
-import com.mapbox.turf.TurfConstants.UNIT_METERS
-import com.mapbox.turf.TurfMeasurement
 import de.timklge.karoopowerbar.KarooPowerbarExtension.Companion.TAG
+import de.timklge.karoopowerbar.datatypes.BarHandler
 import de.timklge.karoopowerbar.datatypes.FlightAttendantSuspensionLocation
-import de.timklge.karoopowerbar.datatypes.FlightAttendantSuspensionMode
-import de.timklge.karoopowerbar.datatypes.FlightAttendantSuspensionStateValue
 import de.timklge.karoopowerbar.datatypes.Gears
 import de.timklge.karoopowerbar.datatypes.PedalBalanceSmoothing
 import de.timklge.karoopowerbar.datatypes.PowerStreamSmoothing
 import de.timklge.karoopowerbar.datatypes.SelectedSource
+import de.timklge.karoopowerbar.datatypes.handlers.CadenceHandler
+import de.timklge.karoopowerbar.datatypes.handlers.CombinedGearHandler
+import de.timklge.karoopowerbar.datatypes.handlers.FlightAttendantSuspensionModeHandler
+import de.timklge.karoopowerbar.datatypes.handlers.FlightAttendantSuspensionStateHandler
+import de.timklge.karoopowerbar.datatypes.handlers.GearHandler
+import de.timklge.karoopowerbar.datatypes.handlers.GradeHandler
+import de.timklge.karoopowerbar.datatypes.handlers.HeartRateHandler
+import de.timklge.karoopowerbar.datatypes.handlers.PedalSmoothnessHandler
+import de.timklge.karoopowerbar.datatypes.handlers.PowerBalanceHandler
+import de.timklge.karoopowerbar.datatypes.handlers.PowerHandler
+import de.timklge.karoopowerbar.datatypes.handlers.RemainingRouteHandler
+import de.timklge.karoopowerbar.datatypes.handlers.RouteProgressHandler
+import de.timklge.karoopowerbar.datatypes.handlers.SpeedHandler
 import io.hammerhead.karooext.KarooSystemService
-import io.hammerhead.karooext.models.DataPoint
-import io.hammerhead.karooext.models.DataType
-import io.hammerhead.karooext.models.OnNavigationState
-import io.hammerhead.karooext.models.StreamState
-import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Locale
-import kotlin.math.absoluteValue
-import kotlin.math.roundToInt
 
 fun remap(value: Double?, fromMin: Double, fromMax: Double, toMin: Double, toMax: Double): Double? {
     if (value == null) return null
@@ -70,22 +67,9 @@ fun remap(value: Double?, fromMin: Double, fromMax: Double, toMin: Double, toMax
     return (value - fromMin) * (toMax - toMin) / (fromMax - fromMin) + toMin
 }
 
-enum class PowerbarLocation {
-    TOP, BOTTOM
-}
-
-enum class HorizontalPowerbarLocation {
-    FULL, LEFT, RIGHT
-}
-
-enum class ProgressBarDrawMode {
-    STANDARD,    // Normal left-to-right progress
-    CENTER_OUT   // Progress extends outward from center (0.5 = invisible, <0.5 = left, >0.5 = right)
-}
-
 class Window(
     private val context: Context,
-    val powerbarLocation: PowerbarLocation = PowerbarLocation.BOTTOM,
+    val verticalPowerbarLocation: VerticalPowerbarLocation = VerticalPowerbarLocation.BOTTOM,
     val showLabel: Boolean,
     val powerbarBarSize: CustomProgressBarBarSize,
     val powerbarFontSize: CustomProgressBarFontSize,
@@ -95,14 +79,6 @@ class Window(
     val selectedLeftSource: SelectedSource = SelectedSource.NONE,
     val selectedRightSource: SelectedSource = SelectedSource.NONE
 ) {
-    companion object {
-        val FIELD_TARGET_VALUE_ID = "FIELD_WORKOUT_TARGET_VALUE_ID";
-        val FIELD_TARGET_MIN_ID = "FIELD_WORKOUT_TARGET_MIN_VALUE_ID";
-        val FIELD_TARGET_MAX_ID = "FIELD_WORKOUT_TARGET_MAX_VALUE_ID";
-        val TYPE_SUSPENSION_MODE_ID = "TYPE_SUSPENSION_MODE_ID"
-        val FIELD_SUSPENSION_MODE_ID = "FIELD_SUSPENSION_MODE_ID"
-    }
-
     private val rootView: View
     private var layoutParams: WindowManager.LayoutParams? = null
     private val windowManager: WindowManager
@@ -139,11 +115,11 @@ class Window(
             windowManager.defaultDisplay.getMetrics(displayMetrics)
         }
 
-        layoutParams?.gravity = when (powerbarLocation) {
-            PowerbarLocation.TOP -> Gravity.TOP
-            PowerbarLocation.BOTTOM -> Gravity.BOTTOM
+        layoutParams?.gravity = when (verticalPowerbarLocation) {
+            VerticalPowerbarLocation.TOP -> Gravity.TOP
+            VerticalPowerbarLocation.BOTTOM -> Gravity.BOTTOM
         }
-        if (powerbarLocation == PowerbarLocation.TOP) {
+        if (verticalPowerbarLocation == VerticalPowerbarLocation.TOP) {
             layoutParams?.y = 0
         } else {
             layoutParams?.y = 0
@@ -172,19 +148,19 @@ class Window(
         powerbars.clear()
         if (!splitBars) {
             if (selectedSource != SelectedSource.NONE){
-                powerbars[HorizontalPowerbarLocation.FULL] = CustomProgressBar(view, selectedSource, powerbarLocation, HorizontalPowerbarLocation.FULL)
+                powerbars[HorizontalPowerbarLocation.FULL] = CustomProgressBar(view, selectedSource, verticalPowerbarLocation, HorizontalPowerbarLocation.FULL)
             }
         } else {
             if (selectedLeftSource != SelectedSource.NONE) {
-                powerbars[HorizontalPowerbarLocation.LEFT] = CustomProgressBar(view, selectedLeftSource, powerbarLocation, HorizontalPowerbarLocation.LEFT)
+                powerbars[HorizontalPowerbarLocation.LEFT] = CustomProgressBar(view, selectedLeftSource, verticalPowerbarLocation, HorizontalPowerbarLocation.LEFT)
             }
             if (selectedRightSource != SelectedSource.NONE) {
-                powerbars[HorizontalPowerbarLocation.RIGHT] = CustomProgressBar(view, selectedRightSource, powerbarLocation, HorizontalPowerbarLocation.RIGHT)
+                powerbars[HorizontalPowerbarLocation.RIGHT] = CustomProgressBar(view, selectedRightSource, verticalPowerbarLocation, HorizontalPowerbarLocation.RIGHT)
             }
         }
 
         powerbars.values.forEach { powerbar ->
-            powerbar.progressColor = context.resources.getColor(R.color.zone7)
+            powerbar.progressColor = context.resources.getColor(R.color.zone7, context.theme)
             powerbar.progress = null
             powerbar.showLabel = showLabel
             powerbar.stickToEdge = stickToEdge
@@ -201,34 +177,36 @@ class Window(
             serviceJobs.add( CoroutineScope(Dispatchers.IO).launch {
                 Log.i(TAG, "Starting stream for $selectedSource")
 
-                when (selectedSource){
-                    SelectedSource.POWER -> streamPower(SelectedSource.POWER, PowerStreamSmoothing.RAW)
-                    SelectedSource.POWER_3S -> streamPower(SelectedSource.POWER_3S, PowerStreamSmoothing.SMOOTHED_3S)
-                    SelectedSource.POWER_10S -> streamPower(SelectedSource.POWER_10S, PowerStreamSmoothing.SMOOTHED_10S)
-                    SelectedSource.HEART_RATE -> streamHeartrate()
-                    SelectedSource.SPEED -> streamSpeed(SelectedSource.SPEED, false)
-                    SelectedSource.SPEED_3S -> streamSpeed(SelectedSource.SPEED_3S, true)
-                    SelectedSource.CADENCE -> streamCadence(SelectedSource.CADENCE, false)
-                    SelectedSource.CADENCE_3S -> streamCadence(SelectedSource.CADENCE_3S, true)
-                    SelectedSource.ROUTE_PROGRESS -> streamRouteProgress(SelectedSource.ROUTE_PROGRESS, ::getRouteProgress)
-                    SelectedSource.REMAINING_ROUTE -> streamRouteProgress(SelectedSource.REMAINING_ROUTE, ::getRemainingRouteProgress)
-                    SelectedSource.GRADE -> streamGrade()
-                    SelectedSource.PEDAL_SMOOTHNESS -> streamPedalSmoothness(SelectedSource.PEDAL_SMOOTHNESS)
-                    SelectedSource.POWER_BALANCE -> streamBalance(PedalBalanceSmoothing.RAW, SelectedSource.POWER_BALANCE)
-                    SelectedSource.POWER_BALANCE_3S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_3S, SelectedSource.POWER_BALANCE_3S)
-                    SelectedSource.POWER_BALANCE_10S -> streamBalance(PedalBalanceSmoothing.SMOOTHED_10S, SelectedSource.POWER_BALANCE_10S)
-                    SelectedSource.POWER_BALANCE_LAP -> streamBalance(PedalBalanceSmoothing.SMOOTHED_LAP, SelectedSource.POWER_BALANCE_LAP)
-                    SelectedSource.POWER_BALANCE_AVG -> streamBalance(PedalBalanceSmoothing.SMOOTHED_RIDE, SelectedSource.POWER_BALANCE_AVG)
-                    SelectedSource.FRONT_GEAR -> streamGears(Gears.FRONT)
-                    SelectedSource.REAR_GEAR -> streamGears(Gears.REAR)
-                    SelectedSource.COMBINED_GEAR -> streamCombinedGears()
-                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT -> streamSuspensionState(
-                        FlightAttendantSuspensionLocation.FRONT)
-                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR -> streamSuspensionState(
-                        FlightAttendantSuspensionLocation.REAR)
-                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_MODE -> streamSuspensionMode()
-                    SelectedSource.NONE -> {}
+                val handler: BarHandler? = when (selectedSource) {
+                    SelectedSource.HEART_RATE -> HeartRateHandler()
+                    SelectedSource.POWER -> PowerHandler(PowerStreamSmoothing.RAW)
+                    SelectedSource.POWER_3S -> PowerHandler(PowerStreamSmoothing.SMOOTHED_3S)
+                    SelectedSource.POWER_10S -> PowerHandler(PowerStreamSmoothing.SMOOTHED_10S)
+                    SelectedSource.SPEED -> SpeedHandler(false)
+                    SelectedSource.SPEED_3S -> SpeedHandler(true)
+                    SelectedSource.CADENCE -> CadenceHandler(false)
+                    SelectedSource.CADENCE_3S -> CadenceHandler(true)
+                    SelectedSource.GRADE -> GradeHandler()
+                    SelectedSource.POWER_BALANCE -> PowerBalanceHandler(PedalBalanceSmoothing.RAW)
+                    SelectedSource.POWER_BALANCE_3S -> PowerBalanceHandler(PedalBalanceSmoothing.SMOOTHED_3S)
+                    SelectedSource.POWER_BALANCE_10S -> PowerBalanceHandler(PedalBalanceSmoothing.SMOOTHED_10S)
+                    SelectedSource.POWER_BALANCE_LAP -> PowerBalanceHandler(PedalBalanceSmoothing.SMOOTHED_LAP)
+                    SelectedSource.POWER_BALANCE_AVG -> PowerBalanceHandler(PedalBalanceSmoothing.SMOOTHED_RIDE)
+                    SelectedSource.PEDAL_SMOOTHNESS -> PedalSmoothnessHandler()
+                    SelectedSource.ROUTE_PROGRESS -> RouteProgressHandler()
+                    SelectedSource.REMAINING_ROUTE -> RemainingRouteHandler()
+                    SelectedSource.FRONT_GEAR -> GearHandler(Gears.FRONT)
+                    SelectedSource.REAR_GEAR -> GearHandler(Gears.REAR)
+                    SelectedSource.COMBINED_GEAR -> CombinedGearHandler()
+                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT ->
+                        FlightAttendantSuspensionStateHandler(FlightAttendantSuspensionLocation.FRONT)
+                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR ->
+                        FlightAttendantSuspensionStateHandler(FlightAttendantSuspensionLocation.REAR)
+                    SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_MODE -> FlightAttendantSuspensionModeHandler()
+                    SelectedSource.NONE -> null
                 }
+
+                handler?.handle(context, karooSystem, powerbars.values.filter { it.source == selectedSource })
             })
         }
 
@@ -240,622 +218,6 @@ class Window(
             }
         } catch (e: Exception) {
             Log.e(TAG, e.toString())
-        }
-    }
-
-    private suspend fun streamPedalSmoothness(selectedSource: SelectedSource) {
-        data class StreamData(val pedalSmoothnessLeft: Double?, val pedalSmoothnessRight: Double?, val power: Double?,
-                              val settings: PowerbarSettings? = null)
-
-        val settingsFlow = context.streamSettings()
-        val pedalSmoothnessFlow = karooSystem.streamDataFlow(DataType.Type.PEDAL_SMOOTHNESS)
-
-        combine(pedalSmoothnessFlow, settingsFlow) { pedalSmoothness, settings ->
-            val values = (pedalSmoothness as? StreamState.Streaming)?.dataPoint?.values
-            val pedalSmoothnessLeft = values?.get(DataType.Field.PEDAL_SMOOTHNESS_LEFT)
-            val pedalSmoothnessRight = values?.get(DataType.Field.PEDAL_SMOOTHNESS_RIGHT)
-
-            StreamData(pedalSmoothnessLeft, pedalSmoothnessRight, values?.get(DataType.Field.POWER), settings)
-        }.distinctUntilChanged().throttle(1_000).collect { streamData ->
-            val pedalSmoothnessLeft = streamData.pedalSmoothnessLeft?.coerceIn(0.0, 100.0)
-            val pedalSmoothnessRight = streamData.pedalSmoothnessRight?.coerceIn(0.0, 100.0)
-            val pedalSmoothnessAvg = if (pedalSmoothnessLeft != null && pedalSmoothnessRight != null) {
-                (pedalSmoothnessLeft + pedalSmoothnessRight) / 2.0
-            } else {
-                pedalSmoothnessRight ?: pedalSmoothnessLeft
-            }
-
-            val powerbarsWithSmoothnessSource = powerbars.values.filter { it.source == selectedSource }
-
-            powerbarsWithSmoothnessSource.forEach { powerbar ->
-                if (pedalSmoothnessAvg != null) {
-                    val minPedalSmoothness = streamData.settings?.minPedalSmoothness ?: PowerbarSettings.defaultMinPedalSmoothnessPercent
-                    val maxPedalSmoothness = streamData.settings?.maxPedalSmoothness ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent
-                    val value = remap(pedalSmoothnessAvg, minPedalSmoothness.toDouble(), maxPedalSmoothness.toDouble(), 1.0, 0.0)?.coerceIn(0.0, 1.0) ?: 0.0
-                    @ColorRes val zoneColorRes = getZone(value).colorResource
-
-                    powerbar.progressColor = context.getColor(zoneColorRes)
-                    powerbar.progress = remap(pedalSmoothnessAvg, minPedalSmoothness.toDouble(), maxPedalSmoothness.toDouble(), 0.0, 1.0)?.coerceIn(0.0, 1.0)
-                    powerbar.label = if (pedalSmoothnessLeft != null && pedalSmoothnessRight != null && pedalSmoothnessLeft.roundToInt() != pedalSmoothnessRight.roundToInt()) {
-                        "${pedalSmoothnessLeft.roundToInt()}-${pedalSmoothnessRight.roundToInt()}"
-                    } else {
-                        "${pedalSmoothnessAvg.roundToInt()}"
-                    }
-
-                    Log.d(TAG, "Pedal Smoothness: $pedalSmoothnessLeft-$pedalSmoothnessRight power: ${streamData.power}")
-                } else {
-                    powerbar.progressColor = context.getColor(R.color.zone0)
-                    powerbar.progress = null
-                    powerbar.label = "?"
-
-                    Log.d(TAG, "Pedal Smoothness: Unavailable")
-                }
-                powerbar.invalidate()
-            }
-        }
-    }
-
-    private suspend fun streamBalance(smoothing: PedalBalanceSmoothing, selectedSource: SelectedSource) {
-        data class StreamData(val powerBalanceLeft: Double?, val power: Double?)
-
-        karooSystem.streamDataFlow(smoothing.dataTypeId)
-            .map {
-                val values = (it as? StreamState.Streaming)?.dataPoint?.values
-
-                StreamData(values?.get(DataType.Field.PEDAL_POWER_BALANCE_LEFT), values?.get(DataType.Field.POWER))
-            }
-            .distinctUntilChanged()
-            .throttle(1_000).collect { streamData ->
-                val powerBalanceLeft = streamData.powerBalanceLeft
-                val powerbarsWithBalanceSource = powerbars.values.filter { it.source == selectedSource }
-
-                powerbarsWithBalanceSource.forEach { powerbar ->
-                    powerbar.drawMode = ProgressBarDrawMode.CENTER_OUT
-
-                    if (streamData.powerBalanceLeft != null) {
-                        val value = remap(powerBalanceLeft.coerceIn(0.0, 100.0), 40.0, 60.0, 100.0, 0.0)
-
-                        val percentLeft = powerBalanceLeft.roundToInt()
-
-                        @ColorRes val zoneColorRes = if (percentLeft > 50) {
-                            R.color.zone0
-                        } else if (percentLeft == 50) {
-                            R.color.zone1
-                        } else {
-                            R.color.zone7
-                        }
-
-                        powerbar.progressColor = context.getColor(zoneColorRes)
-                        powerbar.progress = value?.div(100.0)
-
-                        val percentRight = 100 - percentLeft
-
-                        powerbar.label = "${percentLeft}-${percentRight}"
-
-                        Log.d(TAG, "Balance: $powerBalanceLeft power: ${streamData.power}")
-                    } else {
-                        powerbar.progressColor = context.getColor(R.color.zone0)
-                        powerbar.progress = null
-                        powerbar.label = "?"
-
-                        Log.d(TAG, "Balance: Unavailable")
-                    }
-                    powerbar.invalidate()
-                }
-            }
-    }
-
-    data class BarProgress(
-        val progress: Double?,
-        val label: String?,
-    )
-
-    private fun getRouteProgress(userProfile: UserProfile, riddenDistance: Double?, distanceToDestination: Double?): BarProgress {
-        val routeProgress = if (distanceToDestination != null && riddenDistance != null) remap(riddenDistance, 0.0, riddenDistance + distanceToDestination, 0.0, 1.0) else null
-        val routeProgressInUserUnit = when (userProfile.preferredUnit.distance) {
-            UserProfile.PreferredUnit.UnitType.IMPERIAL -> riddenDistance?.times(0.000621371)?.roundToInt() // Miles
-            else -> riddenDistance?.times(0.001)?.roundToInt() // Kilometers
-        }
-
-        return BarProgress(routeProgress, routeProgressInUserUnit?.toString())
-    }
-
-    private fun getRemainingRouteProgress(userProfile: UserProfile, riddenDistance: Double?, distanceToDestination: Double?): BarProgress {
-        val routeProgress = if (distanceToDestination != null && riddenDistance != null) remap(riddenDistance, 0.0, riddenDistance + distanceToDestination, 0.0, 1.0) else null
-        val distanceToDestinationInUserUnit = when (userProfile.preferredUnit.distance) {
-            UserProfile.PreferredUnit.UnitType.IMPERIAL -> distanceToDestination?.times(0.000621371)?.roundToInt() // Miles
-            else -> distanceToDestination?.times(0.001)?.roundToInt() // Kilometers
-        }
-
-        return BarProgress(routeProgress, distanceToDestinationInUserUnit?.toString())
-    }
-
-    private suspend fun streamRouteProgress(
-        source: SelectedSource,
-        routeProgressProvider: (userProfile: UserProfile, riddenDistance: Double?, distanceToDestination: Double?) -> BarProgress
-    ) {
-        data class StreamData(
-            val userProfile: UserProfile,
-            val distanceToDestination: Double?,
-            val navigationState: OnNavigationState,
-            val riddenDistance: Double?
-        )
-
-        var lastKnownRoutePolyline: String? = null
-
-        combine(karooSystem.streamUserProfile(), karooSystem.streamDataFlow(DataType.Type.DISTANCE_TO_DESTINATION), karooSystem.streamNavigationState(), karooSystem.streamDataFlow(DataType.Type.DISTANCE)) { userProfile, distanceToDestination, navigationState, riddenDistance ->
-            StreamData(
-                userProfile,
-                (distanceToDestination as? StreamState.Streaming)?.dataPoint?.values?.get(DataType.Field.DISTANCE_TO_DESTINATION),
-                navigationState,
-                (riddenDistance as? StreamState.Streaming)?.dataPoint?.values?.get(DataType.Field.DISTANCE)
-            )
-        }.distinctUntilChanged().throttle(5_000).collect { (userProfile, distanceToDestination, navigationState, riddenDistance) ->
-            val state = navigationState.state
-            val routePolyline = when (state) {
-                is OnNavigationState.NavigationState.NavigatingRoute -> state.routePolyline
-                is OnNavigationState.NavigationState.NavigatingToDestination -> state.polyline
-                else -> null
-            }
-
-            if (routePolyline != lastKnownRoutePolyline) {
-                lastKnownRoutePolyline = routePolyline
-            }
-
-            val barProgress = routeProgressProvider(userProfile, riddenDistance, distanceToDestination)
-
-            val powerbarsWithRouteProgressSource = powerbars.values.filter { it.source == source }
-
-            powerbarsWithRouteProgressSource.forEach { powerbar ->
-                powerbar.progressColor = context.getColor(R.color.zone0)
-                powerbar.progress = barProgress.progress
-                powerbar.label = barProgress.label ?: ""
-                powerbar.invalidate()
-            }
-        }
-    }
-
-    private val flightAttendantSuspensionModes = FlightAttendantSuspensionMode.entries.associateBy { it.value }
-
-    private suspend fun streamSuspensionMode() {
-        karooSystem.streamDataFlow(TYPE_SUSPENSION_MODE_ID)
-            .map {
-                (it as? StreamState.Streaming)?.dataPoint?.values?.get(FIELD_SUSPENSION_MODE_ID)?.toInt()
-            }
-            .distinctUntilChanged()
-            .collect { modeValue ->
-                val powerbarsWithSuspensionModeSource = powerbars.values.filter { it.source == SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_MODE }
-
-                powerbarsWithSuspensionModeSource.forEach { powerbar ->
-                    if (modeValue != null) {
-                        val value = flightAttendantSuspensionModes[modeValue]
-                        val label = value?.let { context.getString(it.labelResId) } ?: "?"
-
-                        powerbar.progressColor = context.getColor(value?.colorResId ?: R.color.zone0)
-                        powerbar.progress = 0.0
-                        powerbar.label = label
-
-                        Log.d(TAG, "Suspension Mode: $label")
-                    } else {
-                        powerbar.progressColor = context.getColor(R.color.zone0)
-                        powerbar.progress = null
-                        powerbar.label = "?"
-
-                        Log.d(TAG, "Suspension Mode: Unavailable")
-                    }
-                    powerbar.invalidate()
-                }
-            }
-    }
-
-    val flightAttendantSuspensionValues = FlightAttendantSuspensionStateValue.entries.associateBy { it.value }
-
-    private suspend fun streamSuspensionState(type: FlightAttendantSuspensionLocation) {
-        karooSystem.streamDataFlow(type.dataTypeId)
-            .map {
-                (it as? StreamState.Streaming)?.dataPoint?.values?.get(type.stateFieldId)?.toInt()
-            }
-            .distinctUntilChanged()
-            .collect { stateValue ->
-                val powerbarsWithSuspensionSource = powerbars.values.filter { it.source == when (type) {
-                    FlightAttendantSuspensionLocation.FRONT -> SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_FRONT
-                    FlightAttendantSuspensionLocation.REAR -> SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_STATE_REAR
-                } }
-
-                powerbarsWithSuspensionSource.forEach { powerbar ->
-                    if (stateValue != null) {
-                        val value = flightAttendantSuspensionValues[stateValue]
-                        val label = value?.let { context.getString(it.labelResId) } ?: "?"
-
-                        powerbar.progressColor = context.getColor(value?.colorResId ?: R.color.zone0)
-                        powerbar.progress = 0.0
-                        powerbar.label = label
-
-                        Log.d(TAG, "Suspension ${type.name}: $label")
-                    } else {
-                        powerbar.progressColor = context.getColor(R.color.zone0)
-                        powerbar.progress = null
-                        powerbar.label = "?"
-
-                        Log.d(TAG, "Suspension ${type.name}: Unavailable")
-                    }
-                    powerbar.invalidate()
-                }
-            }
-    }
-
-    private suspend fun streamGears(gears: Gears) {
-        data class GearsState(val currentGear: Int?, val maxGear: Int?, val colorize: Boolean)
-        data class StreamState(val settings: PowerbarSettings, val streamState: io.hammerhead.karooext.models.StreamState?)
-
-        val gearsSource = when (gears) {
-            Gears.FRONT -> SelectedSource.FRONT_GEAR
-            Gears.REAR -> SelectedSource.REAR_GEAR
-        }
-
-        combine(context.streamSettings(), karooSystem.streamDataFlow(gears.dataTypeId)) { settings, streamState -> StreamState(settings, streamState) }
-            .map { (settings, streamState) ->
-                val valueMap = (streamState as? io.hammerhead.karooext.models.StreamState.Streaming)?.dataPoint?.values
-
-                valueMap?.let {
-                    GearsState(valueMap[gears.numberFieldId]?.toInt(), valueMap[gears.maxFieldId]?.toInt(), settings.useZoneColors)
-                }
-
-                // if (gears == Gears.FRONT) GearsState(1, 2, settings.useZoneColors) else GearsState(6, 12, settings.useZoneColors)
-            }
-            .distinctUntilChanged().collect { gearState ->
-                val powerbarsWithGearsSource = powerbars.values.filter { it.source == gearsSource }
-                powerbarsWithGearsSource.forEach { powerbar ->
-                    if (gearState?.currentGear != null) {
-                        val currentGear = gearState.currentGear
-                        val maxGear = gearState.maxGear ?: gearState.currentGear
-                        val progress = remap(currentGear.toDouble(), 1.0, maxGear.toDouble(), 0.0, 1.0)
-
-                        powerbar.progressColor = if (gearState.colorize) {
-                            progress?.let { context.getColor(getZone(progress).colorResource) } ?: context.getColor(R.color.zone0)
-                        } else {
-                            context.getColor(R.color.zone0)
-                        }
-                        powerbar.progress = progress
-                        powerbar.label = "${gears.prefix}${currentGear}"
-
-                        Log.d(TAG, "Gears ${gears.name}: $currentGear/$maxGear")
-                    } else {
-                        powerbar.progressColor = context.getColor(R.color.zone0)
-                        powerbar.progress = null
-                        powerbar.label = "?"
-
-                        Log.d(TAG, "Gears ${gears.name}: Unavailable")
-                    }
-                    powerbar.invalidate()
-                }
-            }
-    }
-
-    private suspend fun streamCombinedGears() {
-        data class GearsState(
-            val frontGear: Int?,
-            val frontMax: Int?,
-            val rearGear: Int?,
-            val rearMax: Int?,
-            val colorize: Boolean,
-        )
-
-        data class StreamState(val settings: PowerbarSettings, val front: io.hammerhead.karooext.models.StreamState?, val rear: io.hammerhead.karooext.models.StreamState?)
-
-        val frontFlow = karooSystem.streamDataFlow(Gears.FRONT.dataTypeId)
-        val rearFlow = karooSystem.streamDataFlow(Gears.REAR.dataTypeId)
-
-        combine(context.streamSettings(), frontFlow, rearFlow) { settings, front, rear ->
-            StreamState(settings, front, rear)
-        }.map { (settings, front, rear) ->
-            val frontValues = (front as? io.hammerhead.karooext.models.StreamState.Streaming)?.dataPoint?.values
-            val rearValues = (rear as? io.hammerhead.karooext.models.StreamState.Streaming)?.dataPoint?.values
-            GearsState(
-                frontGear = frontValues?.get(Gears.FRONT.numberFieldId)?.toInt(),
-                frontMax = frontValues?.get(Gears.FRONT.maxFieldId)?.toInt(),
-                rearGear = rearValues?.get(Gears.REAR.numberFieldId)?.toInt(),
-                rearMax = rearValues?.get(Gears.REAR.maxFieldId)?.toInt(),
-                colorize = settings.useZoneColors,
-            )
-        }.distinctUntilChanged().collect { gearState ->
-            val powerbarsWithGearsSource = powerbars.values.filter { it.source == SelectedSource.COMBINED_GEAR }
-            powerbarsWithGearsSource.forEach { powerbar ->
-                if (gearState.frontGear != null && gearState.rearGear != null) {
-                    val frontMax = gearState.frontMax ?: gearState.frontGear
-                    val rearMax = gearState.rearMax ?: gearState.rearGear
-
-                    val frontProgress = remap(gearState.frontGear.toDouble(), 1.0, frontMax.toDouble(), 0.0, 1.0) ?: 0.0
-                    val rearProgress = remap(gearState.rearGear.toDouble(), 1.0, rearMax.toDouble(), 1.0, 0.0) ?: 0.0
-                    val progress = ((frontProgress + rearProgress) / 2.0).coerceIn(0.0, 1.0)
-
-                    powerbar.progressColor = if (gearState.colorize) {
-                        context.getColor(getZone(progress).colorResource)
-                    } else {
-                        context.getColor(R.color.zone0)
-                    }
-                    powerbar.progress = progress
-                    powerbar.label = "F${gearState.frontGear}-R${gearState.rearGear}"
-
-                    Log.d(TAG, "Gears Combined: F${gearState.frontGear}/${frontMax} R${gearState.rearGear}/${rearMax}")
-                } else if (gearState.frontGear != null || gearState.rearGear != null) {
-                    powerbar.progressColor = context.getColor(R.color.zone0)
-                    powerbar.progress = null
-                    val frontPart = gearState.frontGear?.let { "F$it" } ?: "F?"
-                    val rearPart = gearState.rearGear?.let { "R$it" } ?: "R?"
-                    powerbar.label = "$frontPart-$rearPart"
-
-                    Log.d(TAG, "Gears Combined: Partial")
-                } else {
-                    powerbar.progressColor = context.getColor(R.color.zone0)
-                    powerbar.progress = null
-                    powerbar.label = "?"
-
-                    Log.d(TAG, "Gears Combined: Unavailable")
-                }
-                powerbar.invalidate()
-            }
-        }
-    }
-
-    private suspend fun streamSpeed(source: SelectedSource, smoothed: Boolean) {
-        val speedFlow = karooSystem.streamDataFlow(if(smoothed) DataType.Type.SMOOTHED_3S_AVERAGE_SPEED else DataType.Type.SPEED)
-            .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
-            .distinctUntilChanged()
-
-        val settingsFlow = context.streamSettings()
-
-        data class StreamData(val userProfile: UserProfile, val value: Double?, val settings: PowerbarSettings? = null)
-
-        combine(karooSystem.streamUserProfile(), speedFlow, settingsFlow) { userProfile, speed, settings ->
-            StreamData(userProfile, speed, settings)
-        }.distinctUntilChanged().throttle(1_000).collect { streamData ->
-                val valueMetersPerSecond = streamData.value
-                val value = when (streamData.userProfile.preferredUnit.distance){
-                    UserProfile.PreferredUnit.UnitType.IMPERIAL -> valueMetersPerSecond?.times(2.23694)
-                    else -> valueMetersPerSecond?.times(3.6)
-                }?.roundToInt()
-
-                val powerbarsWithSpeedSource = powerbars.values.filter { it.source == source }
-                powerbarsWithSpeedSource.forEach { powerbar ->
-                    if (value != null) {
-                        val minSpeed = streamData.settings?.minSpeed ?: PowerbarSettings.defaultMinSpeedMs
-                        val maxSpeed = streamData.settings?.maxSpeed ?: PowerbarSettings.defaultMaxSpeedMs
-                        val progress = remap(valueMetersPerSecond, minSpeed.toDouble(), maxSpeed.toDouble(), 0.0, 1.0) ?: 0.0
-
-                        @ColorRes val zoneColorRes = Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
-
-                        powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
-                            context.getColor(zoneColorRes)
-                        } else {
-                            context.getColor(R.color.zone0)
-                        }
-                        powerbar.progress = progress
-                        powerbar.label = "$value"
-
-                        Log.d(TAG, "Speed: $value min: $minSpeed max: $maxSpeed")
-                    } else {
-                        powerbar.progressColor = context.getColor(R.color.zone0)
-                        powerbar.progress = null
-                        powerbar.label = "?"
-
-                        Log.d(TAG, "Speed: Unavailable")
-                    }
-                    powerbar.invalidate()
-                }
-            }
-    }
-
-    private suspend fun streamGrade() {
-        @ColorRes
-        fun getInclineIndicatorColor(percent: Float): Int? {
-            return when(percent) {
-                in -Float.MAX_VALUE..<-7.5f -> R.color.eleDarkBlue // Dark blue
-                in -7.5f..<-4.6f -> R.color.eleLightBlue // Light blue
-                in -4.6f..<-2f -> R.color.eleWhite // White
-                in -2f..<2f -> R.color.eleGray // Gray
-                in 2f..<4.6f -> R.color.eleDarkGreen // Dark green
-                in 4.6f..<7.5f -> R.color.eleLightGreen // Light green
-                in 7.5f..<12.5f -> R.color.eleYellow // Yellow
-                in 12.5f..<15.5f -> R.color.eleLightOrange // Light Orange
-                in 15.5f..<19.5f -> R.color.eleDarkOrange // Dark Orange
-                in 19.5f..<23.5f -> R.color.eleRed // Red
-                in 23.5f..Float.MAX_VALUE -> R.color.elePurple // Purple
-                else -> null
-            }
-        }
-
-        val gradeFlow = karooSystem.streamDataFlow(DataType.Type.ELEVATION_GRADE)
-            .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
-            .distinctUntilChanged()
-
-        data class StreamData(val userProfile: UserProfile, val value: Double?, val settings: PowerbarSettings? = null)
-
-        val settingsFlow = context.streamSettings()
-
-        combine(karooSystem.streamUserProfile(), gradeFlow, settingsFlow) { userProfile, grade, settings ->
-            StreamData(userProfile, grade, settings)
-        }.distinctUntilChanged().throttle(1_000).collect { streamData ->
-            val value = streamData.value
-
-            val powerbarsWithGradeSource = powerbars.values.filter { it.source == SelectedSource.GRADE }
-
-            powerbarsWithGradeSource.forEach { powerbar ->
-                if (value != null) {
-                    val minGradient = streamData.settings?.minGradient ?: PowerbarSettings.defaultMinGradient
-                    val maxGradient = streamData.settings?.maxGradient ?: PowerbarSettings.defaultMaxGradient
-                    val useAbsoluteValue = minGradient >= 0
-
-                    powerbar.progress = remap(if (useAbsoluteValue) value.absoluteValue else value, minGradient.toDouble(), maxGradient.toDouble(), 0.0, 1.0)
-
-                    val colorRes = getInclineIndicatorColor(value.toFloat()) ?: R.color.zone0
-                    powerbar.progressColor = context.getColor(colorRes)
-                    powerbar.label = "${String.format(Locale.getDefault(), "%.1f", value)}%"
-
-                    Log.d(TAG, "Grade: $value")
-                } else {
-                    powerbar.progressColor = context.getColor(R.color.zone0)
-                    powerbar.progress = null
-                    powerbar.label = "?"
-
-                    Log.d(TAG, "Grade: Unavailable")
-                }
-                powerbar.invalidate()
-            }
-        }
-    }
-
-    private suspend fun streamCadence(source: SelectedSource, smoothed: Boolean) {
-        val cadenceFlow = karooSystem.streamDataFlow(if(smoothed) DataType.Type.SMOOTHED_3S_AVERAGE_CADENCE else DataType.Type.CADENCE)
-            .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
-            .distinctUntilChanged()
-
-        data class StreamData(val userProfile: UserProfile, val value: Double?, val settings: PowerbarSettings? = null, val cadenceTarget: DataPoint? = null)
-
-        val settingsFlow = context.streamSettings()
-        val cadenceTargetFlow = karooSystem.streamDataFlow("TYPE_WORKOUT_CADENCE_TARGET_ID")
-            .map { (it as? StreamState.Streaming)?.dataPoint }
-            .distinctUntilChanged()
-
-        combine(karooSystem.streamUserProfile(), cadenceFlow, settingsFlow, cadenceTargetFlow) { userProfile, speed, settings, cadenceTarget ->
-            StreamData(userProfile, speed, settings, cadenceTarget)
-        }.distinctUntilChanged().throttle(1_000).collect { streamData ->
-            val value = streamData.value?.roundToInt()
-            val powerbarsWithCadenceSource = powerbars.values.filter { it.source == source }
-
-            powerbarsWithCadenceSource.forEach { powerbar ->
-                if (value != null) {
-                    val minCadence = streamData.settings?.minCadence ?: PowerbarSettings.defaultMinCadence
-                    val maxCadence = streamData.settings?.maxCadence ?: PowerbarSettings.defaultMaxCadence
-                    val progress = remap(value.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0) ?: 0.0
-
-                    powerbar.minTarget = remap(streamData.cadenceTarget?.values?.get(FIELD_TARGET_MIN_ID)?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
-                    powerbar.maxTarget = remap(streamData.cadenceTarget?.values?.get(FIELD_TARGET_MAX_ID)?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
-                    powerbar.target = remap(streamData.cadenceTarget?.values?.get(FIELD_TARGET_VALUE_ID)?.toDouble(), minCadence.toDouble(), maxCadence.toDouble(), 0.0, 1.0)
-
-                    @ColorRes val zoneColorRes = Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
-
-                    powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
-                        context.getColor(zoneColorRes)
-                    } else {
-                        context.getColor(R.color.zone0)
-                    }
-                    powerbar.progress = progress
-                    powerbar.label = "$value"
-
-                    Log.d(TAG, "Cadence: $value min: $minCadence max: $maxCadence")
-                } else {
-                    powerbar.progressColor = context.getColor(R.color.zone0)
-                    powerbar.progress = null
-                    powerbar.label = "?"
-
-                    Log.d(TAG, "Cadence: Unavailable")
-                }
-                powerbar.invalidate()
-            }
-        }
-    }
-
-    private suspend fun streamHeartrate() {
-        val hrFlow = karooSystem.streamDataFlow(DataType.Type.HEART_RATE)
-            .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
-            .distinctUntilChanged()
-
-        val settingsFlow = context.streamSettings()
-        val hrTargetFlow = karooSystem.streamDataFlow("TYPE_WORKOUT_HEART_RATE_TARGET_ID")
-            .map { (it as? StreamState.Streaming)?.dataPoint }
-            .distinctUntilChanged()
-
-        data class StreamData(val userProfile: UserProfile, val value: Double?, val settings: PowerbarSettings? = null, val heartrateTarget: DataPoint? = null)
-
-        combine(karooSystem.streamUserProfile(), hrFlow, settingsFlow, hrTargetFlow) { userProfile, hr, settings, hrTarget ->
-            StreamData(userProfile, hr, settings, hrTarget)
-        }.distinctUntilChanged().throttle(1_000).collect { streamData ->
-            val value = streamData.value?.roundToInt()
-            val powerbarsWithHrSource = powerbars.values.filter { it.source == SelectedSource.HEART_RATE }
-
-            powerbarsWithHrSource.forEach { powerbar ->
-                if (value != null) {
-                    val customMinHr = if (streamData.settings?.useCustomHrRange == true) streamData.settings.minHr else null
-                    val customMaxHr = if (streamData.settings?.useCustomHrRange == true) streamData.settings.maxHr else null
-                    val minHr = customMinHr ?: streamData.userProfile.restingHr
-                    val maxHr = customMaxHr ?: streamData.userProfile.maxHr
-                    val progress = remap(value.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
-
-                    powerbar.minTarget = remap(streamData.heartrateTarget?.values?.get(FIELD_TARGET_MIN_ID), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
-                    powerbar.maxTarget = remap(streamData.heartrateTarget?.values?.get(FIELD_TARGET_MAX_ID), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
-                    powerbar.target = remap(streamData.heartrateTarget?.values?.get(FIELD_TARGET_VALUE_ID), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
-
-                    powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
-                        context.getColor(getZone(streamData.userProfile.heartRateZones, value)?.colorResource ?: R.color.zone7)
-                    } else {
-                        context.getColor(R.color.zone0)
-                    }
-                    powerbar.progress = progress
-                    powerbar.label = "$value"
-
-                    Log.d(TAG, "Hr: $value min: $minHr max: $maxHr")
-                } else {
-                    powerbar.progressColor = context.getColor(R.color.zone0)
-                    powerbar.progress = null
-                    powerbar.label = "?"
-
-                    Log.d(TAG, "Hr: Unavailable")
-                }
-                powerbar.invalidate()
-            }
-        }
-    }
-
-    private suspend fun streamPower(source: SelectedSource, smoothed: PowerStreamSmoothing) {
-        val powerFlow = karooSystem.streamDataFlow(smoothed.dataTypeId)
-            .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
-            .distinctUntilChanged()
-        
-        val settingsFlow = context.streamSettings()
-
-        val powerTargetFlow = karooSystem.streamDataFlow("TYPE_WORKOUT_POWER_TARGET_ID") // TYPE_WORKOUT_HEART_RATE_TARGET_ID, TYPE_WORKOUT_CADENCE_TARGET_ID,
-            .map { (it as? StreamState.Streaming)?.dataPoint }
-            .distinctUntilChanged()
-
-        data class StreamData(val userProfile: UserProfile, val value: Double?, val settings: PowerbarSettings? = null, val powerTarget: DataPoint? = null)
-
-        combine(karooSystem.streamUserProfile(), powerFlow, settingsFlow, powerTargetFlow) { userProfile, hr, settings, powerTarget ->
-            StreamData(userProfile, hr, settings, powerTarget)
-        }.distinctUntilChanged().throttle(1_000).collect { streamData ->
-            val value = streamData.value?.roundToInt()
-            val powerbarsWithPowerSource = powerbars.values.filter { it.source == source }
-
-            powerbarsWithPowerSource.forEach { powerbar ->
-                if (value != null) {
-                    val customMinPower = if (streamData.settings?.useCustomPowerRange == true) streamData.settings.minPower else null
-                    val customMaxPower = if (streamData.settings?.useCustomPowerRange == true) streamData.settings.maxPower else null
-                    val minPower = customMinPower ?: streamData.userProfile.powerZones.first().min
-                    val maxPower = customMaxPower ?: (streamData.userProfile.powerZones.last().min + 30)
-                    val progress = remap(value.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
-
-                    powerbar.minTarget = remap(streamData.powerTarget?.values?.get(FIELD_TARGET_MIN_ID), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
-                    powerbar.maxTarget = remap(streamData.powerTarget?.values?.get(FIELD_TARGET_MAX_ID), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
-                    powerbar.target = remap(streamData.powerTarget?.values?.get(FIELD_TARGET_VALUE_ID), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
-
-                    powerbar.progressColor = if (streamData.settings?.useZoneColors == true) {
-                        context.getColor(getZone(streamData.userProfile.powerZones, value)?.colorResource ?: R.color.zone7)
-                    } else {
-                        context.getColor(R.color.zone0)
-                    }
-                    powerbar.progress = progress
-                    powerbar.label = "${value}W"
-
-                    Log.d(TAG, "Power: $value min: $minPower max: $maxPower")
-                } else {
-                    powerbar.progressColor = context.getColor(R.color.zone0)
-                    powerbar.progress = null
-                    powerbar.label = "?"
-
-                    Log.d(TAG, "Power: Unavailable")
-                }
-                powerbar.invalidate()
-            }
         }
     }
 
@@ -884,14 +246,14 @@ class Window(
             val action = intent.action
             if (action == "de.timklge.HIDE_POWERBAR") {
                 val location = when (intent.getStringExtra("location")) {
-                    "top" -> PowerbarLocation.TOP
-                    "bottom" -> PowerbarLocation.BOTTOM
-                    else -> PowerbarLocation.TOP
+                    "top" -> VerticalPowerbarLocation.TOP
+                    "bottom" -> VerticalPowerbarLocation.BOTTOM
+                    else -> VerticalPowerbarLocation.TOP
                 }
                 val duration = intent.getLongExtra("duration", 15_000)
                 Log.d(TAG, "Received broadcast to hide $location powerbar for $duration ms")
 
-                if (location == powerbarLocation) {
+                if (location == verticalPowerbarLocation) {
                     currentHideJob?.cancel()
                     currentHideJob = CoroutineScope(Dispatchers.Main).launch {
                         rootView.visibility = View.INVISIBLE
