@@ -1,18 +1,19 @@
 [versions]
-agp = "8.5.0"
+agp = "9.4.1"
 color = "1.3.0"
-datastorePreferences = "1.1.1"
-kotlin = "2.0.0"
+datastorePreferences = "1.2.1"
+kotlin = "2.4.20"
 
-androidxCore = "1.13.1"
-androidxLifecycle = "2.8.6"
-androidxActivity = "1.9.3"
-androidxComposeUi = "1.7.4"
-androidxComposeMaterial = "1.3.0"
-kotlinxSerializationJson = "1.7.3"
-lifecycleRuntimeKtx = "2.8.7"
-navigationRuntimeKtx = "2.8.4"
-navigationCompose = "2.8.4"
+androidxCore = "1.19.1"
+androidxLifecycle = "2.11.0"
+androidxActivity = "1.13.0"
+androidxComposeUi = "1.12.1"
+androidxComposeMaterial = "1.4.0"
+androidxComposeMaterialIcons = "1.7.8"
+kotlinxSerializationJson = "1.11.0"
+lifecycleRuntimeKtx = "2.11.0"
+navigationRuntimeKtx = "2.10.2"
+navigationCompose = "2.10.2"
 cardview = "1.0.0"
 mapboxSdkTurf = "7.3.1"
 
@@ -37,6 +38,7 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-compose-ui = { module = "androidx.compose.ui:ui", version.ref = "androidxComposeUi" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "androidxComposeUi" }
 androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "androidxComposeUi" }
+androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "androidxComposeMaterialIcons" }
 androidx-compose-material = { module = "androidx.compose.material3:material3", version.ref = "androidxComposeMaterial" }
 
 # Glance
@@ -48,4 +50,4 @@ mapbox-sdk-turf = { module = "com.mapbox.mapboxsdk:mapbox-sdk-turf", version.ref
 
 [bundles]
 androidx-lifeycle = ["androidx-lifecycle-runtime-compose", "androidx-lifecycle-viewmodel-compose"]
-compose-ui = ["androidx-compose-ui", "androidx-compose-material", "androidx-compose-ui-tooling-preview", "androidx-compose-ui-tooling"]
+compose-ui = ["androidx-compose-ui", "androidx-compose-material", "androidx-compose-material-icons-extended", "androidx-compose-ui-tooling-preview", "androidx-compose-ui-tooling"]

@@ -16,6 +16,9 @@ pluginManagement {
         mavenCentral()
     }
 }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
 
 val env: MutableMap<String, String> = System.getenv()
 val gprUser = if(env.containsKey("GPR_USER")) env["GPR_USER"] else getLocalProperty("gpr.user")
