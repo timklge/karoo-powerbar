@@ -55,6 +55,7 @@
     <string name="source_power_balance_lap">Power Balance (Lap Ø)</string>
     <string name="source_route_progress">Route Progress</string>
     <string name="source_route_remaining">Route Remaining</string>
+    <string name="source_ascent">Ascent</string>
     <string name="source_front_gear">Front Gear</string>
     <string name="source_rear_gear">Rear Gear</string>
     <string name="source_combined_gear">Front &amp; Rear Gear</string>

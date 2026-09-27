@@ -39,6 +39,7 @@ import de.timklge.karoopowerbar.datatypes.Gears
 import de.timklge.karoopowerbar.datatypes.PedalBalanceSmoothing
 import de.timklge.karoopowerbar.datatypes.PowerStreamSmoothing
 import de.timklge.karoopowerbar.datatypes.SelectedSource
+import de.timklge.karoopowerbar.datatypes.handlers.AscentHandler
 import de.timklge.karoopowerbar.datatypes.handlers.CadenceHandler
 import de.timklge.karoopowerbar.datatypes.handlers.CombinedGearHandler
 import de.timklge.karoopowerbar.datatypes.handlers.FlightAttendantSuspensionModeHandler
@@ -195,6 +196,7 @@ class Window(
                     SelectedSource.PEDAL_SMOOTHNESS -> PedalSmoothnessHandler()
                     SelectedSource.ROUTE_PROGRESS -> RouteProgressHandler()
                     SelectedSource.REMAINING_ROUTE -> RemainingRouteHandler()
+                    SelectedSource.ASCENT -> AscentHandler()
                     SelectedSource.FRONT_GEAR -> GearHandler(Gears.FRONT)
                     SelectedSource.REAR_GEAR -> GearHandler(Gears.REAR)
                     SelectedSource.COMBINED_GEAR -> CombinedGearHandler()
