@@ -31,7 +31,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.roundToInt
 
-class AscentHandler : BarHandler {
+class AscentHandler : BarHandler by AscentDataHandler(false)
+
+class RemainingAscentHandler : BarHandler by AscentDataHandler(true)
+
+private class AscentDataHandler(private val showRemainingAscent: Boolean) : BarHandler {
     private data class StreamData(
         val currentAscent: Double?,
         val ascentRemaining: Double?,
@@ -72,7 +76,8 @@ class AscentHandler : BarHandler {
                 } else {
                     1.0
                 }
-            val label = currentAscent?.times(elevationMultiplier)?.roundToInt()?.toString() ?: "?"
+            val ascentForLabel = if (showRemainingAscent) ascentRemaining else currentAscent
+            val label = ascentForLabel?.times(elevationMultiplier)?.roundToInt()?.toString() ?: "?"
 
             powerbars.forEach { powerbar ->
                 powerbar.progressColor = context.getColor(R.color.zone0)

@@ -50,6 +50,7 @@ import de.timklge.karoopowerbar.datatypes.handlers.HeartRateHandler
 import de.timklge.karoopowerbar.datatypes.handlers.PedalSmoothnessHandler
 import de.timklge.karoopowerbar.datatypes.handlers.PowerBalanceHandler
 import de.timklge.karoopowerbar.datatypes.handlers.PowerHandler
+import de.timklge.karoopowerbar.datatypes.handlers.RemainingAscentHandler
 import de.timklge.karoopowerbar.datatypes.handlers.RemainingRouteHandler
 import de.timklge.karoopowerbar.datatypes.handlers.RouteProgressHandler
 import de.timklge.karoopowerbar.datatypes.handlers.SpeedHandler
@@ -201,6 +202,7 @@ class Window(
                     SelectedSource.ROUTE_PROGRESS -> RouteProgressHandler()
                     SelectedSource.REMAINING_ROUTE -> RemainingRouteHandler()
                     SelectedSource.ASCENT -> AscentHandler()
+                    SelectedSource.REMAINING_ASCENT -> RemainingAscentHandler()
                     SelectedSource.FRONT_GEAR -> GearHandler(Gears.FRONT)
                     SelectedSource.REAR_GEAR -> GearHandler(Gears.REAR)
                     SelectedSource.COMBINED_GEAR -> CombinedGearHandler()
