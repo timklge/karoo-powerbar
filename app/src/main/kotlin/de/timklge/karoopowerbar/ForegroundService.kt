@@ -31,7 +31,10 @@ import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.RideState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
@@ -43,13 +46,15 @@ class ForegroundService : Service() {
     }
 
     private val windows = mutableSetOf<Window>()
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var karooSystemService: KarooSystemService? = null
 
     override fun onCreate() {
         super.onCreate()
         setupForeground()
 
-        CoroutineScope(Dispatchers.IO).launch {
-            val karooSystemService = KarooSystemService(applicationContext)
+        serviceScope.launch {
+            val karooSystemService = KarooSystemService(applicationContext).also { this@ForegroundService.karooSystemService = it }
             karooSystemService.connect { connected ->
                 Log.i(TAG, "Karoo system service connected: $connected")
             }
@@ -64,7 +69,7 @@ class ForegroundService : Service() {
                         true
                     }
                     StreamState(settings, showBars)
-                }.collectLatest { (settings, showBars) ->
+                }.distinctUntilChanged().collectLatest { (settings, showBars) ->
                     windows.forEach { it.close() }
                     windows.clear()
 
@@ -89,6 +94,15 @@ class ForegroundService : Service() {
                     }
             }
         }
+    }
+
+    override fun onDestroy() {
+        serviceScope.cancel()
+        windows.forEach { it.close() }
+        windows.clear()
+        karooSystemService?.disconnect()
+        karooSystemService = null
+        super.onDestroy()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

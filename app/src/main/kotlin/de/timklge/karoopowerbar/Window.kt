@@ -53,6 +53,10 @@ import de.timklge.karoopowerbar.datatypes.handlers.RemainingRouteHandler
 import de.timklge.karoopowerbar.datatypes.handlers.RouteProgressHandler
 import de.timklge.karoopowerbar.datatypes.handlers.SpeedHandler
 import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.DataPoint
+import io.hammerhead.karooext.models.DataType
+import io.hammerhead.karooext.models.StreamState
+import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -233,6 +237,8 @@ class Window(
             serviceJobs.forEach { job ->
                 job.cancel()
             }
+            serviceJobs.clear()
+            karooSystem.disconnect()
             (context.getSystemService(WINDOW_SERVICE) as WindowManager).removeView(rootView)
             rootView.invalidate()
             (rootView.parent as? ViewGroup)?.removeAllViews()
