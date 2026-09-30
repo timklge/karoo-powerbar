@@ -21,12 +21,10 @@ import de.timklge.karoopowerbar.CustomProgressBar
 import de.timklge.karoopowerbar.R
 import de.timklge.karoopowerbar.datatypes.BarHandler
 import de.timklge.karoopowerbar.streamDataFlow
-import de.timklge.karoopowerbar.streamNavigationState
 import de.timklge.karoopowerbar.streamUserProfile
 import de.timklge.karoopowerbar.throttle
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
-import io.hammerhead.karooext.models.OnNavigationState
 import io.hammerhead.karooext.models.StreamState
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.flow.combine
@@ -37,7 +35,6 @@ class AscentHandler : BarHandler {
     private data class StreamData(
         val currentAscent: Double?,
         val ascentRemaining: Double?,
-        val routeLoaded: Boolean,
         val userProfile: UserProfile
     )
 
@@ -45,21 +42,19 @@ class AscentHandler : BarHandler {
         combine(
             karooSystem.streamDataFlow(DataType.Type.ELEVATION_GAIN),
             karooSystem.streamDataFlow(DataType.Type.ELEVATION_REMAINING),
-            karooSystem.streamNavigationState(),
             karooSystem.streamUserProfile()
-        ) { elevationGain, elevationRemaining, navigationState, userProfile ->
+        ) { elevationGain, elevationRemaining, userProfile ->
             StreamData(
                 currentAscent = (elevationGain as? StreamState.Streaming)?.dataPoint?.singleValue,
                 ascentRemaining = (elevationRemaining as? StreamState.Streaming)
                     ?.dataPoint?.values?.get(DataType.Field.ASCENT_REMAINING),
-                routeLoaded = navigationState.state is OnNavigationState.NavigationState.NavigatingRoute,
                 userProfile = userProfile
             )
         }.distinctUntilChanged().throttle(5_000).collect { streamData ->
             val currentAscent = streamData.currentAscent
             val ascentRemaining = streamData.ascentRemaining
             val progress = if (
-                streamData.routeLoaded && currentAscent != null && ascentRemaining != null
+                currentAscent != null && ascentRemaining != null
             ) {
                 val totalAscent = currentAscent + ascentRemaining
                 if (totalAscent > 0.0) {
