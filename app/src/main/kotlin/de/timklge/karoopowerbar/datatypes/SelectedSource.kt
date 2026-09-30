@@ -38,6 +38,7 @@ enum class SelectedSource(val id: String, val labelResId: Int) {
     ROUTE_PROGRESS("route_progress", R.string.source_route_progress),
     REMAINING_ROUTE("route_progress_remaining", R.string.source_route_remaining),
     ASCENT("ascent", R.string.source_ascent),
+    REMAINING_ASCENT("ascent_remaining", R.string.source_ascent_remaining),
     FRONT_GEAR("front_gear", R.string.source_front_gear),
     REAR_GEAR("rear_gear", R.string.source_rear_gear),
     COMBINED_GEAR("combined_gear", R.string.source_combined_gear),

@@ -56,6 +56,7 @@
     <string name="source_route_progress">Routenfortschritt</string>
     <string name="source_route_remaining">Verbleibende Route</string>
     <string name="source_ascent">Höhenmeter</string>
+    <string name="source_ascent_remaining">Verbleibende Höhenmeter</string>
     <string name="source_front_gear">Vorderer Gang</string>
     <string name="source_rear_gear">Hinterer Gang</string>
     <string name="source_combined_gear">Vorderer &amp; Hinterer Gang</string>
