@@ -57,9 +57,7 @@ private class AscentDataHandler(private val showRemainingAscent: Boolean) : BarH
         }.distinctUntilChanged().throttle(5_000).collect { streamData ->
             val currentAscent = streamData.currentAscent
             val ascentRemaining = streamData.ascentRemaining
-            val progress = if (
-                currentAscent != null && ascentRemaining != null
-            ) {
+            val progress = if (currentAscent != null && ascentRemaining != null) {
                 val totalAscent = currentAscent + ascentRemaining
                 if (totalAscent > 0.0) {
                     (currentAscent / totalAscent).coerceIn(0.0, 1.0)
@@ -67,7 +65,7 @@ private class AscentDataHandler(private val showRemainingAscent: Boolean) : BarH
                     0.0
                 }
             } else {
-                0.0
+                null
             }
 
             val elevationMultiplier =
