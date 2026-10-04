@@ -9,10 +9,7 @@ dedicated LEDs featured on Wahoo devices.
 
 Compatible with Karoo 2 and Karoo 3 devices.
 
-![Powerbar](powerbar0.png)
-![Settings](powerbar1.png)
-![Powerbar GIF](powerbar_min.gif)
-![Powerbar x4](powerbar2.png)
+<img width="200" height="333" alt="Powerbar" src="powerbar0.png" /> <img width="200" height="333" alt="Settings" src="powerbar1.png" /> <img width="200" height="333" alt="Gif" src="powerbar_min.gif" /> <img width="200" height="333" alt="Powerbar x4" src="powerbar2.png" />
 
 ## Usage
 
@@ -37,7 +34,10 @@ to be displayed at the bottom or at the top of the screen:
 - Flight Attendant Mode
 
 Subsequently, the bar(s) will be shown when riding. Bars are filled and colored according
-to your current power output / heart rate zone as setup in your Karoo settings. Optionally, the actual data value can be displayed on top of the bar.
+to your current power output / heart rate zone as setup in your Karoo settings.
+Optionally, the actual data value can be displayed on top of the bar.
+
+As long as you have the settings menu open, the bars will be displayed with random preview values.
 
 ## Installation
 

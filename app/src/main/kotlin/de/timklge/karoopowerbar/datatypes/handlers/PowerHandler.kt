@@ -41,6 +41,39 @@ import kotlinx.coroutines.flow.map
 import kotlin.math.roundToInt
 
 class PowerHandler(private val smoothed: PowerStreamSmoothing) : BarHandler {
+    override suspend fun preview(
+        context: Context,
+        karooSystem: KarooSystemService,
+        powerbars: List<CustomProgressBar>
+    ) {
+        combine(karooSystem.streamUserProfile(), context.streamSettings()) { profile, settings ->
+            profile to settings
+        }.collectPreview(powerbars) { (profile, settings), fraction, powerbar ->
+            val minPower = (if (settings.useCustomPowerRange) {
+                settings.minPower
+            } else {
+                null
+            }) ?: profile.powerZones.first().min
+            val maxPower = (if (settings.useCustomPowerRange) {
+                settings.maxPower
+            } else {
+                null
+            }) ?: (profile.powerZones.last().min + 30)
+            val value = interpolate(minPower.toDouble(), maxPower.toDouble(), fraction).roundToInt()
+
+            powerbar.minTarget = null
+            powerbar.maxTarget = null
+            powerbar.target = null
+            powerbar.progressColor = if (settings.useZoneColors) {
+                context.getColor(getZone(profile.powerZones, value)?.colorResource ?: R.color.zone7)
+            } else {
+                context.getColor(R.color.zone0)
+            }
+            powerbar.progress = remap(value.toDouble(), minPower.toDouble(), maxPower.toDouble(), 0.0, 1.0)
+            powerbar.label = "${value}W"
+        }
+    }
+
     override suspend fun handle(
         context: Context,
         karooSystem: KarooSystemService,

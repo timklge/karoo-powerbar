@@ -32,10 +32,33 @@ import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.StreamState
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlin.math.roundToInt
 
 class PowerBalanceHandler(private val smoothing: PedalBalanceSmoothing) : BarHandler {
+    override suspend fun preview(
+        context: Context,
+        karooSystem: KarooSystemService,
+        powerbars: List<CustomProgressBar>
+    ) {
+        flowOf(Unit).collectPreview(powerbars) { _, fraction, powerbar ->
+            powerbar.drawMode = ProgressBarDrawMode.CENTER_OUT
+            val leftPercent = interpolate(40.0, 60.0, fraction)
+            val value = remap(leftPercent.coerceIn(0.0, 100.0), 40.0, 60.0, 100.0, 0.0)
+            val roundedLeft = leftPercent.roundToInt()
+            val zoneColorRes = when {
+                roundedLeft > 50 -> R.color.zone0
+                roundedLeft == 50 -> R.color.zone1
+                else -> R.color.zone7
+            }
+
+            powerbar.progressColor = context.getColor(zoneColorRes)
+            powerbar.progress = value?.div(100.0)
+            powerbar.label = "$roundedLeft-${100 - roundedLeft}"
+        }
+    }
+
     override suspend fun handle(context: Context, karooSystem: KarooSystemService, powerbars: List<CustomProgressBar>) {
         data class StreamData(val left: Double?, val power: Double?)
 

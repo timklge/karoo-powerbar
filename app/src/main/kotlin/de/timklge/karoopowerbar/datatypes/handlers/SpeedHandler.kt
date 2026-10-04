@@ -40,6 +40,43 @@ import kotlinx.coroutines.flow.map
 import kotlin.math.roundToInt
 
 class SpeedHandler(private val smoothed: Boolean) : BarHandler {
+    override suspend fun preview(
+        context: Context,
+        karooSystem: KarooSystemService,
+        powerbars: List<CustomProgressBar>
+    ) {
+        combine(karooSystem.streamUserProfile(), context.streamSettings()) { profile, settings ->
+            profile to settings
+        }.collectPreview(powerbars) { (profile, settings), fraction, powerbar ->
+            val valueMetersPerSecond = interpolate(
+                settings.minSpeed.toDouble(),
+                settings.maxSpeed.toDouble(),
+                fraction
+            )
+            val displayValue = when (profile.preferredUnit.distance) {
+                UserProfile.PreferredUnit.UnitType.IMPERIAL -> valueMetersPerSecond * 2.23694
+                else -> valueMetersPerSecond * 3.6
+            }.roundToInt()
+            val progress = remap(
+                valueMetersPerSecond,
+                settings.minSpeed.toDouble(),
+                settings.maxSpeed.toDouble(),
+                0.0,
+                1.0
+            ) ?: 0.0
+            val zoneColorRes =
+                Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
+
+            powerbar.progressColor = if (settings.useZoneColors) {
+                context.getColor(zoneColorRes)
+            } else {
+                context.getColor(R.color.zone0)
+            }
+            powerbar.progress = progress
+            powerbar.label = "$displayValue"
+        }
+    }
+
     override suspend fun handle(context: Context, karooSystem: KarooSystemService, powerbars: List<CustomProgressBar>) {
         val speedFlow = karooSystem.streamDataFlow(
             if (smoothed) DataType.Type.SMOOTHED_3S_AVERAGE_SPEED else DataType.Type.SPEED

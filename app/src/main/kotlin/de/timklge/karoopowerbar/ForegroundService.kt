@@ -33,12 +33,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-
-data class StreamState(val settings: PowerbarSettings, val showBars: Boolean)
 
 class ForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder {
@@ -47,51 +46,70 @@ class ForegroundService : Service() {
 
     private val windows = mutableSetOf<Window>()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val previewMode = MutableStateFlow(false)
     private var karooSystemService: KarooSystemService? = null
+
+    private suspend fun createBars(settings: PowerbarSettings, preview: Boolean) {
+        if (settings.bottomBarSource != SelectedSource.NONE || settings.bottomBarLeftSource != SelectedSource.NONE || settings.bottomBarRightSource != SelectedSource.NONE) {
+            Window(this@ForegroundService, VerticalPowerbarLocation.BOTTOM, settings.showLabelOnBars,
+                settings.barBarSize, settings.barFontSize,
+                settings.splitBottomBar, settings.stickToEdge, settings.bottomBarSource, settings.bottomBarLeftSource, settings.bottomBarRightSource, preview).apply {
+                windows.add(this)
+                open()
+            }
+        }
+
+        if (settings.topBarSource != SelectedSource.NONE || settings.topBarLeftSource != SelectedSource.NONE || settings.topBarRightSource != SelectedSource.NONE) {
+            Window(this@ForegroundService, VerticalPowerbarLocation.TOP, settings.showLabelOnBars,
+                settings.barBarSize, settings.barFontSize,
+                settings.splitTopBar, settings.stickToEdge, settings.topBarSource, settings.topBarLeftSource, settings.topBarRightSource, preview).apply {
+                open()
+                windows.add(this)
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
         setupForeground()
 
         serviceScope.launch {
-            val karooSystemService = KarooSystemService(applicationContext).also { this@ForegroundService.karooSystemService = it }
-            karooSystemService.connect { connected ->
-                Log.i(TAG, "Karoo system service connected: $connected")
-            }
-            val rideStateFlow = karooSystemService.streamRideState()
+            previewMode.collectLatest { isPreview ->
+                windows.forEach { it.close() }
+                windows.clear()
 
-            applicationContext
-                .streamSettings()
-                .combine(rideStateFlow) { settings, rideState ->
-                    val showBars = if (settings.onlyShowWhileRiding){
-                        rideState is RideState.Recording
-                    } else {
-                        true
+                if (isPreview) {
+                    applicationContext
+                        .streamSettings()
+                        .distinctUntilChanged().collectLatest { settings ->
+                            windows.forEach { it.close() }
+                            windows.clear()
+
+                            createBars(settings, true)
+                        }
+                } else {
+                    val karooSystemService = KarooSystemService(applicationContext).also { this@ForegroundService.karooSystemService = it }
+                    karooSystemService.connect { connected ->
+                        Log.i(TAG, "Karoo system service connected: $connected")
                     }
-                    StreamState(settings, showBars)
-                }.distinctUntilChanged().collectLatest { (settings, showBars) ->
-                    windows.forEach { it.close() }
-                    windows.clear()
+                    val rideStateFlow = karooSystemService.streamRideState()
 
-                    if (showBars){
-                        if (settings.bottomBarSource != SelectedSource.NONE || settings.bottomBarLeftSource != SelectedSource.NONE || settings.bottomBarRightSource != SelectedSource.NONE) {
-                            Window(this@ForegroundService, VerticalPowerbarLocation.BOTTOM, settings.showLabelOnBars,
-                                settings.barBarSize, settings.barFontSize,
-                                settings.splitBottomBar, settings.stickToEdge, settings.bottomBarSource, settings.bottomBarLeftSource, settings.bottomBarRightSource).apply {
-                                    windows.add(this)
-                                    open()
+                    data class StreamState(val settings: PowerbarSettings, val showBars: Boolean)
+
+                    applicationContext
+                        .streamSettings()
+                        .combine(rideStateFlow) { settings, rideState ->
+                            val showBars = !settings.onlyShowWhileRiding || rideState is RideState.Recording
+                            StreamState(settings, showBars)
+                        }.distinctUntilChanged().collectLatest { (settings, showBars) ->
+                            windows.forEach { it.close() }
+                            windows.clear()
+
+                            if (showBars){
+                                createBars(settings, false)
                             }
                         }
-
-                        if (settings.topBarSource != SelectedSource.NONE || settings.topBarLeftSource != SelectedSource.NONE || settings.topBarRightSource != SelectedSource.NONE) {
-                            Window(this@ForegroundService, VerticalPowerbarLocation.TOP, settings.showLabelOnBars,
-                                settings.barBarSize, settings.barFontSize,
-                                settings.splitTopBar, settings.stickToEdge, settings.topBarSource, settings.topBarLeftSource, settings.topBarRightSource).apply {
-                                    open()
-                                    windows.add(this)
-                            }
-                        }
-                    }
+                }
             }
         }
     }
@@ -106,6 +124,10 @@ class ForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_PREVIEW_START -> previewMode.value = true
+            ACTION_PREVIEW_STOP -> previewMode.value = false
+        }
         return super.onStartCommand(intent, flags, startId)
     }
 
@@ -131,5 +153,10 @@ class ForegroundService : Service() {
             .setCategory(Notification.CATEGORY_SERVICE)
             .build()
         startForeground(2, notification)
+    }
+
+    companion object {
+        const val ACTION_PREVIEW_START = "de.timklge.karoopowerbar.PREVIEW_START"
+        const val ACTION_PREVIEW_STOP = "de.timklge.karoopowerbar.PREVIEW_STOP"
     }
 }

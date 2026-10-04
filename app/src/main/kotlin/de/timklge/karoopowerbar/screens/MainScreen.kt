@@ -53,7 +53,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -70,15 +69,16 @@ import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.core.content.ContextCompat.startActivity
 import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import de.timklge.karoopowerbar.CustomProgressBarBarSize
 import de.timklge.karoopowerbar.CustomProgressBarFontSize
+import de.timklge.karoopowerbar.ForegroundService
 import de.timklge.karoopowerbar.KarooPowerbarExtension
 import de.timklge.karoopowerbar.PowerbarSettings
 import de.timklge.karoopowerbar.R
@@ -95,7 +95,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.math.roundToInt
 
@@ -282,6 +281,11 @@ fun MainScreen(onFinish: () -> Unit) {
         }
     }
 
+    fun updateField(update: () -> Unit) {
+        update()
+        coroutineScope.launch { updateSettings() }
+    }
+
     LaunchedEffect(Unit) {
         karooSystem.streamUserProfile().distinctUntilChanged().collect { profileData ->
             isImperial =
@@ -315,26 +319,28 @@ fun MainScreen(onFinish: () -> Unit) {
                 barBarSize = settings.barBarSize
                 barFontSize = settings.barFontSize
                 stickToEdge = settings.stickToEdge
-                minCadence = settings.minCadence.toString()
-                maxCadence = settings.maxCadence.toString()
                 isImperial =
                     profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
-                minSpeed =
-                    (if (isImperial) settings.minSpeed * 2.23694f else settings.minSpeed * 3.6f).roundToInt()
-                        .toString()
-                maxSpeed =
-                    (if (isImperial) settings.maxSpeed * 2.23694f else settings.maxSpeed * 3.6f).roundToInt()
-                        .toString()
-                customMinPower = settings.minPower?.toString() ?: ""
-                customMaxPower = settings.maxPower?.toString() ?: ""
-                customMinHr = settings.minHr?.toString() ?: ""
-                customMaxHr = settings.maxHr?.toString() ?: ""
-                minGrade = settings.minGradient?.toString() ?: ""
-                maxGrade = settings.maxGradient?.toString() ?: ""
-                minPedalSmoothness = settings.minPedalSmoothness?.roundToInt()?.toString()
-                    ?: PowerbarSettings.defaultMinPedalSmoothnessPercent.roundToInt().toString()
-                maxPedalSmoothness = settings.maxPedalSmoothness?.roundToInt()?.toString()
-                    ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent.roundToInt().toString()
+                if (!anyFieldHasFocus) {
+                    minCadence = settings.minCadence.toString()
+                    maxCadence = settings.maxCadence.toString()
+                    minSpeed =
+                        (if (isImperial) settings.minSpeed * 2.23694f else settings.minSpeed * 3.6f).roundToInt()
+                            .toString()
+                    maxSpeed =
+                        (if (isImperial) settings.maxSpeed * 2.23694f else settings.maxSpeed * 3.6f).roundToInt()
+                            .toString()
+                    customMinPower = settings.minPower?.toString() ?: ""
+                    customMaxPower = settings.maxPower?.toString() ?: ""
+                    customMinHr = settings.minHr?.toString() ?: ""
+                    customMaxHr = settings.maxHr?.toString() ?: ""
+                    minGrade = settings.minGradient?.toString() ?: ""
+                    maxGrade = settings.maxGradient?.toString() ?: ""
+                    minPedalSmoothness = settings.minPedalSmoothness?.roundToInt()?.toString()
+                        ?: PowerbarSettings.defaultMinPedalSmoothnessPercent.roundToInt().toString()
+                    maxPedalSmoothness = settings.maxPedalSmoothness?.roundToInt()?.toString()
+                        ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent.roundToInt().toString()
+                }
                 useCustomPowerRange = settings.useCustomPowerRange
                 useCustomHrRange = settings.useCustomHrRange
             }
@@ -353,8 +359,15 @@ fun MainScreen(onFinish: () -> Unit) {
 
     LifecycleResumeEffect(Unit) {
         givenPermissions = Settings.canDrawOverlays(ctx)
+        ctx.startService(
+            Intent(ctx, ForegroundService::class.java).setAction(ForegroundService.ACTION_PREVIEW_START)
+        )
 
-        onPauseOrDispose { }
+        onPauseOrDispose {
+            ctx.startService(
+                Intent(ctx, ForegroundService::class.java).setAction(ForegroundService.ACTION_PREVIEW_STOP)
+            )
+        }
     }
 
     fun isCharAllowed(index: Int, c: Char): Boolean {
@@ -711,7 +724,9 @@ fun MainScreen(onFinish: () -> Unit) {
                                     .weight(1f)
                                     .absolutePadding(right = 2.dp)
                                     .onFocusEvent(::updateFocus),
-                                onValueChange = { minSpeed = it.filterIndexed(::isCharAllowed) },
+                                onValueChange = {
+                                    updateField { minSpeed = it.filterIndexed(::isCharAllowed) }
+                                },
                                 label = { Text(stringResource(R.string.min_speed)) },
                                 suffix = { Text(stringResource(if (isImperial) R.string.unit_mph else R.string.unit_kph)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -723,7 +738,9 @@ fun MainScreen(onFinish: () -> Unit) {
                                     .weight(1f)
                                     .absolutePadding(left = 2.dp)
                                     .onFocusEvent(::updateFocus),
-                                onValueChange = { maxSpeed = it.filterIndexed(::isCharAllowed) },
+                                onValueChange = {
+                                    updateField { maxSpeed = it.filterIndexed(::isCharAllowed) }
+                                },
                                 label = { Text(stringResource(R.string.max_speed)) },
                                 suffix = { Text(stringResource(if (isImperial) R.string.unit_mph else R.string.unit_kph)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -758,7 +775,9 @@ fun MainScreen(onFinish: () -> Unit) {
                                         .absolutePadding(right = 2.dp)
                                         .onFocusEvent(::updateFocus),
                                     onValueChange = {
-                                        customMinPower = it.filterIndexed(::isCharAllowed)
+                                        updateField {
+                                            customMinPower = it.filterIndexed(::isCharAllowed)
+                                        }
                                     },
                                     label = {
                                         Text(
@@ -778,7 +797,9 @@ fun MainScreen(onFinish: () -> Unit) {
                                         .absolutePadding(left = 2.dp)
                                         .onFocusEvent(::updateFocus),
                                     onValueChange = {
-                                        customMaxPower = it.filterIndexed(::isCharAllowed)
+                                        updateField {
+                                            customMaxPower = it.filterIndexed(::isCharAllowed)
+                                        }
                                     },
                                     label = {
                                         Text(
@@ -818,7 +839,9 @@ fun MainScreen(onFinish: () -> Unit) {
                                         .absolutePadding(right = 2.dp)
                                         .onFocusEvent(::updateFocus),
                                     onValueChange = {
-                                        customMinHr = it.filterIndexed(::isCharAllowed)
+                                        updateField {
+                                            customMinHr = it.filterIndexed(::isCharAllowed)
+                                        }
                                     },
                                     label = { Text(stringResource(R.string.min_hr)) },
                                     suffix = { Text(stringResource(R.string.unit_bpm)) },
@@ -833,7 +856,9 @@ fun MainScreen(onFinish: () -> Unit) {
                                         .absolutePadding(left = 2.dp)
                                         .onFocusEvent(::updateFocus),
                                     onValueChange = {
-                                        customMaxHr = it.filterIndexed(::isCharAllowed)
+                                        updateField {
+                                            customMaxHr = it.filterIndexed(::isCharAllowed)
+                                        }
                                     },
                                     label = { Text(stringResource(R.string.max_hr)) },
                                     suffix = { Text(stringResource(R.string.unit_bpm)) },
@@ -863,7 +888,9 @@ fun MainScreen(onFinish: () -> Unit) {
                                     .weight(1f)
                                     .absolutePadding(right = 2.dp)
                                     .onFocusEvent(::updateFocus),
-                                onValueChange = { minCadence = it.filterIndexed(::isCharAllowed) },
+                                onValueChange = {
+                                    updateField { minCadence = it.filterIndexed(::isCharAllowed) }
+                                },
                                 label = { Text(stringResource(R.string.min_cadence)) },
                                 suffix = { Text(stringResource(R.string.unit_rpm)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -875,7 +902,9 @@ fun MainScreen(onFinish: () -> Unit) {
                                     .weight(1f)
                                     .absolutePadding(left = 2.dp)
                                     .onFocusEvent(::updateFocus),
-                                onValueChange = { maxCadence = it.filterIndexed(::isCharAllowed) },
+                                onValueChange = {
+                                    updateField { maxCadence = it.filterIndexed(::isCharAllowed) }
+                                },
                                 label = { Text(stringResource(R.string.max_cadence)) },
                                 suffix = { Text(stringResource(R.string.unit_rpm)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -897,7 +926,9 @@ fun MainScreen(onFinish: () -> Unit) {
                                     .weight(1f)
                                     .absolutePadding(right = 2.dp)
                                     .onFocusEvent(::updateFocus),
-                                onValueChange = { minGrade = it.filterIndexed(::isCharAllowed) },
+                                onValueChange = {
+                                    updateField { minGrade = it.filterIndexed(::isCharAllowed) }
+                                },
                                 label = { Text(stringResource(R.string.min_grade)) },
                                 suffix = { Text(stringResource(R.string.unit_percent)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -909,7 +940,9 @@ fun MainScreen(onFinish: () -> Unit) {
                                     .weight(1f)
                                     .absolutePadding(left = 2.dp)
                                     .onFocusEvent(::updateFocus),
-                                onValueChange = { maxGrade = it.filterIndexed(::isCharAllowed) },
+                                onValueChange = {
+                                    updateField { maxGrade = it.filterIndexed(::isCharAllowed) }
+                                },
                                 label = { Text(stringResource(R.string.max_grade)) },
                                 suffix = { Text(stringResource(R.string.unit_percent)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -939,7 +972,7 @@ fun MainScreen(onFinish: () -> Unit) {
                                     val clamped =
                                         digitsOnly.toIntOrNull()?.coerceIn(0, 100)?.toString()
                                             ?: digitsOnly
-                                    minPedalSmoothness = clamped
+                                    updateField { minPedalSmoothness = clamped }
                                 },
                                 label = {
                                     Text(
@@ -962,7 +995,7 @@ fun MainScreen(onFinish: () -> Unit) {
                                     val clamped =
                                         digitsOnly.toIntOrNull()?.coerceIn(0, 100)?.toString()
                                             ?: digitsOnly
-                                    maxPedalSmoothness = clamped
+                                    updateField { maxPedalSmoothness = clamped }
                                 },
                                 label = {
                                     Text(

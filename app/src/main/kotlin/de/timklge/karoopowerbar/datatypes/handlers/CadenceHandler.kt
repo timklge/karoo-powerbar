@@ -43,6 +43,40 @@ import kotlinx.coroutines.flow.map
 import kotlin.math.roundToInt
 
 class CadenceHandler(private val smoothed: Boolean) : BarHandler {
+    override suspend fun preview(
+        context: Context,
+        karooSystem: KarooSystemService,
+        powerbars: List<CustomProgressBar>
+    ) {
+        context.streamSettings().collectPreview(powerbars) { settings, fraction, powerbar ->
+            val value = interpolate(
+                settings.minCadence.toDouble(),
+                settings.maxCadence.toDouble(),
+                fraction
+            ).roundToInt()
+            val progress = remap(
+                value.toDouble(),
+                settings.minCadence.toDouble(),
+                settings.maxCadence.toDouble(),
+                0.0,
+                1.0
+            ) ?: 0.0
+            val zoneColorRes =
+                Zone.entries[(progress * Zone.entries.size).roundToInt().coerceIn(0..<Zone.entries.size)].colorResource
+
+            powerbar.minTarget = null
+            powerbar.maxTarget = null
+            powerbar.target = null
+            powerbar.progressColor = if (settings.useZoneColors) {
+                context.getColor(zoneColorRes)
+            } else {
+                context.getColor(R.color.zone0)
+            }
+            powerbar.progress = progress
+            powerbar.label = "$value"
+        }
+    }
+
     override suspend fun handle(context: Context, karooSystem: KarooSystemService, powerbars: List<CustomProgressBar>) {
         val cadenceFlow = karooSystem.streamDataFlow(
             if (smoothed) DataType.Type.SMOOTHED_3S_AVERAGE_CADENCE else DataType.Type.CADENCE

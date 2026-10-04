@@ -29,10 +29,31 @@ import de.timklge.karoopowerbar.streamDataFlow
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.StreamState
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 class FlightAttendantSuspensionModeHandler : BarHandler {
     private val modes = FlightAttendantSuspensionMode.entries.associateBy { it.value }
+
+    override suspend fun preview(
+        context: Context,
+        karooSystem: KarooSystemService,
+        powerbars: List<CustomProgressBar>
+    ) {
+        var previousIndex = -1
+        flowOf(Unit).collectPreview(powerbars) { _, fraction, powerbar ->
+            var index = (fraction * FlightAttendantSuspensionMode.entries.size).toInt()
+            if (index == previousIndex) {
+                index = (index + 1) % FlightAttendantSuspensionMode.entries.size
+            }
+            previousIndex = index
+            val mode = FlightAttendantSuspensionMode.entries[index]
+
+            powerbar.progressColor = context.getColor(mode.colorResId)
+            powerbar.progress = 0.0
+            powerbar.label = context.getString(mode.labelResId)
+        }
+    }
 
     override suspend fun handle(context: Context, karooSystem: KarooSystemService, powerbars: List<CustomProgressBar>) {
         karooSystem.streamDataFlow(Fields.TYPE_SUSPENSION_MODE_ID)
