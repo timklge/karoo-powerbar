@@ -358,15 +358,20 @@ fun MainScreen(onFinish: () -> Unit) {
     }
 
     LifecycleResumeEffect(Unit) {
-        givenPermissions = Settings.canDrawOverlays(ctx)
-        ctx.startService(
-            Intent(ctx, ForegroundService::class.java).setAction(ForegroundService.ACTION_PREVIEW_START)
-        )
+        val hasOverlayPermission = Settings.canDrawOverlays(ctx)
+        givenPermissions = hasOverlayPermission
+        if (hasOverlayPermission) {
+            ctx.startService(
+                Intent(ctx, ForegroundService::class.java).setAction(ForegroundService.ACTION_PREVIEW_START)
+            )
+        }
 
         onPauseOrDispose {
-            ctx.startService(
-                Intent(ctx, ForegroundService::class.java).setAction(ForegroundService.ACTION_PREVIEW_STOP)
-            )
+            if (hasOverlayPermission) {
+                ctx.startService(
+                    Intent(ctx, ForegroundService::class.java).setAction(ForegroundService.ACTION_PREVIEW_STOP)
+                )
+            }
         }
     }
 
