@@ -47,7 +47,6 @@ class ForegroundService : Service() {
     private val windows = mutableSetOf<Window>()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val previewMode = MutableStateFlow(false)
-    private var karooSystemService: KarooSystemService? = null
 
     private suspend fun createBars(settings: PowerbarSettings, preview: Boolean) {
         if (settings.bottomBarSource != SelectedSource.NONE || settings.bottomBarLeftSource != SelectedSource.NONE || settings.bottomBarRightSource != SelectedSource.NONE) {
@@ -88,27 +87,31 @@ class ForegroundService : Service() {
                             createBars(settings, true)
                         }
                 } else {
-                    val karooSystemService = KarooSystemService(applicationContext).also { this@ForegroundService.karooSystemService = it }
-                    karooSystemService.connect { connected ->
-                        Log.i(TAG, "Karoo system service connected: $connected")
-                    }
-                    val rideStateFlow = karooSystemService.streamRideState()
-
-                    data class StreamState(val settings: PowerbarSettings, val showBars: Boolean)
-
-                    applicationContext
-                        .streamSettings()
-                        .combine(rideStateFlow) { settings, rideState ->
-                            val showBars = !settings.onlyShowWhileRiding || rideState is RideState.Recording
-                            StreamState(settings, showBars)
-                        }.distinctUntilChanged().collectLatest { (settings, showBars) ->
-                            windows.forEach { it.close() }
-                            windows.clear()
-
-                            if (showBars){
-                                createBars(settings, false)
-                            }
+                    val rideStateService = KarooSystemService(applicationContext)
+                    try {
+                        rideStateService.connect { connected ->
+                            Log.i(TAG, "Karoo system service connected: $connected")
                         }
+                        val rideStateFlow = rideStateService.streamRideState()
+
+                        data class StreamState(val settings: PowerbarSettings, val showBars: Boolean)
+
+                        applicationContext
+                            .streamSettings()
+                            .combine(rideStateFlow) { settings, rideState ->
+                                val showBars = !settings.onlyShowWhileRiding || rideState is RideState.Recording
+                                StreamState(settings, showBars)
+                            }.distinctUntilChanged().collectLatest { (settings, showBars) ->
+                                windows.forEach { it.close() }
+                                windows.clear()
+
+                                if (showBars){
+                                    createBars(settings, false)
+                                }
+                            }
+                    } finally {
+                        rideStateService.disconnect()
+                    }
                 }
             }
         }
@@ -118,8 +121,6 @@ class ForegroundService : Service() {
         serviceScope.cancel()
         windows.forEach { it.close() }
         windows.clear()
-        karooSystemService?.disconnect()
-        karooSystemService = null
         super.onDestroy()
     }
 
