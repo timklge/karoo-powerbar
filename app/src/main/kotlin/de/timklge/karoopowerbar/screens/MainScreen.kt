@@ -52,6 +52,8 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -98,7 +100,11 @@ import kotlinx.serialization.json.Json
 import kotlin.math.roundToInt
 
 @Composable
-fun BarSelectDialog(currentSelectedSource: SelectedSource, onHide: () -> Unit, onSelect: (SelectedSource) -> Unit) {
+fun BarSelectDialog(
+    currentSelectedSource: SelectedSource,
+    onHide: () -> Unit,
+    onSelect: (SelectedSource) -> Unit
+) {
     Dialog(onDismissRequest = { onHide() }) {
         Card(
             modifier = Modifier
@@ -106,17 +112,21 @@ fun BarSelectDialog(currentSelectedSource: SelectedSource, onHide: () -> Unit, o
                 .padding(10.dp),
             shape = RoundedCornerShape(10.dp),
         ) {
-            Column(modifier = Modifier
-                .padding(5.dp)
-                .verticalScroll(rememberScrollState())
-                .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(
+                modifier = Modifier
+                    .padding(5.dp)
+                    .verticalScroll(rememberScrollState())
+                    .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
 
                 SelectedSource.entries.forEach { pattern ->
-                    Row(modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            onSelect(pattern)
-                        }, verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onSelect(pattern)
+                            }, verticalAlignment = Alignment.CenterVertically
+                    ) {
                         RadioButton(selected = currentSelectedSource == pattern, onClick = {
                             onSelect(pattern)
                         })
@@ -177,8 +187,16 @@ fun MainScreen(onFinish: () -> Unit) {
 
     var minCadence by remember { mutableStateOf(initialSettings.minCadence.toString()) }
     var maxCadence by remember { mutableStateOf(initialSettings.maxCadence.toString()) }
-    var minSpeed by remember { mutableStateOf((initialSettings.minSpeed * 3.6f).roundToInt().toString()) }
-    var maxSpeed by remember { mutableStateOf((initialSettings.maxSpeed * 3.6f).roundToInt().toString()) }
+    var minSpeed by remember {
+        mutableStateOf(
+            (initialSettings.minSpeed * 3.6f).roundToInt().toString()
+        )
+    }
+    var maxSpeed by remember {
+        mutableStateOf(
+            (initialSettings.maxSpeed * 3.6f).roundToInt().toString()
+        )
+    }
     var isImperial by remember { mutableStateOf(false) }
     var customMinPower by remember { mutableStateOf(initialSettings.minPower?.toString() ?: "") }
     var customMaxPower by remember { mutableStateOf(initialSettings.maxPower?.toString() ?: "") }
@@ -187,10 +205,16 @@ fun MainScreen(onFinish: () -> Unit) {
     var minGrade by remember { mutableStateOf(initialSettings.minGradient?.toString() ?: "") }
     var maxGrade by remember { mutableStateOf(initialSettings.maxGradient?.toString() ?: "") }
     var minPedalSmoothness by remember {
-        mutableStateOf(initialSettings.minPedalSmoothness?.roundToInt()?.toString() ?: PowerbarSettings.defaultMinPedalSmoothnessPercent.roundToInt().toString())
+        mutableStateOf(
+            initialSettings.minPedalSmoothness?.roundToInt()?.toString()
+                ?: PowerbarSettings.defaultMinPedalSmoothnessPercent.roundToInt().toString()
+        )
     }
     var maxPedalSmoothness by remember {
-        mutableStateOf(initialSettings.maxPedalSmoothness?.roundToInt()?.toString() ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent.roundToInt().toString())
+        mutableStateOf(
+            initialSettings.maxPedalSmoothness?.roundToInt()?.toString()
+                ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent.roundToInt().toString()
+        )
     }
     var useCustomPowerRange by remember { mutableStateOf(initialSettings.useCustomPowerRange) }
     var useCustomHrRange by remember { mutableStateOf(initialSettings.useCustomHrRange) }
@@ -202,11 +226,15 @@ fun MainScreen(onFinish: () -> Unit) {
 
     var anyFieldHasFocus by remember { mutableStateOf(false) }
 
-    suspend fun updateSettings(){
+    suspend fun updateSettings() {
         Log.d(KarooPowerbarExtension.TAG, "Saving settings")
 
-        val minSpeedSetting = (minSpeed.toIntOrNull()?.toFloat()?.div((if(isImperial) 2.23694f else 3.6f))) ?: PowerbarSettings.defaultMinSpeedMs
-        val maxSpeedSetting = (maxSpeed.toIntOrNull()?.toFloat()?.div((if(isImperial) 2.23694f else 3.6f))) ?: PowerbarSettings.defaultMaxSpeedMs
+        val minSpeedSetting =
+            (minSpeed.toIntOrNull()?.toFloat()?.div((if (isImperial) 2.23694f else 3.6f)))
+                ?: PowerbarSettings.defaultMinSpeedMs
+        val maxSpeedSetting =
+            (maxSpeed.toIntOrNull()?.toFloat()?.div((if (isImperial) 2.23694f else 3.6f)))
+                ?: PowerbarSettings.defaultMaxSpeedMs
 
         val newSettings = PowerbarSettings(
             bottomBarSource = bottomSelectedSource, topBarSource = topSelectedSource,
@@ -228,8 +256,10 @@ fun MainScreen(onFinish: () -> Unit) {
             maxHr = customMaxHr.toIntOrNull(),
             minGradient = minGrade.toIntOrNull() ?: PowerbarSettings.defaultMinGradient,
             maxGradient = maxGrade.toIntOrNull() ?: PowerbarSettings.defaultMaxGradient,
-            minPedalSmoothness = minPedalSmoothness.toFloatOrNull() ?: PowerbarSettings.defaultMinPedalSmoothnessPercent,
-            maxPedalSmoothness = maxPedalSmoothness.toFloatOrNull() ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent,
+            minPedalSmoothness = minPedalSmoothness.toFloatOrNull()
+                ?: PowerbarSettings.defaultMinPedalSmoothnessPercent,
+            maxPedalSmoothness = maxPedalSmoothness.toFloatOrNull()
+                ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent,
             barBarSize = barBarSize,
             barFontSize = barFontSize,
             useCustomPowerRange = useCustomPowerRange,
@@ -241,7 +271,7 @@ fun MainScreen(onFinish: () -> Unit) {
         }
     }
 
-    fun updateFocus(focusState: FocusState){
+    fun updateFocus(focusState: FocusState) {
         val fieldGotFocus = focusState.isFocused
         // Only save settings when truly losing focus (not because another field gained focus)
         if (!fieldGotFocus && anyFieldHasFocus) {
@@ -254,7 +284,8 @@ fun MainScreen(onFinish: () -> Unit) {
 
     LaunchedEffect(Unit) {
         karooSystem.streamUserProfile().distinctUntilChanged().collect { profileData ->
-            isImperial = profileData.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+            isImperial =
+                profileData.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
             profileMaxHr = profileData.maxHr
             profileRestHr = profileData.restingHr
             profileMinPower = profileData.powerZones.first().min
@@ -286,20 +317,27 @@ fun MainScreen(onFinish: () -> Unit) {
                 stickToEdge = settings.stickToEdge
                 minCadence = settings.minCadence.toString()
                 maxCadence = settings.maxCadence.toString()
-                isImperial = profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
-                minSpeed = (if(isImperial) settings.minSpeed * 2.23694f else settings.minSpeed * 3.6f).roundToInt().toString()
-                maxSpeed = (if(isImperial) settings.maxSpeed * 2.23694f else settings.maxSpeed * 3.6f).roundToInt().toString()
+                isImperial =
+                    profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
+                minSpeed =
+                    (if (isImperial) settings.minSpeed * 2.23694f else settings.minSpeed * 3.6f).roundToInt()
+                        .toString()
+                maxSpeed =
+                    (if (isImperial) settings.maxSpeed * 2.23694f else settings.maxSpeed * 3.6f).roundToInt()
+                        .toString()
                 customMinPower = settings.minPower?.toString() ?: ""
                 customMaxPower = settings.maxPower?.toString() ?: ""
                 customMinHr = settings.minHr?.toString() ?: ""
                 customMaxHr = settings.maxHr?.toString() ?: ""
                 minGrade = settings.minGradient?.toString() ?: ""
                 maxGrade = settings.maxGradient?.toString() ?: ""
-                minPedalSmoothness = settings.minPedalSmoothness?.roundToInt()?.toString() ?: PowerbarSettings.defaultMinPedalSmoothnessPercent.roundToInt().toString()
-                maxPedalSmoothness = settings.maxPedalSmoothness?.roundToInt()?.toString() ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent.roundToInt().toString()
+                minPedalSmoothness = settings.minPedalSmoothness?.roundToInt()?.toString()
+                    ?: PowerbarSettings.defaultMinPedalSmoothnessPercent.roundToInt().toString()
+                maxPedalSmoothness = settings.maxPedalSmoothness?.roundToInt()?.toString()
+                    ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent.roundToInt().toString()
                 useCustomPowerRange = settings.useCustomPowerRange
                 useCustomHrRange = settings.useCustomHrRange
-        }
+            }
     }
 
     LaunchedEffect(Unit) {
@@ -316,318 +354,496 @@ fun MainScreen(onFinish: () -> Unit) {
     LifecycleResumeEffect(Unit) {
         givenPermissions = Settings.canDrawOverlays(ctx)
 
-        onPauseOrDispose {  }
+        onPauseOrDispose { }
     }
 
     fun isCharAllowed(index: Int, c: Char): Boolean {
         return c.isDigit() || (c == '-' && index == 0)
     }
 
-    Box(modifier = Modifier.fillMaxSize()){
-        Column(modifier = Modifier
-        .fillMaxSize()
-        .background(MaterialTheme.colorScheme.background)) {
-            TopAppBar(title = { Text(stringResource(R.string.powerbar_title)) })
-            Column(modifier = Modifier
-                .padding(5.dp)
-                .verticalScroll(rememberScrollState())
-                .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            TopAppBar(
+                title = {
+                    Text(
+                        stringResource(R.string.powerbar_title),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            )
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
 
-                if (showAlerts){
-                    if(!karooConnected){
-                        Text(modifier = Modifier.padding(5.dp), text = stringResource(R.string.karoo_connection_error))
+                if (showAlerts) {
+                    if (!karooConnected) {
+                        AlertCard(stringResource(R.string.karoo_connection_error))
                     }
 
                     if (!givenPermissions) {
-                        Text(modifier = Modifier.padding(5.dp), text = stringResource(R.string.permission_not_granted))
+                        AlertCard(stringResource(R.string.permission_not_granted))
 
-                        FilledTonalButton(modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp), onClick = {
-                            val myIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
-                            ctx.startActivity(myIntent, null)
-                        }) {
-                            Icon(Icons.Default.Build, contentDescription = stringResource(R.string.content_desc_give_permission))
+                        FilledTonalButton(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp), onClick = {
+                                val myIntent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                                ctx.startActivity(myIntent, null)
+                            }) {
+                            Icon(
+                                Icons.Default.Build,
+                                contentDescription = stringResource(R.string.content_desc_give_permission)
+                            )
                             Spacer(modifier = Modifier.width(5.dp))
                             Text(stringResource(R.string.give_permission))
                         }
                     }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 10.dp)) {
-                    Text(stringResource(R.string.top_bar), style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(stringResource(R.string.split))
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Switch(checked = splitTopBar, onCheckedChange = {
-                        splitTopBar = it
-                        coroutineScope.launch { updateSettings() }
-                    })
-                }
-
-                if (splitTopBar) {
-                    FilledTonalButton(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                        onClick = {
-                            topBarLeftDialogVisible = true
-                        }) {
-                        Icon(Icons.Default.Build, contentDescription = stringResource(R.string.content_desc_select), modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(stringResource(R.string.top_bar_left, stringResource(topSelectedSourceLeft.labelResId)), modifier = Modifier.weight(1.0f))
-                    }
-
-                    if (topBarLeftDialogVisible){
-                        BarSelectDialog(topSelectedSourceLeft, onHide = { topBarLeftDialogVisible = false }, onSelect = { selected ->
-                            topSelectedSourceLeft = selected
+                SettingsCard {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            stringResource(R.string.top_bar),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.split))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Switch(checked = splitTopBar, onCheckedChange = {
+                            splitTopBar = it
                             coroutineScope.launch { updateSettings() }
-                            topBarLeftDialogVisible = false
                         })
                     }
 
-                    FilledTonalButton(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                        onClick = {
-                            topBarRightDialogVisible = true
-                        }) {
-                        Icon(Icons.Default.Build, contentDescription = stringResource(R.string.content_desc_select), modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(stringResource(R.string.top_bar_right, stringResource(topSelectedSourceRight.labelResId)), modifier = Modifier.weight(1.0f))
+                    if (splitTopBar) {
+                        FilledTonalButton(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                            onClick = {
+                                topBarLeftDialogVisible = true
+                            }) {
+                            Icon(
+                                Icons.Default.Build,
+                                contentDescription = stringResource(R.string.content_desc_select),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                stringResource(
+                                    R.string.top_bar_left,
+                                    stringResource(topSelectedSourceLeft.labelResId)
+                                ), modifier = Modifier.weight(1.0f)
+                            )
+                        }
+
+                        if (topBarLeftDialogVisible) {
+                            BarSelectDialog(
+                                topSelectedSourceLeft,
+                                onHide = { topBarLeftDialogVisible = false },
+                                onSelect = { selected ->
+                                    topSelectedSourceLeft = selected
+                                    coroutineScope.launch { updateSettings() }
+                                    topBarLeftDialogVisible = false
+                                })
+                        }
+
+                        FilledTonalButton(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                            onClick = {
+                                topBarRightDialogVisible = true
+                            }) {
+                            Icon(
+                                Icons.Default.Build,
+                                contentDescription = stringResource(R.string.content_desc_select),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                stringResource(
+                                    R.string.top_bar_right,
+                                    stringResource(topSelectedSourceRight.labelResId)
+                                ), modifier = Modifier.weight(1.0f)
+                            )
+                        }
+
+                        if (topBarRightDialogVisible) {
+                            BarSelectDialog(
+                                topSelectedSourceRight,
+                                onHide = { topBarRightDialogVisible = false },
+                                onSelect = { selected ->
+                                    topSelectedSourceRight = selected
+                                    coroutineScope.launch { updateSettings() }
+                                    topBarRightDialogVisible = false
+                                })
+                        }
+                    } else {
+                        FilledTonalButton(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                            onClick = {
+                                topBarDialogVisible = true
+                            }) {
+                            Icon(
+                                Icons.Default.Build,
+                                contentDescription = stringResource(R.string.content_desc_select),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                stringResource(
+                                    R.string.top_bar_single,
+                                    stringResource(topSelectedSource.labelResId)
+                                ), modifier = Modifier.weight(1.0f)
+                            )
+                        }
                     }
 
-                    if (topBarRightDialogVisible){
-                        BarSelectDialog(topSelectedSourceRight, onHide = { topBarRightDialogVisible = false }, onSelect = { selected ->
-                            topSelectedSourceRight = selected
+                    if (topBarDialogVisible) {
+                        BarSelectDialog(
+                            topSelectedSource,
+                            onHide = { topBarDialogVisible = false },
+                            onSelect = { selected ->
+                                topSelectedSource = selected
+                                coroutineScope.launch { updateSettings() }
+                                topBarDialogVisible = false
+                            })
+                    }
+
+                }
+                SettingsCard {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            stringResource(R.string.bottom_bar),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.split))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Switch(checked = splitBottomBar, onCheckedChange = {
+                            splitBottomBar = it
                             coroutineScope.launch { updateSettings() }
-                            topBarRightDialogVisible = false
                         })
                     }
-                } else {
-                    FilledTonalButton(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                        onClick = {
-                            topBarDialogVisible = true
-                        }) {
-                        Icon(Icons.Default.Build, contentDescription = stringResource(R.string.content_desc_select), modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(stringResource(R.string.top_bar_single, stringResource(topSelectedSource.labelResId)), modifier = Modifier.weight(1.0f))
+
+                    if (splitBottomBar) {
+                        FilledTonalButton(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                            onClick = {
+                                bottomBarLeftDialogVisible = true
+                            }) {
+                            Icon(
+                                Icons.Default.Build,
+                                contentDescription = stringResource(R.string.content_desc_select),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                stringResource(
+                                    R.string.bottom_bar_left,
+                                    stringResource(bottomSelectedSourceLeft.labelResId)
+                                ), modifier = Modifier.weight(1.0f)
+                            )
+                        }
+
+                        if (bottomBarLeftDialogVisible) {
+                            BarSelectDialog(
+                                bottomSelectedSourceLeft,
+                                onHide = { bottomBarLeftDialogVisible = false },
+                                onSelect = { selected ->
+                                    bottomSelectedSourceLeft = selected
+                                    coroutineScope.launch { updateSettings() }
+                                    bottomBarLeftDialogVisible = false
+                                })
+                        }
+
+                        FilledTonalButton(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                            onClick = {
+                                bottomBarRightDialogVisible = true
+                            }) {
+                            Icon(
+                                Icons.Default.Build,
+                                contentDescription = stringResource(R.string.content_desc_select),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                stringResource(
+                                    R.string.bottom_bar_right,
+                                    stringResource(bottomSelectedSourceRight.labelResId)
+                                ), modifier = Modifier.weight(1.0f)
+                            )
+                        }
+
+                        if (bottomBarRightDialogVisible) {
+                            BarSelectDialog(
+                                bottomSelectedSourceRight,
+                                onHide = { bottomBarRightDialogVisible = false },
+                                onSelect = { selected ->
+                                    bottomSelectedSourceRight = selected
+                                    coroutineScope.launch { updateSettings() }
+                                    bottomBarRightDialogVisible = false
+                                })
+                        }
+                    } else {
+                        FilledTonalButton(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                            onClick = {
+                                bottomBarDialogVisible = true
+                            }) {
+                            Icon(
+                                Icons.Default.Build,
+                                contentDescription = stringResource(R.string.content_desc_select),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                stringResource(
+                                    R.string.bottom_bar_single,
+                                    stringResource(bottomSelectedSource.labelResId)
+                                ), modifier = Modifier.weight(1.0f)
+                            )
+                        }
                     }
-                }
 
-                if (topBarDialogVisible){
-                    BarSelectDialog(topSelectedSource, onHide = { topBarDialogVisible = false }, onSelect = { selected ->
-                        topSelectedSource = selected
-                        coroutineScope.launch { updateSettings() }
-                        topBarDialogVisible = false
-                    })
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 10.dp)) {
-                    Text(stringResource(R.string.bottom_bar), style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(stringResource(R.string.split))
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Switch(checked = splitBottomBar, onCheckedChange = {
-                        splitBottomBar = it
-                        coroutineScope.launch { updateSettings() }
-                    })
-                }
-
-                if (splitBottomBar) {
-                    FilledTonalButton(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                        onClick = {
-                            bottomBarLeftDialogVisible = true
-                        }) {
-                        Icon(Icons.Default.Build, contentDescription = stringResource(R.string.content_desc_select), modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(stringResource(R.string.bottom_bar_left, stringResource(bottomSelectedSourceLeft.labelResId)), modifier = Modifier.weight(1.0f))
+                    if (bottomBarDialogVisible) {
+                        BarSelectDialog(
+                            bottomSelectedSource,
+                            onHide = { bottomBarDialogVisible = false },
+                            onSelect = { selected ->
+                                bottomSelectedSource = selected
+                                coroutineScope.launch { updateSettings() }
+                                bottomBarDialogVisible = false
+                            })
                     }
 
-                    if (bottomBarLeftDialogVisible){
-                        BarSelectDialog(bottomSelectedSourceLeft, onHide = { bottomBarLeftDialogVisible = false }, onSelect = { selected ->
-                            bottomSelectedSourceLeft = selected
+                }
+                SettingsCard {
+                    apply {
+                        val dropdownOptions = CustomProgressBarBarSize.entries.toList()
+                            .map { unit ->
+                                DropdownOption(
+                                    unit.id,
+                                    stringResource(unit.labelResId)
+                                )
+                            }
+                        val dropdownInitialSelection by remember(barBarSize) {
+                            mutableStateOf(dropdownOptions.find { option -> option.id == barBarSize.id }!!)
+                        }
+                        Dropdown(
+                            label = stringResource(R.string.bar_size),
+                            options = dropdownOptions,
+                            selected = dropdownInitialSelection
+                        ) { selectedOption ->
+                            barBarSize =
+                                CustomProgressBarBarSize.entries.find { unit -> unit.id == selectedOption.id }!!
                             coroutineScope.launch { updateSettings() }
-                            bottomBarLeftDialogVisible = false
-                        })
+                        }
                     }
 
-                    FilledTonalButton(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                        onClick = {
-                            bottomBarRightDialogVisible = true
-                        }) {
-                        Icon(Icons.Default.Build, contentDescription = stringResource(R.string.content_desc_select), modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(stringResource(R.string.bottom_bar_right, stringResource(bottomSelectedSourceRight.labelResId)), modifier = Modifier.weight(1.0f))
-                    }
-
-                    if (bottomBarRightDialogVisible){
-                        BarSelectDialog(bottomSelectedSourceRight, onHide = { bottomBarRightDialogVisible = false }, onSelect = { selected ->
-                            bottomSelectedSourceRight = selected
+                    apply {
+                        val dropdownOptions = CustomProgressBarFontSize.entries.toList()
+                            .map { unit ->
+                                DropdownOption(
+                                    unit.id,
+                                    stringResource(unit.labelResId)
+                                )
+                            }
+                        val dropdownInitialSelection by remember(barFontSize) {
+                            mutableStateOf(dropdownOptions.find { option -> option.id == barFontSize.id }!!)
+                        }
+                        Dropdown(
+                            label = stringResource(R.string.text_size),
+                            options = dropdownOptions,
+                            selected = dropdownInitialSelection
+                        ) { selectedOption ->
+                            barFontSize =
+                                CustomProgressBarFontSize.entries.find { unit -> unit.id == selectedOption.id }!!
                             coroutineScope.launch { updateSettings() }
-                            bottomBarRightDialogVisible = false
-                        })
+                        }
                     }
-                } else {
-                    FilledTonalButton(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                        onClick = {
-                            bottomBarDialogVisible = true
-                        }) {
-                        Icon(Icons.Default.Build, contentDescription = stringResource(R.string.content_desc_select), modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(stringResource(R.string.bottom_bar_single, stringResource(bottomSelectedSource.labelResId)), modifier = Modifier.weight(1.0f))
-                    }
-                }
 
-                if (bottomBarDialogVisible){
-                    BarSelectDialog(bottomSelectedSource, onHide = { bottomBarDialogVisible = false }, onSelect = { selected ->
-                        bottomSelectedSource = selected
-                        coroutineScope.launch { updateSettings() }
-                        bottomBarDialogVisible = false
-                    })
-                }
-
-                apply {
-                    val dropdownOptions = CustomProgressBarBarSize.entries.toList().map { unit -> DropdownOption(unit.id, stringResource(unit.labelResId)) }
-                    val dropdownInitialSelection by remember(barBarSize) {
-                        mutableStateOf(dropdownOptions.find { option -> option.id == barBarSize.id }!!)
-                    }
-                    Dropdown(label = stringResource(R.string.bar_size), options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
-                        barBarSize = CustomProgressBarBarSize.entries.find { unit -> unit.id == selectedOption.id }!!
-                        coroutineScope.launch { updateSettings() }
-                    }
-                }
-
-                apply {
-                    val dropdownOptions = CustomProgressBarFontSize.entries.toList().map { unit -> DropdownOption(unit.id, stringResource(unit.labelResId)) }
-                    val dropdownInitialSelection by remember(barFontSize) {
-                        mutableStateOf(dropdownOptions.find { option -> option.id == barFontSize.id }!!)
-                    }
-                    Dropdown(label = stringResource(R.string.text_size), options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
-                        barFontSize = CustomProgressBarFontSize.entries.find { unit -> unit.id == selectedOption.id }!!
-                        coroutineScope.launch { updateSettings() }
-                    }
                 }
 
                 if (topSelectedSource == SelectedSource.SPEED || topSelectedSource == SelectedSource.SPEED_3S ||
                     bottomSelectedSource == SelectedSource.SPEED || bottomSelectedSource == SelectedSource.SPEED_3S ||
                     (splitTopBar && (topSelectedSourceLeft == SelectedSource.SPEED || topSelectedSourceLeft == SelectedSource.SPEED_3S || topSelectedSourceRight == SelectedSource.SPEED || topSelectedSourceRight == SelectedSource.SPEED_3S)) ||
                     (splitBottomBar && (bottomSelectedSourceLeft == SelectedSource.SPEED || bottomSelectedSourceLeft == SelectedSource.SPEED_3S || bottomSelectedSourceRight == SelectedSource.SPEED || bottomSelectedSourceRight == SelectedSource.SPEED_3S))
-                ){
+                ) {
+                    SettingsCard {
 
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(value = minSpeed, modifier = Modifier
-                            .weight(1f)
-                            .absolutePadding(right = 2.dp)
-                            .onFocusEvent(::updateFocus),
-                            onValueChange = { minSpeed = it.filterIndexed(::isCharAllowed) },
-                            label = { Text(stringResource(R.string.min_speed)) },
-                            suffix = { Text(stringResource(if (isImperial) R.string.unit_mph else R.string.unit_kph)) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = minSpeed, modifier = Modifier
+                                    .weight(1f)
+                                    .absolutePadding(right = 2.dp)
+                                    .onFocusEvent(::updateFocus),
+                                onValueChange = { minSpeed = it.filterIndexed(::isCharAllowed) },
+                                label = { Text(stringResource(R.string.min_speed)) },
+                                suffix = { Text(stringResource(if (isImperial) R.string.unit_mph else R.string.unit_kph)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
 
-                        OutlinedTextField(value = maxSpeed, modifier = Modifier
-                            .weight(1f)
-                            .absolutePadding(left = 2.dp)
-                            .onFocusEvent(::updateFocus),
-                            onValueChange = { maxSpeed = it.filterIndexed(::isCharAllowed) },
-                            label = { Text(stringResource(R.string.max_speed)) },
-                            suffix = { Text(stringResource(if (isImperial) R.string.unit_mph else R.string.unit_kph)) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
+                            OutlinedTextField(
+                                value = maxSpeed, modifier = Modifier
+                                    .weight(1f)
+                                    .absolutePadding(left = 2.dp)
+                                    .onFocusEvent(::updateFocus),
+                                onValueChange = { maxSpeed = it.filterIndexed(::isCharAllowed) },
+                                label = { Text(stringResource(R.string.max_speed)) },
+                                suffix = { Text(stringResource(if (isImperial) R.string.unit_mph else R.string.unit_kph)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+                        }
+
                     }
                 }
 
                 if (topSelectedSource.isPower() || bottomSelectedSource.isPower() ||
                     (splitTopBar && (topSelectedSourceLeft.isPower() || topSelectedSourceRight.isPower())) ||
                     (splitBottomBar && (bottomSelectedSourceLeft.isPower() || bottomSelectedSourceRight.isPower()))
-                ){
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(checked = useCustomPowerRange, onCheckedChange = {
+                ) {
+                    SettingsCard {
+                        SwitchRow(
+                            stringResource(R.string.use_custom_power_range),
+                            useCustomPowerRange
+                        ) {
                             useCustomPowerRange = it
                             coroutineScope.launch { updateSettings() }
-                        })
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(stringResource(R.string.use_custom_power_range))
-                    }
-
-                    if(useCustomPowerRange){
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            OutlinedTextField(value = customMinPower, modifier = Modifier
-                                .weight(1f)
-                                .absolutePadding(right = 2.dp)
-                                .onFocusEvent(::updateFocus),
-                                onValueChange = { customMinPower = it.filterIndexed(::isCharAllowed) },
-                                label = { Text(stringResource(R.string.min_power), fontSize = 12.sp) },
-                                suffix = { Text(stringResource(R.string.unit_watts)) },
-                                placeholder = { Text("$profileMinPower") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true
-                            )
-
-                            OutlinedTextField(value = customMaxPower, modifier = Modifier
-                                .weight(1f)
-                                .absolutePadding(left = 2.dp)
-                                .onFocusEvent(::updateFocus),
-                                onValueChange = { customMaxPower = it.filterIndexed(::isCharAllowed) },
-                                label = { Text(stringResource(R.string.max_power), fontSize = 12.sp) },
-                                suffix = { Text(stringResource(R.string.unit_watts)) },
-                                placeholder = { Text("$profileMaxPower") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true
-                            )
                         }
+
+                        if (useCustomPowerRange) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedTextField(
+                                    value = customMinPower, modifier = Modifier
+                                        .weight(1f)
+                                        .absolutePadding(right = 2.dp)
+                                        .onFocusEvent(::updateFocus),
+                                    onValueChange = {
+                                        customMinPower = it.filterIndexed(::isCharAllowed)
+                                    },
+                                    label = {
+                                        Text(
+                                            stringResource(R.string.min_power),
+                                            fontSize = 12.sp
+                                        )
+                                    },
+                                    suffix = { Text(stringResource(R.string.unit_watts)) },
+                                    placeholder = { Text("$profileMinPower") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true
+                                )
+
+                                OutlinedTextField(
+                                    value = customMaxPower, modifier = Modifier
+                                        .weight(1f)
+                                        .absolutePadding(left = 2.dp)
+                                        .onFocusEvent(::updateFocus),
+                                    onValueChange = {
+                                        customMaxPower = it.filterIndexed(::isCharAllowed)
+                                    },
+                                    label = {
+                                        Text(
+                                            stringResource(R.string.max_power),
+                                            fontSize = 12.sp
+                                        )
+                                    },
+                                    suffix = { Text(stringResource(R.string.unit_watts)) },
+                                    placeholder = { Text("$profileMaxPower") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true
+                                )
+                            }
+                        }
+
                     }
                 }
 
                 if (topSelectedSource == SelectedSource.HEART_RATE || bottomSelectedSource == SelectedSource.HEART_RATE ||
                     (splitTopBar && (topSelectedSourceLeft == SelectedSource.HEART_RATE || topSelectedSourceRight == SelectedSource.HEART_RATE)) ||
                     (splitBottomBar && (bottomSelectedSourceLeft == SelectedSource.HEART_RATE || bottomSelectedSourceRight == SelectedSource.HEART_RATE))
-                ){
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(checked = useCustomHrRange, onCheckedChange = {
+                ) {
+                    SettingsCard {
+                        SwitchRow(stringResource(R.string.use_custom_hr_range), useCustomHrRange) {
                             useCustomHrRange = it
                             coroutineScope.launch { updateSettings() }
-                        })
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(stringResource(R.string.use_custom_hr_range))
-                    }
-
-                    if (useCustomHrRange){
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            OutlinedTextField(value = customMinHr, modifier = Modifier
-                                .weight(1f)
-                                .absolutePadding(right = 2.dp)
-                                .onFocusEvent(::updateFocus),
-                                onValueChange = { customMinHr = it.filterIndexed(::isCharAllowed) },
-                                label = { Text(stringResource(R.string.min_hr)) },
-                                suffix = { Text(stringResource(R.string.unit_bpm)) },
-                                placeholder = { if(profileRestHr > 0) Text("$profileRestHr") else Unit },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true
-                            )
-
-                            OutlinedTextField(value = customMaxHr, modifier = Modifier
-                                .weight(1f)
-                                .absolutePadding(left = 2.dp)
-                                .onFocusEvent(::updateFocus),
-                                onValueChange = { customMaxHr = it.filterIndexed(::isCharAllowed) },
-                                label = { Text(stringResource(R.string.max_hr)) },
-                                suffix = { Text(stringResource(R.string.unit_bpm)) },
-                                placeholder = { if(profileMaxHr > 0) Text("$profileMaxHr") else Unit },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true
-                            )
                         }
+
+                        if (useCustomHrRange) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                OutlinedTextField(
+                                    value = customMinHr, modifier = Modifier
+                                        .weight(1f)
+                                        .absolutePadding(right = 2.dp)
+                                        .onFocusEvent(::updateFocus),
+                                    onValueChange = {
+                                        customMinHr = it.filterIndexed(::isCharAllowed)
+                                    },
+                                    label = { Text(stringResource(R.string.min_hr)) },
+                                    suffix = { Text(stringResource(R.string.unit_bpm)) },
+                                    placeholder = { if (profileRestHr > 0) Text("$profileRestHr") else Unit },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true
+                                )
+
+                                OutlinedTextField(
+                                    value = customMaxHr, modifier = Modifier
+                                        .weight(1f)
+                                        .absolutePadding(left = 2.dp)
+                                        .onFocusEvent(::updateFocus),
+                                    onValueChange = {
+                                        customMaxHr = it.filterIndexed(::isCharAllowed)
+                                    },
+                                    label = { Text(stringResource(R.string.max_hr)) },
+                                    suffix = { Text(stringResource(R.string.unit_bpm)) },
+                                    placeholder = { if (profileMaxHr > 0) Text("$profileMaxHr") else Unit },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true
+                                )
+                            }
+                        }
+
                     }
                 }
 
@@ -635,135 +851,159 @@ fun MainScreen(onFinish: () -> Unit) {
                     bottomSelectedSource == SelectedSource.CADENCE_3S || topSelectedSource == SelectedSource.CADENCE_3S ||
                     (splitTopBar && (topSelectedSourceLeft == SelectedSource.CADENCE || topSelectedSourceLeft == SelectedSource.CADENCE_3S || topSelectedSourceRight == SelectedSource.CADENCE || topSelectedSourceRight == SelectedSource.CADENCE_3S)) ||
                     (splitBottomBar && (bottomSelectedSourceLeft == SelectedSource.CADENCE || bottomSelectedSourceLeft == SelectedSource.CADENCE_3S || bottomSelectedSourceRight == SelectedSource.CADENCE || bottomSelectedSourceRight == SelectedSource.CADENCE_3S))
-                ){
+                ) {
+                    SettingsCard {
 
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(value = minCadence, modifier = Modifier
-                            .weight(1f)
-                            .absolutePadding(right = 2.dp)
-                            .onFocusEvent(::updateFocus),
-                            onValueChange = { minCadence = it.filterIndexed(::isCharAllowed) },
-                            label = { Text(stringResource(R.string.min_cadence)) },
-                            suffix = { Text(stringResource(R.string.unit_rpm)) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = minCadence, modifier = Modifier
+                                    .weight(1f)
+                                    .absolutePadding(right = 2.dp)
+                                    .onFocusEvent(::updateFocus),
+                                onValueChange = { minCadence = it.filterIndexed(::isCharAllowed) },
+                                label = { Text(stringResource(R.string.min_cadence)) },
+                                suffix = { Text(stringResource(R.string.unit_rpm)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
 
-                        OutlinedTextField(value = maxCadence, modifier = Modifier
-                            .weight(1f)
-                            .absolutePadding(left = 2.dp)
-                            .onFocusEvent(::updateFocus),
-                            onValueChange = { maxCadence = it.filterIndexed(::isCharAllowed) },
-                            label = { Text(stringResource(R.string.max_cadence)) },
-                            suffix = { Text(stringResource(R.string.unit_rpm)) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
+                            OutlinedTextField(
+                                value = maxCadence, modifier = Modifier
+                                    .weight(1f)
+                                    .absolutePadding(left = 2.dp)
+                                    .onFocusEvent(::updateFocus),
+                                onValueChange = { maxCadence = it.filterIndexed(::isCharAllowed) },
+                                label = { Text(stringResource(R.string.max_cadence)) },
+                                suffix = { Text(stringResource(R.string.unit_rpm)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+                        }
+
                     }
                 }
 
                 if (topSelectedSource == SelectedSource.GRADE || bottomSelectedSource == SelectedSource.GRADE ||
                     (splitTopBar && (topSelectedSourceLeft == SelectedSource.GRADE || topSelectedSourceRight == SelectedSource.GRADE)) ||
                     (splitBottomBar && (bottomSelectedSourceLeft == SelectedSource.GRADE || bottomSelectedSourceRight == SelectedSource.GRADE))
-                ){
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(value = minGrade, modifier = Modifier
-                            .weight(1f)
-                            .absolutePadding(right = 2.dp)
-                            .onFocusEvent(::updateFocus),
-                            onValueChange = { minGrade = it.filterIndexed(::isCharAllowed) },
-                            label = { Text(stringResource(R.string.min_grade)) },
-                            suffix = { Text(stringResource(R.string.unit_percent)) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
+                ) {
+                    SettingsCard {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedTextField(
+                                value = minGrade, modifier = Modifier
+                                    .weight(1f)
+                                    .absolutePadding(right = 2.dp)
+                                    .onFocusEvent(::updateFocus),
+                                onValueChange = { minGrade = it.filterIndexed(::isCharAllowed) },
+                                label = { Text(stringResource(R.string.min_grade)) },
+                                suffix = { Text(stringResource(R.string.unit_percent)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
 
-                        OutlinedTextField(value = maxGrade, modifier = Modifier
-                            .weight(1f)
-                            .absolutePadding(left = 2.dp)
-                            .onFocusEvent(::updateFocus),
-                            onValueChange = { maxGrade = it.filterIndexed(::isCharAllowed) },
-                            label = { Text(stringResource(R.string.max_grade)) },
-                            suffix = { Text(stringResource(R.string.unit_percent)) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
+                            OutlinedTextField(
+                                value = maxGrade, modifier = Modifier
+                                    .weight(1f)
+                                    .absolutePadding(left = 2.dp)
+                                    .onFocusEvent(::updateFocus),
+                                onValueChange = { maxGrade = it.filterIndexed(::isCharAllowed) },
+                                label = { Text(stringResource(R.string.max_grade)) },
+                                suffix = { Text(stringResource(R.string.unit_percent)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+                        }
+
                     }
                 }
 
                 if (topSelectedSource == SelectedSource.PEDAL_SMOOTHNESS || bottomSelectedSource == SelectedSource.PEDAL_SMOOTHNESS ||
                     (splitTopBar && (topSelectedSourceLeft == SelectedSource.PEDAL_SMOOTHNESS || topSelectedSourceRight == SelectedSource.PEDAL_SMOOTHNESS)) ||
                     (splitBottomBar && (bottomSelectedSourceLeft == SelectedSource.PEDAL_SMOOTHNESS || bottomSelectedSourceRight == SelectedSource.PEDAL_SMOOTHNESS))
-                ){
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                        OutlinedTextField(value = minPedalSmoothness, modifier = Modifier
-                            .weight(1f)
-                            .absolutePadding(right = 2.dp)
-                            .onFocusEvent(::updateFocus),
-                            onValueChange = { input ->
-                                val digitsOnly = input.filter { it.isDigit() }
-                                val clamped = digitsOnly.toIntOrNull()?.coerceIn(0, 100)?.toString() ?: digitsOnly
-                                minPedalSmoothness = clamped
-                            },
-                            label = { Text(stringResource(R.string.min_pedal_smoothness), fontSize = 12.sp) },
-                            suffix = { Text(stringResource(R.string.unit_percent)) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
+                ) {
+                    SettingsCard {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = minPedalSmoothness, modifier = Modifier
+                                    .weight(1f)
+                                    .absolutePadding(right = 2.dp)
+                                    .onFocusEvent(::updateFocus),
+                                onValueChange = { input ->
+                                    val digitsOnly = input.filter { it.isDigit() }
+                                    val clamped =
+                                        digitsOnly.toIntOrNull()?.coerceIn(0, 100)?.toString()
+                                            ?: digitsOnly
+                                    minPedalSmoothness = clamped
+                                },
+                                label = {
+                                    Text(
+                                        stringResource(R.string.min_pedal_smoothness),
+                                        fontSize = 12.sp
+                                    )
+                                },
+                                suffix = { Text(stringResource(R.string.unit_percent)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
 
-                        OutlinedTextField(value = maxPedalSmoothness, modifier = Modifier
-                            .weight(1f)
-                            .absolutePadding(left = 2.dp)
-                            .onFocusEvent(::updateFocus),
-                            onValueChange = { input ->
-                                val digitsOnly = input.filter { it.isDigit() }
-                                val clamped = digitsOnly.toIntOrNull()?.coerceIn(0, 100)?.toString() ?: digitsOnly
-                                maxPedalSmoothness = clamped
-                            },
-                            label = { Text(stringResource(R.string.max_pedal_smoothness), fontSize = 12.sp) },
-                            suffix = { Text(stringResource(R.string.unit_percent)) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
-                        )
+                            OutlinedTextField(
+                                value = maxPedalSmoothness, modifier = Modifier
+                                    .weight(1f)
+                                    .absolutePadding(left = 2.dp)
+                                    .onFocusEvent(::updateFocus),
+                                onValueChange = { input ->
+                                    val digitsOnly = input.filter { it.isDigit() }
+                                    val clamped =
+                                        digitsOnly.toIntOrNull()?.coerceIn(0, 100)?.toString()
+                                            ?: digitsOnly
+                                    maxPedalSmoothness = clamped
+                                },
+                                label = {
+                                    Text(
+                                        stringResource(R.string.max_pedal_smoothness),
+                                        fontSize = 12.sp
+                                    )
+                                },
+                                suffix = { Text(stringResource(R.string.unit_percent)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true
+                            )
+                        }
+
                     }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(checked = colorBasedOnZones, onCheckedChange = {
+                SettingsCard {
+                    SwitchRow(stringResource(R.string.color_based_on_zones), colorBasedOnZones) {
                         colorBasedOnZones = it
                         coroutineScope.launch { updateSettings() }
-                    })
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(stringResource(R.string.color_based_on_zones))
-                }
+                    }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(checked = showLabelOnBars, onCheckedChange = {
+                    SwitchRow(stringResource(R.string.show_value_on_bars), showLabelOnBars) {
                         showLabelOnBars = it
                         coroutineScope.launch { updateSettings() }
-                    })
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(stringResource(R.string.show_value_on_bars))
-                }
+                    }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(checked = stickToEdge, onCheckedChange = {
+                    SwitchRow(stringResource(R.string.stick_to_edge), stickToEdge) {
                         stickToEdge = it
                         coroutineScope.launch { updateSettings() }
-                    })
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(stringResource(R.string.stick_to_edge))
-                }
+                    }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(checked = onlyShowWhileRiding, onCheckedChange = {
+                    SwitchRow(
+                        stringResource(R.string.only_show_while_riding),
+                        onlyShowWhileRiding
+                    ) {
                         onlyShowWhileRiding = it
                         coroutineScope.launch { updateSettings() }
-                    })
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(stringResource(R.string.only_show_while_riding))
-                }
+                    }
 
+                }
                 Spacer(modifier = Modifier.padding(30.dp))
             }
         }
