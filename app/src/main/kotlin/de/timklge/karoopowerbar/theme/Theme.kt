@@ -27,8 +27,19 @@ fun AppTheme(
 ) {
     val scheme = lightColorScheme(
         primary = Color(0xFF214559),
-        secondary = Color(0xFF636363),
+        onPrimary = Color(0xFFFFFFFF),
+        primaryContainer = Color(0xFFCDE5F5),
+        onPrimaryContainer = Color(0xFF001E2E),
+        secondary = Color(0xFF4F616E),
+        secondaryContainer = Color(0xFFD2E5F5),
+        onSecondaryContainer = Color(0xFF0B1D29),
         tertiary = Color(0xFFFEF69A),
+        background = Color(0xFFEFF3F6),
+        surface = Color(0xFFF7FAFC),
+        surfaceContainerLow = Color(0xFFFFFFFF),
+        surfaceContainer = Color(0xFFE9EFF3),
+        outline = Color(0xFF71787E),
+        outlineVariant = Color(0xFFC1C7CE),
     )
 
     MaterialTheme(

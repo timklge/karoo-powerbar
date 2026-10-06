@@ -43,6 +43,23 @@ private class RouteDistanceHandler(
 ) : BarHandler {
     private data class BarProgress(val progress: Double?, val label: String?)
 
+    override suspend fun preview(
+        context: Context,
+        karooSystem: KarooSystemService,
+        powerbars: List<CustomProgressBar>
+    ) {
+        karooSystem.streamUserProfile().collectPreview(powerbars) { userProfile, fraction, powerbar ->
+            val totalDistance = 60_000.0
+            val riddenDistance = totalDistance * fraction
+            val distanceToDestination = totalDistance - riddenDistance
+            val barProgress = getProgress(userProfile, riddenDistance, distanceToDestination)
+
+            powerbar.progressColor = context.getColor(R.color.zone0)
+            powerbar.progress = barProgress.progress
+            powerbar.label = barProgress.label ?: ""
+        }
+    }
+
     private fun getProgress(userProfile: UserProfile, riddenDistance: Double?, distanceToDestination: Double?): BarProgress {
         val progress = if (distanceToDestination != null && riddenDistance != null) {
             remap(riddenDistance, 0.0, riddenDistance + distanceToDestination, 0.0, 1.0)

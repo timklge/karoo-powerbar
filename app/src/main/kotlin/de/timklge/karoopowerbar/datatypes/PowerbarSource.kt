@@ -26,4 +26,10 @@ interface BarHandler {
         karooSystem: KarooSystemService,
         powerbars: List<CustomProgressBar>
     )
+
+    suspend fun preview(
+        context: Context,
+        karooSystem: KarooSystemService,
+        powerbars: List<CustomProgressBar>
+    )
 }

@@ -36,6 +36,37 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.roundToInt
 
 class PedalSmoothnessHandler : BarHandler {
+    override suspend fun preview(
+        context: Context,
+        karooSystem: KarooSystemService,
+        powerbars: List<CustomProgressBar>
+    ) {
+        context.streamSettings().collectPreview(powerbars) { settings, fraction, powerbar ->
+            val minSmoothness = settings.minPedalSmoothness
+                ?: PowerbarSettings.defaultMinPedalSmoothnessPercent
+            val maxSmoothness = settings.maxPedalSmoothness
+                ?: PowerbarSettings.defaultMaxPedalSmoothnessPercent
+            val average = interpolate(minSmoothness.toDouble(), maxSmoothness.toDouble(), fraction)
+            val zoneValue = remap(
+                average,
+                minSmoothness.toDouble(),
+                maxSmoothness.toDouble(),
+                1.0,
+                0.0
+            )?.coerceIn(0.0, 1.0) ?: 0.0
+
+            powerbar.progressColor = context.getColor(getZone(zoneValue).colorResource)
+            powerbar.progress = remap(
+                average,
+                minSmoothness.toDouble(),
+                maxSmoothness.toDouble(),
+                0.0,
+                1.0
+            )?.coerceIn(0.0, 1.0)
+            powerbar.label = "${average.roundToInt()}"
+        }
+    }
+
     override suspend fun handle(context: Context, karooSystem: KarooSystemService, powerbars: List<CustomProgressBar>) {
         data class StreamData(
             val left: Double?,

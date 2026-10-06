@@ -42,6 +42,33 @@ import kotlinx.coroutines.flow.map
 import kotlin.math.roundToInt
 
 class HeartRateHandler : BarHandler {
+    override suspend fun preview(
+        context: Context,
+        karooSystem: KarooSystemService,
+        powerbars: List<CustomProgressBar>
+    ) {
+        combine(karooSystem.streamUserProfile(), context.streamSettings()) { profile, settings ->
+            profile to settings
+        }.collectPreview(powerbars) { (profile, settings), fraction, powerbar ->
+            val minHr = (if (settings.useCustomHrRange) settings.minHr else null)
+                ?: profile.restingHr
+            val maxHr = (if (settings.useCustomHrRange) settings.maxHr else null)
+                ?: profile.maxHr
+            val value = interpolate(minHr.toDouble(), maxHr.toDouble(), fraction).roundToInt()
+
+            powerbar.minTarget = null
+            powerbar.maxTarget = null
+            powerbar.target = null
+            powerbar.progressColor = if (settings.useZoneColors) {
+                context.getColor(getZone(profile.heartRateZones, value)?.colorResource ?: R.color.zone7)
+            } else {
+                context.getColor(R.color.zone0)
+            }
+            powerbar.progress = remap(value.toDouble(), minHr.toDouble(), maxHr.toDouble(), 0.0, 1.0)
+            powerbar.label = "$value"
+        }
+    }
+
     override suspend fun handle(context: Context, karooSystem: KarooSystemService, powerbars: List<CustomProgressBar>) {
         val heartRateFlow = karooSystem.streamDataFlow(DataType.Type.HEART_RATE)
             .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }

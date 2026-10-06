@@ -42,6 +42,29 @@ private class AscentDataHandler(private val showRemainingAscent: Boolean) : BarH
         val userProfile: UserProfile
     )
 
+    override suspend fun preview(
+        context: Context,
+        karooSystem: KarooSystemService,
+        powerbars: List<CustomProgressBar>
+    ) {
+        karooSystem.streamUserProfile().collectPreview(powerbars) { userProfile, fraction, powerbar ->
+            val totalAscent = 1_000.0
+            val currentAscent = totalAscent * fraction
+            val ascentRemaining = totalAscent - currentAscent
+            val elevationMultiplier =
+                if (userProfile.preferredUnit.elevation == UserProfile.PreferredUnit.UnitType.IMPERIAL) {
+                    3.28084
+                } else {
+                    1.0
+                }
+            val ascentForLabel = if (showRemainingAscent) ascentRemaining else currentAscent
+
+            powerbar.progressColor = context.getColor(R.color.zone0)
+            powerbar.progress = fraction
+            powerbar.label = ascentForLabel.times(elevationMultiplier).roundToInt().toString()
+        }
+    }
+
     override suspend fun handle(context: Context, karooSystem: KarooSystemService, powerbars: List<CustomProgressBar>) {
         combine(
             karooSystem.streamDataFlow(DataType.Type.ELEVATION_GAIN),

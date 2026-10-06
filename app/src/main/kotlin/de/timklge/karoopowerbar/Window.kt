@@ -83,7 +83,8 @@ class Window(
     val stickToEdge: Boolean = false,
     val selectedSource: SelectedSource = SelectedSource.NONE,
     val selectedLeftSource: SelectedSource = SelectedSource.NONE,
-    val selectedRightSource: SelectedSource = SelectedSource.NONE
+    val selectedRightSource: SelectedSource = SelectedSource.NONE,
+    private val previewMode: Boolean = false
 ) {
     private val rootView: View
     private var layoutParams: WindowManager.LayoutParams? = null
@@ -175,13 +176,13 @@ class Window(
             powerbar.invalidate()
         }
 
-        Log.i(TAG, "Streaming $selectedSource")
+        Log.i(TAG, "${if (previewMode) "Previewing" else "Streaming"} $selectedSource")
 
         val selectedSources = powerbars.values.map { it.source }.toSet()
 
         selectedSources.forEach { selectedSource ->
-            serviceJobs.add( CoroutineScope(Dispatchers.IO).launch {
-                Log.i(TAG, "Starting stream for $selectedSource")
+            serviceJobs.add(CoroutineScope(Dispatchers.IO).launch {
+                Log.i(TAG, "Starting ${if (previewMode) "preview" else "stream"} for $selectedSource")
 
                 val handler: BarHandler? = when (selectedSource) {
                     SelectedSource.HEART_RATE -> HeartRateHandler()
@@ -213,8 +214,12 @@ class Window(
                     SelectedSource.FLIGHT_ATTENDANT_SUSPENSION_MODE -> FlightAttendantSuspensionModeHandler()
                     SelectedSource.NONE -> null
                 }
-
-                handler?.handle(context, karooSystem, powerbars.values.filter { it.source == selectedSource })
+                val selectedBars = powerbars.values.filter { it.source == selectedSource }
+                if (previewMode) {
+                    handler?.preview(context, karooSystem, selectedBars)
+                } else {
+                    handler?.handle(context, karooSystem, selectedBars)
+                }
             })
         }
 

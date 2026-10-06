@@ -38,23 +38,47 @@ import java.util.Locale
 import kotlin.math.absoluteValue
 
 class GradeHandler : BarHandler {
-    override suspend fun handle(context: Context, karooSystem: KarooSystemService, powerbars: List<CustomProgressBar>) {
-        @ColorRes
-        fun getInclineIndicatorColor(percent: Float): Int? = when (percent) {
-            in -Float.MAX_VALUE..<-7.5f -> R.color.eleDarkBlue
-            in -7.5f..<-4.6f -> R.color.eleLightBlue
-            in -4.6f..<-2f -> R.color.eleWhite
-            in -2f..<2f -> R.color.eleGray
-            in 2f..<4.6f -> R.color.eleDarkGreen
-            in 4.6f..<7.5f -> R.color.eleLightGreen
-            in 7.5f..<12.5f -> R.color.eleYellow
-            in 12.5f..<15.5f -> R.color.eleLightOrange
-            in 15.5f..<19.5f -> R.color.eleDarkOrange
-            in 19.5f..<23.5f -> R.color.eleRed
-            in 23.5f..Float.MAX_VALUE -> R.color.elePurple
-            else -> null
-        }
+    @ColorRes
+    private fun getInclineIndicatorColor(percent: Float): Int? = when (percent) {
+        in -Float.MAX_VALUE..<-7.5f -> R.color.eleDarkBlue
+        in -7.5f..<-4.6f -> R.color.eleLightBlue
+        in -4.6f..<-2f -> R.color.eleWhite
+        in -2f..<2f -> R.color.eleGray
+        in 2f..<4.6f -> R.color.eleDarkGreen
+        in 4.6f..<7.5f -> R.color.eleLightGreen
+        in 7.5f..<12.5f -> R.color.eleYellow
+        in 12.5f..<15.5f -> R.color.eleLightOrange
+        in 15.5f..<19.5f -> R.color.eleDarkOrange
+        in 19.5f..<23.5f -> R.color.eleRed
+        in 23.5f..Float.MAX_VALUE -> R.color.elePurple
+        else -> null
+    }
 
+    override suspend fun preview(
+        context: Context,
+        karooSystem: KarooSystemService,
+        powerbars: List<CustomProgressBar>
+    ) {
+        context.streamSettings().collectPreview(powerbars) { settings, fraction, powerbar ->
+            val minGradient = settings.minGradient ?: PowerbarSettings.defaultMinGradient
+            val maxGradient = settings.maxGradient ?: PowerbarSettings.defaultMaxGradient
+            val value = interpolate(minGradient.toDouble(), maxGradient.toDouble(), fraction)
+            val useAbsoluteValue = minGradient >= 0
+
+            powerbar.progress = remap(
+                if (useAbsoluteValue) value.absoluteValue else value,
+                minGradient.toDouble(),
+                maxGradient.toDouble(),
+                0.0,
+                1.0
+            )
+            powerbar.progressColor =
+                context.getColor(getInclineIndicatorColor(value.toFloat()) ?: R.color.zone0)
+            powerbar.label = "${String.format(Locale.getDefault(), "%.1f", value)}%"
+        }
+    }
+
+    override suspend fun handle(context: Context, karooSystem: KarooSystemService, powerbars: List<CustomProgressBar>) {
         val gradeFlow = karooSystem.streamDataFlow(DataType.Type.ELEVATION_GRADE)
             .map { (it as? StreamState.Streaming)?.dataPoint?.singleValue }
             .distinctUntilChanged()

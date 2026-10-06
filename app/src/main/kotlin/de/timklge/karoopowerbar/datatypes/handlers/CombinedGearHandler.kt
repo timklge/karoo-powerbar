@@ -35,6 +35,30 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 class CombinedGearHandler : BarHandler {
+    override suspend fun preview(
+        context: Context,
+        karooSystem: KarooSystemService,
+        powerbars: List<CustomProgressBar>
+    ) {
+        context.streamSettings().collectPreview(powerbars) { settings, fraction, powerbar ->
+            val frontMax = 3
+            val rearMax = 12
+            val frontGear = interpolate(1.0, frontMax + 1.0, fraction).toInt()
+            val rearGear = interpolate(1.0, rearMax + 1.0, 1.0 - fraction).toInt()
+            val frontProgress = remap(frontGear.toDouble(), 1.0, frontMax.toDouble(), 0.0, 1.0) ?: 0.0
+            val rearProgress = remap(rearGear.toDouble(), 1.0, rearMax.toDouble(), 1.0, 0.0) ?: 0.0
+            val progress = ((frontProgress + rearProgress) / 2.0).coerceIn(0.0, 1.0)
+
+            powerbar.progressColor = if (settings.useZoneColors) {
+                context.getColor(getZone(progress).colorResource)
+            } else {
+                context.getColor(R.color.zone0)
+            }
+            powerbar.progress = progress
+            powerbar.label = "F$frontGear-R$rearGear"
+        }
+    }
+
     override suspend fun handle(context: Context, karooSystem: KarooSystemService, powerbars: List<CustomProgressBar>) {
         data class GearState(
             val frontGear: Int?,
