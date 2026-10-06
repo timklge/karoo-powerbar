@@ -66,7 +66,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Open-source extension that adds colored progress bars representing power, heart rate etc. to the edge of the screen, similar to the LED bars on older Wahoo computers",
-            "releaseNotes" to "* Fix memory leak\n* Add Ascent, Remaining Ascent data source",
+            "releaseNotes" to "* Fix ascent bar shows \"?\" if no route is loaded\n* Split settings menu, show preview value on bars when settings menu is open",
             "screenshotUrls" to listOf(
                 "$baseUrl/powerbar_min.gif",
                 "$baseUrl/powerbar0.png",
