@@ -16,6 +16,7 @@
 
 package de.timklge.karoopowerbar.screens
 
+import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import android.util.Log
@@ -42,6 +43,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -51,6 +53,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -68,8 +71,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -86,6 +89,7 @@ import de.timklge.karoopowerbar.datatypes.SelectedSource
 import de.timklge.karoopowerbar.settingsKey
 import de.timklge.karoopowerbar.streamSettings
 import de.timklge.karoopowerbar.streamUserProfile
+import de.timklge.karoopowerbar.util.Updater
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.delay
@@ -182,6 +186,8 @@ fun MainScreen(onFinish: () -> Unit) {
     var barBarSize by remember { mutableStateOf(initialSettings.barBarSize) }
     var barFontSize by remember { mutableStateOf(initialSettings.barFontSize) }
     var stickToEdge by remember { mutableStateOf(initialSettings.stickToEdge) }
+    var enableUpdateNotifications by remember { mutableStateOf(initialSettings.enableUpdateNotifications) }
+    var availableUpdate by remember { mutableStateOf<Updater.UpdateInfo?>(null) }
 
     var minCadence by remember { mutableStateOf(initialSettings.minCadence.toString()) }
     var maxCadence by remember { mutableStateOf(initialSettings.maxCadence.toString()) }
@@ -244,6 +250,7 @@ fun MainScreen(onFinish: () -> Unit) {
             bottomBarRightSource = bottomSelectedSourceRight,
             onlyShowWhileRiding = onlyShowWhileRiding, showLabelOnBars = showLabelOnBars,
             stickToEdge = stickToEdge,
+            enableUpdateNotifications = enableUpdateNotifications,
             useZoneColors = colorBasedOnZones,
             minCadence = minCadence.toIntOrNull() ?: PowerbarSettings.defaultMinCadence,
             maxCadence = maxCadence.toIntOrNull() ?: PowerbarSettings.defaultMaxCadence,
@@ -318,6 +325,7 @@ fun MainScreen(onFinish: () -> Unit) {
                 barBarSize = settings.barBarSize
                 barFontSize = settings.barFontSize
                 stickToEdge = settings.stickToEdge
+                enableUpdateNotifications = settings.enableUpdateNotifications
                 isImperial =
                     profile.preferredUnit.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL
                 if (!anyFieldHasFocus) {
@@ -354,6 +362,16 @@ fun MainScreen(onFinish: () -> Unit) {
         karooSystem.connect { connected ->
             karooConnected = connected
         }
+    }
+
+    LaunchedEffect(karooConnected) {
+        if (!karooConnected || updateCheckDone) return@LaunchedEffect
+
+        val settings = ctx.streamSettings().first()
+        if (!settings.enableUpdateNotifications) return@LaunchedEffect
+
+        availableUpdate = Updater.checkForUpdate(ctx, karooSystem)
+        updateCheckDone = true
     }
 
     LifecycleResumeEffect(Unit) {
@@ -1043,6 +1061,10 @@ fun MainScreen(onFinish: () -> Unit) {
                         coroutineScope.launch { updateSettings() }
                     }
 
+                    SwitchRow(stringResource(R.string.enable_update_notifications), enableUpdateNotifications) {
+                        enableUpdateNotifications = it
+                        coroutineScope.launch { updateSettings() }
+                    }
                 }
                 Spacer(modifier = Modifier.padding(30.dp))
             }
@@ -1080,5 +1102,54 @@ fun MainScreen(onFinish: () -> Unit) {
             updateSettings()
             onFinish()
         }
+    }
+
+    availableUpdate?.let { update ->
+        AlertDialog(
+            onDismissRequest = { availableUpdate = null },
+            title = { Text(stringResource(R.string.update_available_title)) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    Text(stringResource(R.string.update_available_text, update.latestVersion, update.currentVersion))
+                    update.releaseNotes?.takeIf { it.isNotBlank() }?.let { notes ->
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(notes)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    openAppInfoInSettings(ctx)
+                    availableUpdate = null
+                }) {
+                    Text(stringResource(R.string.update_button))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { availableUpdate = null }) {
+                    Text(stringResource(R.string.update_later_button))
+                }
+            },
+        )
+    }
+}
+
+private const val SETTINGS_APP_PACKAGE = "io.hammerhead.settingsapp"
+private const val APP_INFO_ACTION = "io.hammerhead.action.APP_INFO"
+private const val EXTRA_MANIFEST_URL = "manifestUrl"
+
+// Process-wide so the update dialog is only checked once per app start, not on every screen open.
+private var updateCheckDone = false
+
+private fun openAppInfoInSettings(context: Context) {
+    val intent = Intent(APP_INFO_ACTION).apply {
+        setPackage(SETTINGS_APP_PACKAGE)
+        Updater.getManifestUrl(context)?.let { putExtra(EXTRA_MANIFEST_URL, it) }
+    }
+    try {
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Log.w("karoo-powerbar", "Failed to open app info in settings", e)
+        Toast.makeText(context, "Unable to open Karoo settings", Toast.LENGTH_SHORT).show()
     }
 }

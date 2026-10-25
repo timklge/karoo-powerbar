@@ -71,6 +71,8 @@ data class PowerbarSettings(
     val useCustomPowerRange: Boolean = false,
 
     val stickToEdge: Boolean = false,
+
+    val enableUpdateNotifications: Boolean = true,
 ){
     companion object {
         val defaultSettings = Json.encodeToString(PowerbarSettings())
