@@ -92,6 +92,7 @@ import de.timklge.karoopowerbar.streamUserProfile
 import de.timklge.karoopowerbar.util.Updater
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -370,7 +371,11 @@ fun MainScreen(onFinish: () -> Unit) {
         val settings = ctx.streamSettings().first()
         if (!settings.enableUpdateNotifications) return@LaunchedEffect
 
-        availableUpdate = Updater.checkForUpdate(ctx, karooSystem)
+        try {
+            availableUpdate = Updater.checkForUpdate(ctx, karooSystem)
+        } catch (e: Exception) {
+            Log.w(KarooPowerbarExtension.TAG, "Update check failed", e)
+        }
         updateCheckDone = true
     }
 
@@ -1149,7 +1154,7 @@ private fun openAppInfoInSettings(context: Context) {
     try {
         context.startActivity(intent)
     } catch (e: Exception) {
-        Log.w("karoo-powerbar", "Failed to open app info in settings", e)
-        Toast.makeText(context, "Unable to open Karoo settings", Toast.LENGTH_SHORT).show()
+        Log.w(KarooPowerbarExtension.TAG, "Failed to open app info in settings", e)
+        Toast.makeText(context, context.getString(R.string.open_app_info_failed), Toast.LENGTH_SHORT).show()
     }
 }
