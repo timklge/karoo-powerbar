@@ -110,4 +110,28 @@
     <string name="flight_attendant_mode_calibrating">Kalibrierung</string>
 
     <string name="settings_restore_error">Einstellungen konnten nicht wiederhergestellt werden. Standardwerte wurden angewendet.</string>
+
+    <!-- Ride Profiles -->
+    <string name="profile_settings_title">Powerbar: %s</string>
+    <string name="profile_list_title">Powerbar: Fahrprofile</string>
+    <string name="profile_section_title">Fahrprofil</string>
+    <string name="profile_default_settings">Standardeinstellungen</string>
+    <string name="profile_default_settings_description">Gilt für alle Fahrprofile ohne eigene Einstellungen</string>
+    <string name="profile_active_marker">Aktiv</string>
+    <string name="profile_add">Fahrprofil-Einstellungen hinzufügen</string>
+    <string name="profile_apply_to_one">Nur auf ein Profil anwenden</string>
+    <string name="profile_applies_to">Diese Einstellungen gelten nur, solange das Fahrprofil \"%s\" aktiv ist.</string>
+    <string name="profile_delete">Einstellungen für dieses Profil löschen</string>
+    <string name="profile_delete_title">Einstellungen löschen?</string>
+    <string name="profile_delete_text">Die Einstellungen für das Fahrprofil \"%s\" werden gelöscht. Stattdessen werden die Standardeinstellungen verwendet.</string>
+    <string name="profile_dialog_title">Fahrprofil</string>
+    <string name="profile_dialog_text">Gib den Namen des Karoo-Fahrprofils ein, für das diese Einstellungen gelten sollen.</string>
+    <string name="profile_dialog_name_label">Name des Fahrprofils</string>
+    <string name="profile_dialog_active">Aktuell aktives Fahrprofil: %s</string>
+    <string name="profile_dialog_active_unknown">Aktuell aktives Fahrprofil: unbekannt</string>
+    <string name="profile_dialog_use_active">Übernehmen</string>
+    <string name="profile_dialog_exists">Für dieses Fahrprofil existieren bereits Einstellungen.</string>
+    <string name="action_save">Speichern</string>
+    <string name="action_cancel">Abbrechen</string>
+    <string name="action_delete">Löschen</string>
 </resources>
