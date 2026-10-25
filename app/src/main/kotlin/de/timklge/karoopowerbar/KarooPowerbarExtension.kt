@@ -19,11 +19,14 @@ package de.timklge.karoopowerbar
 import android.content.Intent
 import android.provider.Settings
 import android.util.Log
+import de.timklge.karoopowerbar.util.Updater
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.KarooExtension
+import io.hammerhead.karooext.models.SystemNotification
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class KarooPowerbarExtension : KarooExtension("karoo-powerbar", BuildConfig.VERSION_NAME) {
@@ -35,6 +38,7 @@ class KarooPowerbarExtension : KarooExtension("karoo-powerbar", BuildConfig.VERS
     private lateinit var karooSystem: KarooSystemService
 
     private var serviceJob: Job? = null
+    private var updateCheckJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -48,6 +52,38 @@ class KarooPowerbarExtension : KarooExtension("karoo-powerbar", BuildConfig.VERS
         serviceJob = CoroutineScope(Dispatchers.IO).launch {
             karooSystem.connect { connected ->
                 Log.i(TAG, "Karoo system service connected: $connected")
+                if (connected) {
+                    checkForUpdates()
+                }
+            }
+        }
+    }
+
+    private fun checkForUpdates() {
+        if (updateCheckJob != null) return
+
+        updateCheckJob = CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val settings = streamSettings().first()
+                if (!settings.enableUpdateNotifications) {
+                    Log.d(TAG, "Update notifications disabled, skipping update check")
+                    return@launch
+                }
+
+                val update = Updater.checkForUpdate(this@KarooPowerbarExtension, karooSystem)
+                if (update != null) {
+                    karooSystem.dispatch(SystemNotification(
+                        id = "karoo-powerbar-update",
+                        message = "Powerbar ${update.latestVersion} available",
+                        subText = "You are running version ${update.currentVersion}. Open Powerbar for details.",
+                        header = "Powerbar update",
+                        style = SystemNotification.Style.UPDATE,
+                        action = "Open",
+                        actionIntent = "de.timklge.karoopowerbar.MainActivity",
+                    ))
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Update check failed", e)
             }
         }
     }
@@ -55,6 +91,10 @@ class KarooPowerbarExtension : KarooExtension("karoo-powerbar", BuildConfig.VERS
     override fun onDestroy() {
         serviceJob?.cancel()
         serviceJob = null
+
+        updateCheckJob?.cancel()
+        updateCheckJob = null
+
         karooSystem.disconnect()
         super.onDestroy()
     }

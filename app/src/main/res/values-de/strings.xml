@@ -35,6 +35,12 @@
     <string name="color_based_on_zones">Farbe basierend auf HF-/Leistungszonen</string>
     <string name="show_value_on_bars">Werte auf Balken anzeigen</string>
     <string name="stick_to_edge">Am Rand anheften (nur Wertefeld)</string>
+    <string name="enable_update_notifications">Update-Benachrichtigungen aktivieren</string>
+    <string name="update_available_title">Update verfügbar</string>
+    <string name="update_available_text">Version %1$s ist verfügbar (installiert: %2$s).</string>
+    <string name="update_button">Aktualisieren</string>
+    <string name="update_later_button">Später</string>
+    <string name="open_app_info_failed">Einstellungen konnten nicht geöffnet werden</string>
     <string name="only_show_while_riding">Nur während der Fahrt anzeigen</string>
 
     <!-- Data Source Labels -->

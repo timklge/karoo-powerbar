@@ -35,6 +35,12 @@
     <string name="color_based_on_zones">Color based on HR / power zones</string>
     <string name="show_value_on_bars">Show value on bars</string>
     <string name="stick_to_edge">Stick to edge (value box only)</string>
+    <string name="enable_update_notifications">Enable update notifications</string>
+    <string name="update_available_title">Update available</string>
+    <string name="update_available_text">Version %1$s is available (installed: %2$s).</string>
+    <string name="update_button">Update</string>
+    <string name="update_later_button">Later</string>
+    <string name="open_app_info_failed">Unable to open Karoo settings</string>
     <string name="only_show_while_riding">Only show while riding</string>
 
     <!-- Data Source Labels -->
