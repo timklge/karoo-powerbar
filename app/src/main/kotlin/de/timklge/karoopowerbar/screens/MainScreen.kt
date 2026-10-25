@@ -22,7 +22,6 @@ import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +43,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -57,26 +57,25 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusState
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import de.timklge.karoopowerbar.CustomProgressBarBarSize
 import de.timklge.karoopowerbar.CustomProgressBarFontSize
@@ -84,22 +83,25 @@ import de.timklge.karoopowerbar.ForegroundService
 import de.timklge.karoopowerbar.KarooPowerbarExtension
 import de.timklge.karoopowerbar.PowerbarSettings
 import de.timklge.karoopowerbar.R
-import de.timklge.karoopowerbar.dataStore
+import de.timklge.karoopowerbar.SettingsTarget
+import de.timklge.karoopowerbar.StoredSettings
+import de.timklge.karoopowerbar.addProfileSettings
 import de.timklge.karoopowerbar.datatypes.SelectedSource
-import de.timklge.karoopowerbar.settingsKey
+import de.timklge.karoopowerbar.deleteProfileSettings
+import de.timklge.karoopowerbar.saveSettings
 import de.timklge.karoopowerbar.streamSettings
+import de.timklge.karoopowerbar.streamStoredSettings
 import de.timklge.karoopowerbar.streamUserProfile
 import de.timklge.karoopowerbar.util.Updater
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.UserProfile
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import kotlin.math.roundToInt
 
 @Composable
@@ -144,20 +146,80 @@ fun BarSelectDialog(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(onFinish: () -> Unit) {
+    val ctx = LocalContext.current
+    val initialStored = remember(ctx) { runBlocking { ctx.streamStoredSettings().first() } }
+    val stored by remember(ctx) { ctx.streamStoredSettings() }.collectAsState(initialStored)
+    val activeRideProfileName by rememberActiveRideProfileName()
+    val coroutineScope = rememberCoroutineScope()
+
+    var showProfileList by rememberSaveable { mutableStateOf(initialStored.profiles.isNotEmpty()) }
+    // Key of the profile whose settings are edited, null for the default settings
+    var profileKey by rememberSaveable { mutableStateOf<String?>(null) }
+
+    fun openProfile(key: String?) {
+        profileKey = key
+        showProfileList = false
+    }
+
+    if (showProfileList) {
+        ProfileListScreen(
+            stored = stored,
+            activeRideProfileName = activeRideProfileName,
+            onOpenDefault = { openProfile(null) },
+            onOpenProfile = { openProfile(it) },
+            onAddProfile = { name ->
+                coroutineScope.launch {
+                    val key = ctx.addProfileSettings(name, stored.default)
+                    if (key != null) openProfile(key)
+                }
+            },
+            onFinish = onFinish,
+        )
+    } else {
+        key(profileKey) {
+            SettingsScreen(
+                profileKey = profileKey,
+                stored = stored,
+                activeRideProfileName = activeRideProfileName,
+                onBack = { if (stored.profiles.isNotEmpty()) showProfileList = true else onFinish() },
+                onShowProfileList = { showProfileList = true },
+                onOpenProfile = { openProfile(it) },
+                onProfileDeleted = { deletedKey ->
+                    if (stored.profiles.keys.any { it != deletedKey }) showProfileList = true else openProfile(null)
+                },
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsScreen(
+    profileKey: String?,
+    stored: StoredSettings,
+    activeRideProfileName: String?,
+    onBack: () -> Unit,
+    onShowProfileList: () -> Unit,
+    onOpenProfile: (String) -> Unit,
+    onProfileDeleted: (String) -> Unit,
+) {
     var karooConnected by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     val initialSettings = remember(ctx) {
         runBlocking {
-            ctx.streamSettings(onError = {
+            ctx.streamStoredSettings(onError = {
                 Toast.makeText(ctx, R.string.settings_restore_error, Toast.LENGTH_LONG).show()
-            }).first()
+            }).first().exact(profileKey) ?: stored.default
         }
     }
     val coroutineScope = rememberCoroutineScope()
     val karooSystem = remember { KarooSystemService(ctx) }
+
+    var profileDialogVisible by remember { mutableStateOf(false) }
+    var deleteDialogVisible by remember { mutableStateOf(false) }
+    var profileDeleted by remember { mutableStateOf(false) }
 
     var bottomSelectedSource by remember { mutableStateOf(initialSettings.bottomBarSource) }
     var topSelectedSource by remember { mutableStateOf(initialSettings.topBarSource) }
@@ -231,9 +293,7 @@ fun MainScreen(onFinish: () -> Unit) {
 
     var anyFieldHasFocus by remember { mutableStateOf(false) }
 
-    suspend fun updateSettings() {
-        Log.d(KarooPowerbarExtension.TAG, "Saving settings")
-
+    fun buildSettings(): PowerbarSettings {
         val minSpeedSetting =
             (minSpeed.toIntOrNull()?.toFloat()?.div((if (isImperial) 2.23694f else 3.6f)))
                 ?: PowerbarSettings.defaultMinSpeedMs
@@ -241,7 +301,7 @@ fun MainScreen(onFinish: () -> Unit) {
             (maxSpeed.toIntOrNull()?.toFloat()?.div((if (isImperial) 2.23694f else 3.6f)))
                 ?: PowerbarSettings.defaultMaxSpeedMs
 
-        val newSettings = PowerbarSettings(
+        return PowerbarSettings(
             bottomBarSource = bottomSelectedSource, topBarSource = topSelectedSource,
             splitTopBar = splitTopBar,
             splitBottomBar = splitBottomBar,
@@ -271,10 +331,13 @@ fun MainScreen(onFinish: () -> Unit) {
             useCustomPowerRange = useCustomPowerRange,
             useCustomHrRange = useCustomHrRange,
         )
+    }
 
-        ctx.dataStore.edit { t ->
-            t[settingsKey] = Json.encodeToString(newSettings)
-        }
+    suspend fun updateSettings() {
+        if (profileDeleted) return
+
+        Log.d(KarooPowerbarExtension.TAG, "Saving settings")
+        ctx.saveSettings(profileKey, buildSettings())
     }
 
     fun updateFocus(focusState: FocusState) {
@@ -306,9 +369,10 @@ fun MainScreen(onFinish: () -> Unit) {
     LaunchedEffect(Unit) {
         givenPermissions = Settings.canDrawOverlays(ctx)
 
-        ctx.streamSettings(onError = {
+        ctx.streamStoredSettings(onError = {
             Toast.makeText(ctx, R.string.settings_restore_error, Toast.LENGTH_LONG).show()
         })
+            .mapNotNull { it.exact(profileKey) }
             .combine(karooSystem.streamUserProfile()) { settings, profile -> settings to profile }
             .distinctUntilChanged()
             .collect { (settings, profile) ->
@@ -382,6 +446,7 @@ fun MainScreen(onFinish: () -> Unit) {
     LifecycleResumeEffect(Unit) {
         val hasOverlayPermission = Settings.canDrawOverlays(ctx)
         givenPermissions = hasOverlayPermission
+        SettingsTarget.previewTarget.value = SettingsTarget.PreviewTarget(profileKey)
         if (hasOverlayPermission) {
             ctx.startService(
                 Intent(ctx, ForegroundService::class.java).setAction(ForegroundService.ACTION_PREVIEW_START)
@@ -389,6 +454,7 @@ fun MainScreen(onFinish: () -> Unit) {
         }
 
         onPauseOrDispose {
+            SettingsTarget.previewTarget.value = null
             if (hasOverlayPermission) {
                 ctx.startService(
                     Intent(ctx, ForegroundService::class.java).setAction(ForegroundService.ACTION_PREVIEW_STOP)
@@ -407,21 +473,10 @@ fun MainScreen(onFinish: () -> Unit) {
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(40.dp)
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(R.string.powerbar_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    textAlign = TextAlign.Center,
-                )
-            }
+            ScreenHeader(
+                if (profileKey == null) stringResource(R.string.powerbar_title)
+                else stringResource(R.string.profile_settings_title, profileKey)
+            )
             Column(
                 modifier = Modifier
                     .verticalScroll(rememberScrollState())
@@ -1071,20 +1126,78 @@ fun MainScreen(onFinish: () -> Unit) {
                         coroutineScope.launch { updateSettings() }
                     }
                 }
+
+                SettingsCard {
+                    Text(
+                        stringResource(R.string.profile_section_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    if (profileKey == null) {
+                        FilledTonalButton(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                            onClick = { profileDialogVisible = true }
+                        ) {
+                            Text(stringResource(R.string.profile_apply_to_one))
+                        }
+                    } else {
+                        Text(
+                            stringResource(R.string.profile_applies_to, profileKey),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                        FilledTonalButton(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            ),
+                            onClick = { deleteDialogVisible = true }
+                        ) {
+                            Text(stringResource(R.string.profile_delete))
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.padding(30.dp))
             }
         }
 
-        Image(
-            painter = painterResource(id = R.drawable.back),
-            contentDescription = stringResource(R.string.content_desc_back),
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(bottom = 10.dp)
-                .size(54.dp)
-                .clickable {
-                    onFinish()
+        BackButton(modifier = Modifier.align(Alignment.BottomStart), onClick = onBack)
+    }
+
+    if (profileDialogVisible) {
+        ProfileNameDialog(
+            activeRideProfileName = activeRideProfileName,
+            isNameTaken = { stored.findProfileKey(it) != null },
+            onDismiss = { profileDialogVisible = false },
+            onConfirm = { name ->
+                profileDialogVisible = false
+                coroutineScope.launch {
+                    updateSettings()
+                    val newKey = ctx.addProfileSettings(name, buildSettings())
+                    if (newKey != null) onOpenProfile(newKey)
                 }
+            }
+        )
+    }
+
+    if (deleteDialogVisible && profileKey != null) {
+        DeleteProfileDialog(
+            profileName = profileKey,
+            onDismiss = { deleteDialogVisible = false },
+            onConfirm = {
+                deleteDialogVisible = false
+                profileDeleted = true
+                coroutineScope.launch {
+                    ctx.deleteProfileSettings(profileKey)
+                    onProfileDeleted(profileKey)
+                }
+            }
         )
     }
 
@@ -1105,7 +1218,7 @@ fun MainScreen(onFinish: () -> Unit) {
     BackHandler {
         coroutineScope.launch {
             updateSettings()
-            onFinish()
+            onBack()
         }
     }
 

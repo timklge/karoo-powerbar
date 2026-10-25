@@ -110,4 +110,28 @@
     <string name="flight_attendant_mode_calibrating">Calibrating</string>
 
     <string name="settings_restore_error">Failed to restore settings. Default values have been applied.</string>
+
+    <!-- Ride Profiles -->
+    <string name="profile_settings_title">Powerbar: %s</string>
+    <string name="profile_list_title">Powerbar: Ride Profiles</string>
+    <string name="profile_section_title">Ride Profile</string>
+    <string name="profile_default_settings">Default settings</string>
+    <string name="profile_default_settings_description">Used for all ride profiles without their own settings</string>
+    <string name="profile_active_marker">Active</string>
+    <string name="profile_add">Add ride profile settings</string>
+    <string name="profile_apply_to_one">Limit to ride profile</string>
+    <string name="profile_applies_to">These settings only apply while the ride profile \"%s\" is active.</string>
+    <string name="profile_delete">Delete settings for this profile</string>
+    <string name="profile_delete_title">Delete settings?</string>
+    <string name="profile_delete_text">The settings for the ride profile \"%s\" will be deleted. The default settings will be used for this profile instead.</string>
+    <string name="profile_dialog_title">Ride profile</string>
+    <string name="profile_dialog_text">Enter the name of the Karoo ride profile these settings should apply to.</string>
+    <string name="profile_dialog_name_label">Ride profile name</string>
+    <string name="profile_dialog_active">Currently active ride profile: %s</string>
+    <string name="profile_dialog_active_unknown">Currently active ride profile: unknown</string>
+    <string name="profile_dialog_use_active">Use</string>
+    <string name="profile_dialog_exists">Settings for this ride profile already exist.</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
 </resources>

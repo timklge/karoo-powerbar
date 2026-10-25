@@ -73,6 +73,21 @@ class ForegroundService : Service() {
         setupForeground()
 
         serviceScope.launch {
+            val rideProfileService = KarooSystemService(applicationContext)
+            try {
+                rideProfileService.connect { connected ->
+                    Log.i(TAG, "Karoo system service connected (ride profile): $connected")
+                }
+                rideProfileService.streamActiveRideProfile().collect { activeRideProfile ->
+                    SettingsTarget.activeRideProfileName.value = activeRideProfile.profile.name
+                }
+            } finally {
+                SettingsTarget.activeRideProfileName.value = null
+                rideProfileService.disconnect()
+            }
+        }
+
+        serviceScope.launch {
             previewMode.collectLatest { isPreview ->
                 windows.forEach { it.close() }
                 windows.clear()

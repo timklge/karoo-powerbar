@@ -16,12 +16,18 @@
 
 package de.timklge.karoopowerbar.screens
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,7 +37,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import de.timklge.karoopowerbar.R
 
 @Composable
 fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
@@ -75,4 +86,47 @@ fun AlertCard(text: String) {
     ) {
         Text(text, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
     }
+}
+
+@Composable
+fun ScreenHeader(title: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .background(MaterialTheme.colorScheme.primary),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onPrimary,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
+fun BackButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Image(
+        painter = painterResource(id = R.drawable.back),
+        contentDescription = stringResource(R.string.content_desc_back),
+        modifier = modifier
+            .padding(bottom = 10.dp)
+            .size(54.dp)
+            .clickable(onClick = onClick)
+    )
+}
+
+@Composable
+fun AddButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Image(
+        painter = painterResource(id = R.drawable.add),
+        contentDescription = stringResource(R.string.profile_add),
+        modifier = modifier
+            .padding(bottom = 10.dp)
+            .size(54.dp)
+            .clickable(onClick = onClick)
+    )
 }
