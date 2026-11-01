@@ -112,11 +112,6 @@ fun ProfileNameDialog(
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f),
                     )
-                    if (activeRideProfileName != null) {
-                        TextButton(onClick = { name = activeRideProfileName }) {
-                            Text(stringResource(R.string.profile_dialog_use_active))
-                        }
-                    }
                 }
             }
         },
