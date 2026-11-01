@@ -33,11 +33,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class ForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder {
@@ -45,26 +49,38 @@ class ForegroundService : Service() {
     }
 
     private val windows = mutableSetOf<Window>()
+    private val windowsMutex = Mutex()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val previewMode = MutableStateFlow(false)
 
     private suspend fun createBars(settings: PowerbarSettings, preview: Boolean) {
-        if (settings.bottomBarSource != SelectedSource.NONE || settings.bottomBarLeftSource != SelectedSource.NONE || settings.bottomBarRightSource != SelectedSource.NONE) {
-            Window(this@ForegroundService, VerticalPowerbarLocation.BOTTOM, settings.showLabelOnBars,
-                settings.barBarSize, settings.barFontSize,
-                settings.splitBottomBar, settings.stickToEdge, settings.bottomBarSource, settings.bottomBarLeftSource, settings.bottomBarRightSource, preview).apply {
-                windows.add(this)
-                open()
+        windowsMutex.withLock {
+            currentCoroutineContext().ensureActive()
+
+            if (settings.bottomBarSource != SelectedSource.NONE || settings.bottomBarLeftSource != SelectedSource.NONE || settings.bottomBarRightSource != SelectedSource.NONE) {
+                Window(this@ForegroundService, VerticalPowerbarLocation.BOTTOM, settings.showLabelOnBars,
+                    settings.barBarSize, settings.barFontSize,
+                    settings.splitBottomBar, settings.stickToEdge, settings.bottomBarSource, settings.bottomBarLeftSource, settings.bottomBarRightSource, preview).apply {
+                    windows.add(this)
+                    open()
+                }
+            }
+
+            if (settings.topBarSource != SelectedSource.NONE || settings.topBarLeftSource != SelectedSource.NONE || settings.topBarRightSource != SelectedSource.NONE) {
+                Window(this@ForegroundService, VerticalPowerbarLocation.TOP, settings.showLabelOnBars,
+                    settings.barBarSize, settings.barFontSize,
+                    settings.splitTopBar, settings.stickToEdge, settings.topBarSource, settings.topBarLeftSource, settings.topBarRightSource, preview).apply {
+                    windows.add(this)
+                    open()
+                }
             }
         }
+    }
 
-        if (settings.topBarSource != SelectedSource.NONE || settings.topBarLeftSource != SelectedSource.NONE || settings.topBarRightSource != SelectedSource.NONE) {
-            Window(this@ForegroundService, VerticalPowerbarLocation.TOP, settings.showLabelOnBars,
-                settings.barBarSize, settings.barFontSize,
-                settings.splitTopBar, settings.stickToEdge, settings.topBarSource, settings.topBarLeftSource, settings.topBarRightSource, preview).apply {
-                open()
-                windows.add(this)
-            }
+    private suspend fun closeWindows() {
+        windowsMutex.withLock {
+            windows.forEach { it.close() }
+            windows.clear()
         }
     }
 
@@ -73,16 +89,29 @@ class ForegroundService : Service() {
         setupForeground()
 
         serviceScope.launch {
+            val rideProfileService = KarooSystemService(applicationContext)
+            try {
+                rideProfileService.connect { connected ->
+                    Log.i(TAG, "Karoo system service connected (ride profile): $connected")
+                }
+                rideProfileService.streamActiveRideProfile().collect { activeRideProfile ->
+                    SettingsTarget.activeRideProfileName.value = activeRideProfile.profile.name
+                }
+            } finally {
+                SettingsTarget.activeRideProfileName.value = null
+                rideProfileService.disconnect()
+            }
+        }
+
+        serviceScope.launch {
             previewMode.collectLatest { isPreview ->
-                windows.forEach { it.close() }
-                windows.clear()
+                closeWindows()
 
                 if (isPreview) {
                     applicationContext
                         .streamSettings()
                         .distinctUntilChanged().collectLatest { settings ->
-                            windows.forEach { it.close() }
-                            windows.clear()
+                            closeWindows()
 
                             createBars(settings, true)
                         }
@@ -102,8 +131,7 @@ class ForegroundService : Service() {
                                 val showBars = !settings.onlyShowWhileRiding || rideState is RideState.Recording
                                 StreamState(settings, showBars)
                             }.distinctUntilChanged().collectLatest { (settings, showBars) ->
-                                windows.forEach { it.close() }
-                                windows.clear()
+                                closeWindows()
 
                                 if (showBars){
                                     createBars(settings, false)
@@ -119,8 +147,7 @@ class ForegroundService : Service() {
 
     override fun onDestroy() {
         serviceScope.cancel()
-        windows.forEach { it.close() }
-        windows.clear()
+        CoroutineScope(Dispatchers.IO).launch { closeWindows() }
         super.onDestroy()
     }
 

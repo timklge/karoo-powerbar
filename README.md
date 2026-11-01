@@ -39,6 +39,11 @@ Optionally, the actual data value can be displayed on top of the bar.
 
 As long as you have the settings menu open, the bars will be displayed with random preview values.
 
+### Ride profile specific settings
+
+At the bottom of the settings menu, you can choose to apply the settings to a specific ride profile only.
+While a ride profile is active, its own settings are used if present; otherwise the default settings apply.
+
 ## Installation
 
 This extension is available as part of the extension library on your Karoo device. More information is available in the [Hammerhead FAQ](https://support.hammerhead.io/hc/en-us/articles/34676015530907-Karoo-OS-Extensions-Library).
